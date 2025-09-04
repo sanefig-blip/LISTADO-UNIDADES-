@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DownloadIcon, PlusCircleIcon, TrashIcon } from './icons.js';
 import { exportCommandPostToPdf } from '../services/exportService.js';
 import Croquis from './Croquis.js';
@@ -28,7 +28,7 @@ const TabButton = ({ activeTab, tabName, label, onClick }) => (
 
 const CommandPostView = ({ unitReportData }) => {
     const [activeTab, setActiveTab] = useState('control');
-    const croquisRef = useRef(null);
+    const [croquisSketch, setCroquisSketch] = useState(null);
 
     const allUnitsForTracking = useMemo(() => {
         if (!unitReportData) return [];
@@ -172,8 +172,12 @@ const CommandPostView = ({ unitReportData }) => {
         '': 'bg-zinc-600 text-white'
     };
 
-    const handleExport = async () => {
-        const croquisSketch = await croquisRef.current?.getCenteredSketch();
+    const handleExport = () => {
+        if (!croquisSketch) {
+            alert("Por favor, primero valide el croquis antes de exportar el reporte.");
+            setActiveTab('croquis');
+            return;
+        }
         exportCommandPostToPdf(
             incidentDetails,
             trackedUnits,
@@ -183,6 +187,15 @@ const CommandPostView = ({ unitReportData }) => {
             sci207Victims,
             croquisSketch
         );
+    };
+
+    const handleSketchCapture = (imageDataUrl) => {
+        setCroquisSketch(imageDataUrl);
+        setActiveTab('control');
+    };
+
+    const handleUnlockSketch = () => {
+        setCroquisSketch(null);
     };
 
     return (
@@ -195,9 +208,16 @@ const CommandPostView = ({ unitReportData }) => {
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "sci211", label: "Formulario SCI-211 (Recursos)", onClick: setActiveTab }),
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "sci207", label: "Formulario SCI-207 (Víctimas)", onClick: setActiveTab })
                 ),
-                 React.createElement("button", { onClick: handleExport, className: "flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold" },
+                React.createElement("button", { onClick: handleExport, className: "flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold" },
                     React.createElement(DownloadIcon, { className: "w-5 h-5" }),
                     "Exportar Reporte PDF"
+                )
+            ),
+
+            croquisSketch && activeTab === 'control' && (
+                React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl animate-fade-in" },
+                    React.createElement("h3", { className: "text-lg font-semibold text-green-400 mb-2" }, "Vista Previa del Croquis Validado"),
+                    React.createElement("img", { src: croquisSketch, alt: "Vista previa del croquis", className: "max-w-full h-auto rounded-md border-2 border-zinc-600" })
                 )
             ),
 
@@ -235,9 +255,7 @@ const CommandPostView = ({ unitReportData }) => {
                                 React.createElement("tbody", null,
                                     trackedUnits.map(unit => (
                                         React.createElement("tr", { key: unit.id, className: "border-t border-zinc-700/50 hover:bg-zinc-700/30" },
-                                            React.createElement("td", { className: "p-2 align-middle text-center" },
-                                                React.createElement("input", { type: "checkbox", checked: unit.dispatched, onChange: e => handleUnitTrackChange(unit.id, 'dispatched', e.target.checked), className: "h-5 w-5 bg-zinc-700 border-zinc-600 rounded text-blue-500 focus:ring-blue-500" })
-                                            ),
+                                            React.createElement("td", { className: "p-2 align-middle text-center" }, React.createElement("input", { type: "checkbox", checked: unit.dispatched, onChange: e => handleUnitTrackChange(unit.id, 'dispatched', e.target.checked), className: "h-5 w-5 bg-zinc-700 border-zinc-600 rounded text-blue-500 focus:ring-blue-500" })),
                                             React.createElement("td", { className: "p-2 align-middle" }, React.createElement("div", {className: "font-mono text-zinc-200"}, unit.id), React.createElement("div", {className: "text-xs text-zinc-500"}, unit.groupName)),
                                             React.createElement("td", { className: "p-2 align-middle text-zinc-300 text-sm" }, unit.officerInCharge || '-'),
                                             React.createElement("td", { className: "p-2 align-middle text-center font-semibold text-white" }, unit.personnelCount),
@@ -251,7 +269,6 @@ const CommandPostView = ({ unitReportData }) => {
                             )
                          )
                     ),
-
                     React.createElement("div", { className: "bg-zinc-800/60 p-6 rounded-xl" },
                          React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-4" }, "Personal Clave en la Intervención"),
                          React.createElement("div", { className: "overflow-x-auto" },
@@ -284,7 +301,7 @@ const CommandPostView = ({ unitReportData }) => {
 
             activeTab === 'croquis' && (
                 React.createElement("div", { className: "animate-fade-in" },
-                    React.createElement(Croquis, { ref: croquisRef, isActive: activeTab === 'croquis' })
+                    React.createElement(Croquis, { isActive: activeTab === 'croquis', onSketchCapture: handleSketchCapture, onUnlockSketch: handleUnlockSketch })
                 )
             ),
             

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UnitReportData, SCI201Data, SCI211Resource, SCI207Victim, TriageCategory } from '../types';
 import { DownloadIcon, PlusCircleIcon, TrashIcon } from './icons';
 import { exportCommandPostToPdf } from '../services/exportService';
@@ -55,7 +55,7 @@ interface CommandPostViewProps {
 
 const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => {
     const [activeTab, setActiveTab] = useState('control');
-    const croquisRef = useRef<{ getCenteredSketch: () => Promise<string | null> }>(null);
+    const [croquisSketch, setCroquisSketch] = useState<string | null>(null);
 
     const allUnitsForTracking = useMemo(() => {
         if (!unitReportData) return [];
@@ -199,8 +199,12 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
         '': 'bg-zinc-600 text-white'
     };
 
-    const handleExport = async () => {
-        const croquisSketch = await croquisRef.current?.getCenteredSketch();
+    const handleExport = () => {
+        if (!croquisSketch) {
+            alert("Por favor, primero valide el croquis antes de exportar el reporte.");
+            setActiveTab('croquis');
+            return;
+        }
         exportCommandPostToPdf(
             incidentDetails,
             trackedUnits,
@@ -210,6 +214,15 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
             sci207Victims,
             croquisSketch
         );
+    };
+
+    const handleSketchCapture = (imageDataUrl: string) => {
+        setCroquisSketch(imageDataUrl);
+        setActiveTab('control'); // Go back to main tab after capture for preview
+    };
+
+    const handleUnlockSketch = () => {
+        setCroquisSketch(null);
     };
 
     return (
@@ -223,10 +236,17 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                     <TabButton activeTab={activeTab} tabName="sci207" label="Formulario SCI-207 (Víctimas)" onClick={setActiveTab} />
                 </div>
                  <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold">
-                    <DownloadIcon className="w-5 h-5"/>
+                    <DownloadIcon className="w-5 h-5" />
                     Exportar Reporte PDF
                 </button>
             </div>
+
+            {croquisSketch && activeTab === 'control' && (
+                <div className="bg-zinc-800/60 p-4 rounded-xl animate-fade-in">
+                    <h3 className="text-lg font-semibold text-green-400 mb-2">Vista Previa del Croquis Validado</h3>
+                    <img src={croquisSketch} alt="Vista previa del croquis" className="max-w-full h-auto rounded-md border-2 border-zinc-600" />
+                </div>
+            )}
 
             {activeTab === 'control' && (
                 <div className="space-y-6 animate-fade-in">
@@ -262,9 +282,7 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                                 <tbody>
                                     {trackedUnits.map(unit => (
                                         <tr key={unit.id} className="border-t border-zinc-700/50 hover:bg-zinc-700/30">
-                                            <td className="p-2 align-middle text-center">
-                                                <input type="checkbox" checked={unit.dispatched} onChange={e => handleUnitTrackChange(unit.id, 'dispatched', e.target.checked)} className="h-5 w-5 bg-zinc-700 border-zinc-600 rounded text-blue-500 focus:ring-blue-500" />
-                                            </td>
+                                            <td className="p-2 align-middle text-center"><input type="checkbox" checked={unit.dispatched} onChange={e => handleUnitTrackChange(unit.id, 'dispatched', e.target.checked)} className="h-5 w-5 bg-zinc-700 border-zinc-600 rounded text-blue-500 focus:ring-blue-500" /></td>
                                             <td className="p-2 align-middle"><div className="font-mono text-zinc-200">{unit.id}</div><div className="text-xs text-zinc-500">{unit.groupName}</div></td>
                                             <td className="p-2 align-middle text-zinc-300 text-sm">{unit.officerInCharge || '-'}</td>
                                             <td className="p-2 align-middle text-center font-semibold text-white">{unit.personnelCount}</td>
@@ -278,7 +296,6 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                             </table>
                          </div>
                     </div>
-
                     <div className="bg-zinc-800/60 p-6 rounded-xl">
                          <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-4">Personal Clave en la Intervención</h3>
                          <div className="overflow-x-auto">
@@ -311,7 +328,7 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
 
             {activeTab === 'croquis' && (
                 <div className="animate-fade-in">
-                    <Croquis ref={croquisRef} isActive={activeTab === 'croquis'} />
+                    <Croquis isActive={activeTab === 'croquis'} onSketchCapture={handleSketchCapture} onUnlockSketch={handleUnlockSketch} />
                 </div>
             )}
             
@@ -355,10 +372,10 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                             <div key={action.id} className="flex gap-2 mb-2 items-center">
                                 <input type="text" placeholder="Hora" value={action.time} onChange={e => handleSci201ActionChange(action.id, 'time', e.target.value)} className="w-28 bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/>
                                 <input type="text" placeholder="Resumen de la acción" value={action.summary} onChange={e => handleSci201ActionChange(action.id, 'summary', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/>
-                                <button onClick={() => removeSci201Action(action.id)} className="p-1 text-red-400 hover:bg-zinc-700 rounded-full"><TrashIcon className="w-5 h-5"/></button>
+                                <button onClick={() => removeSci201Action(action.id)} className="p-1 text-red-400 hover:bg-zinc-700 rounded-full"><TrashIcon className="w-5 h-5" /></button>
                             </div>
                         ))}
-                        <button onClick={addSci201Action} className="flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5"/> Añadir Acción</button>
+                        <button onClick={addSci201Action} className="flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5" /> Añadir Acción</button>
                     </div>
                 </div>
             )}
@@ -406,7 +423,7 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                             </tbody>
                         </table>
                     </div>
-                    <button onClick={addSci211Resource} className="mt-4 flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5"/> Añadir Recurso</button>
+                    <button onClick={addSci211Resource} className="mt-4 flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5" /> Añadir Recurso</button>
                 </div>
             )}
             
@@ -452,7 +469,7 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                             </tbody>
                         </table>
                     </div>
-                     <button onClick={addSci207Victim} className="mt-4 flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5"/> Añadir Víctima</button>
+                     <button onClick={addSci207Victim} className="mt-4 flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5" /> Añadir Víctima</button>
                 </div>
             )}
         </div>
