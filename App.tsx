@@ -890,7 +890,7 @@ const App = () => {
         }
     };
     
-    const getButtonClass = (buttonView: string) => `flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${view === buttonView ? 'bg-blue-600 text-white shadow-lg' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`;
+    const getButtonClass = (buttonView: string) => `flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${view === buttonView ? 'bg-blue-600 text-white shadow-lg' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`;
     
      if (!currentUser) {
         return React.createElement(Login, { onLogin: handleLogin, users: usersData });
@@ -911,20 +911,23 @@ const App = () => {
             React.createElement("input", { type: "file", ref: unitReportPdfFileInputRef, onChange: handleUnitReportPdfImport, style: { display: 'none' }, accept: ".pdf" }),
             React.createElement("input", { type: "file", ref: rosterInputRef, onChange: handleRosterImport, style: { display: 'none' }, accept: ".json,.docx" }),
             React.createElement("header", { className: "bg-zinc-800/80 backdrop-blur-sm sticky top-0 z-40 shadow-lg" },
-                React.createElement("div", { className: "container mx-auto px-4 sm:px-6 lg:px-8" },
-                    React.createElement("div", { className: "flex flex-col sm:flex-row items-center justify-between h-auto sm:h-20 py-4 sm:py-0" },
-                        React.createElement("div", { className: "flex items-center mb-4 sm:mb-0" },
-                            React.createElement("img", { src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png", alt: "Escudo Bomberos de la Ciudad", className: "h-12 mr-3" }),
-                            React.createElement("button", { onClick: handleResetData, className: "mr-2 text-zinc-400 hover:text-white transition-colors", "aria-label": "Reiniciar Datos"}, React.createElement(RefreshIcon, { className: "w-6 h-6" })),
-                            React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" }))
+                React.createElement("div", { className: "container mx-auto px-4 sm:px-6 lg:px-8 py-2" },
+                    React.createElement("div", { className: "flex items-center justify-between" },
+                        React.createElement("div", { className: "flex items-center gap-3" },
+                            React.createElement("h1", { className: "text-lg font-bold text-white tracking-wider" }, "BOMBEROS DE LA CIUDAD"),
+                            React.createElement("div", { className: "flex items-center gap-1" },
+                                React.createElement("button", { onClick: handleResetData, className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", "aria-label": "Reiniciar Datos" }, React.createElement(RefreshIcon, { className: "w-5 h-5" })),
+                                React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", "aria-label": "Ayuda" }, React.createElement(QuestionMarkCircleIcon, { className: "w-5 h-5" }))
+                            )
                         ),
-                        React.createElement("div", { className: "flex flex-wrap items-center justify-end gap-2" },
-                             React.createElement("div", { className: "flex items-center text-sm text-zinc-300 mr-4" },
-                                React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
-                                React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión"}, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
-                            ),
+                        React.createElement("div", { className: "flex items-center text-sm text-zinc-300" },
+                            React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
+                            React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión" }, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
+                        )
+                    ),
+                    React.createElement("div", { className: "mt-2 pt-2 border-t border-zinc-700" },
+                        React.createElement("div", { className: "flex items-center gap-2 overflow-x-auto pb-2 -mb-2" },
                             React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
-                            React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
                             React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
                             React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
                             (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
@@ -934,8 +937,9 @@ const App = () => {
                             React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
                             React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
                             currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
+                            React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
                             currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
-                            
+
                             React.createElement("div", { className: "relative", ref: importMenuRef },
                                 React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },
                                     React.createElement(UploadIcon, { className: 'w-5 h-5' }),
@@ -967,7 +971,6 @@ const App = () => {
                                     )
                                 )
                             ),
-
                             React.createElement("div", { className: "relative", ref: exportMenuRef },
                                 React.createElement("button", { onClick: () => setExportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white font-medium transition-colors' },
                                     React.createElement(DownloadIcon, { className: 'w-5 h-5' }),
@@ -985,7 +988,6 @@ const App = () => {
                                     )
                                 )
                             ),
-                            
                             selectedServiceIds.size > 0 && view === 'schedule' && (
                                 React.createElement("button", { onClick: handleToggleVisibilityForSelected, className: `flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ${visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`},
                                     visibilityAction.action === 'hide' ? React.createElement(EyeOffIcon, { className: "w-5 h-5" }) : React.createElement(EyeIcon, { className: "w-5 h-5" }),
