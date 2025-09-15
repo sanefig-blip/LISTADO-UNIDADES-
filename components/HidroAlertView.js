@@ -107,6 +107,10 @@ const HidroAlertView = ({ hidroAlertData, onUpdateHidroAlertData, unitList, curr
     const OperativoContent = () => (
         React.createElement("div", { className: "space-y-8 text-zinc-300 animate-fade-in" },
             React.createElement("section", null,
+                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "PANORAMA I"),
+                React.createElement("p", { className: "p-3 bg-zinc-900/50 rounded-md" }, "A DESIGNAR POR DIRECTOR DEF CIVIL.")
+            ),
+            React.createElement("section", null,
                 React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "DESPLAZAMIENTOS A QTH DE PANORAMA II"),
                 React.createElement("ul", { className: "space-y-4" },
                     dataForView.panorama2Updates.map((item, index) => (
@@ -159,6 +163,26 @@ const HidroAlertView = ({ hidroAlertData, onUpdateHidroAlertData, unitList, curr
                         )
                     ))
                 )
+            ),
+             React.createElement("section", null,
+                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "PANORAMA III"),
+                React.createElement("ul", { className: "list-disc list-inside space-y-2 p-3 bg-zinc-900/50 rounded-md" },
+                    React.createElement("li", null, "ESTACION VIII \"NUEVA CHICAGO\""),
+                    React.createElement("li", null, "DETALLE GER \"CABALLO\"")
+                )
+            ),
+            React.createElement("section", null,
+                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "En caso de ANEGAMIENTO"),
+                React.createElement("div", { className: "p-3 bg-zinc-900/50 rounded-md space-y-2" },
+                    React.createElement("p", null, "Comunicar la altura alcanzada por el agua, tomando puntos de referencia:"),
+                    React.createElement("ul", { className: "list-disc list-inside pl-4 space-y-1" },
+                        React.createElement("li", null, "Anegamientos de agua hasta la altura del cordón."),
+                        React.createElement("li", null, "Anegamientos de agua hasta la altura de la línea de edificación."),
+                        React.createElement("li", null, "Anegamientos de agua de cordón a cordón."),
+                        React.createElement("li", null, "Anegamientos de agua cubre el eje de la calle."),
+                        React.createElement("li", null, "Anegamientos de agua cubre un carril.")
+                    )
+                )
             )
         )
     );
@@ -197,13 +221,24 @@ const HidroAlertView = ({ hidroAlertData, onUpdateHidroAlertData, unitList, curr
                     activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[60vh] rounded-lg bg-zinc-900 animate-fade-in"}),
                     activeTab === 'puentes' && (
                         React.createElement("div", { className: "max-h-[60vh] overflow-y-auto pr-2 animate-fade-in" },
-                            React.createElement("ul", { className: "divide-y divide-zinc-700" },
-                                (dataForView.underpasses || []).map(up => (
-                                    React.createElement("li", { key: up.id, className: "py-2" },
-                                        React.createElement("p", { className: "font-semibold text-white" }, up.id, ". ", up.name, " ", React.createElement("span", { className: "text-xs font-normal text-zinc-400" }, "(", up.commune, ")")),
-                                        React.createElement("p", { className: "text-sm text-zinc-300" }, up.location)
+                            React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3" }, "Monitoreo Preventivo de Puentes y Bajo Nivel"),
+                            React.createElement("table", { className: "w-full text-left" },
+                                React.createElement("thead", { className: "sticky top-0 bg-zinc-800/80 backdrop-blur-sm" },
+                                    React.createElement("tr", { className: "text-sm text-zinc-400 border-b border-zinc-700" },
+                                        React.createElement("th", { className: "p-2 w-2/5" }, "Nombre"),
+                                        React.createElement("th", { className: "p-2 w-1/5" }, "Comuna"),
+                                        React.createElement("th", { className: "p-2" }, "Ubicación")
                                     )
-                                ))
+                                ),
+                                React.createElement("tbody", { className: "divide-y divide-zinc-700/50" },
+                                    (dataForView.underpasses || []).map(up => (
+                                        React.createElement("tr", { key: up.id, className: "hover:bg-zinc-700/50" },
+                                            React.createElement("td", { className: "p-2 font-semibold text-zinc-200" }, `${up.id}. ${up.name}`),
+                                            React.createElement("td", { className: "p-2 text-zinc-300" }, up.commune),
+                                            React.createElement("td", { className: "p-2 text-zinc-300" }, up.location)
+                                        )
+                                    ))
+                                )
                             )
                         )
                     )

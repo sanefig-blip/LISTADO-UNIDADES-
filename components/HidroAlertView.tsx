@@ -116,6 +116,10 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
 
     const OperativoContent = () => (
         <div className="space-y-8 text-zinc-300 animate-fade-in">
+             <section>
+                <h3 className="text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2">PANORAMA I</h3>
+                <p className="p-3 bg-zinc-900/50 rounded-md">A DESIGNAR POR DIRECTOR DEF CIVIL.</p>
+            </section>
             <section>
                 <h3 className="text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2">DESPLAZAMIENTOS A QTH DE PANORAMA II</h3>
                 <ul className="space-y-4">
@@ -170,6 +174,26 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
                     ))}
                 </ul>
             </section>
+             <section>
+                <h3 className="text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2">PANORAMA III</h3>
+                <ul className="list-disc list-inside space-y-2 p-3 bg-zinc-900/50 rounded-md">
+                    <li>ESTACION VIII "NUEVA CHICAGO"</li>
+                    <li>DETALLE GER "CABALLO"</li>
+                </ul>
+            </section>
+            <section>
+                <h3 className="text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2">En caso de ANEGAMIENTO</h3>
+                <div className="p-3 bg-zinc-900/50 rounded-md space-y-2">
+                    <p>Comunicar la altura alcanzada por el agua, tomando puntos de referencia:</p>
+                    <ul className="list-disc list-inside pl-4 space-y-1">
+                        <li>Anegamientos de agua hasta la altura del cordón.</li>
+                        <li>Anegamientos de agua hasta la altura de la línea de edificación.</li>
+                        <li>Anegamientos de agua de cordón a cordón.</li>
+                        <li>Anegamientos de agua cubre el eje de la calle.</li>
+                        <li>Anegamientos de agua cubre un carril.</li>
+                    </ul>
+                </div>
+            </section>
         </div>
     );
     
@@ -207,14 +231,25 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
                     {activeTab === 'mapa' && <div ref={mapContainerRef} className="w-full h-[60vh] rounded-lg bg-zinc-900 animate-fade-in"></div>}
                     {activeTab === 'puentes' && (
                         <div className="max-h-[60vh] overflow-y-auto pr-2 animate-fade-in">
-                            <ul className="divide-y divide-zinc-700">
-                                {(dataForView.underpasses || []).map(up => (
-                                    <li key={up.id} className="py-2">
-                                        <p className="font-semibold text-white">{up.id}. {up.name} <span className="text-xs font-normal text-zinc-400">({up.commune})</span></p>
-                                        <p className="text-sm text-zinc-300">{up.location}</p>
-                                    </li>
-                                ))}
-                            </ul>
+                            <h3 className="text-xl font-semibold text-yellow-300 mb-3">Monitoreo Preventivo de Puentes y Bajo Nivel</h3>
+                             <table className="w-full text-left">
+                                <thead className="sticky top-0 bg-zinc-800/80 backdrop-blur-sm">
+                                    <tr className="text-sm text-zinc-400 border-b border-zinc-700">
+                                        <th className="p-2 w-2/5">Nombre</th>
+                                        <th className="p-2 w-1/5">Comuna</th>
+                                        <th className="p-2">Ubicación</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-700/50">
+                                    {(dataForView.underpasses || []).map(up => (
+                                        <tr key={up.id} className="hover:bg-zinc-700/50">
+                                            <td className="p-2 font-semibold text-zinc-200">{up.id}. {up.name}</td>
+                                            <td className="p-2 text-zinc-300">{up.commune}</td>
+                                            <td className="p-2 text-zinc-300">{up.location}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>
