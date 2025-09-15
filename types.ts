@@ -179,6 +179,24 @@ export interface GeneratorData {
   stations: GeneratorReportStation[];
 }
 
+// New types for Materials Report
+export interface Material {
+  id: string;
+  name: string;
+  quantity: number;
+  condition: string;
+  location?: string;
+}
+
+export interface MaterialLocation {
+  name: string;
+  materials: Material[];
+}
+
+export interface MaterialsData {
+  reportDate: string;
+  locations: MaterialLocation[];
+}
 
 // SCI Forms Types
 export interface SCI201Action {
@@ -217,13 +235,13 @@ export interface SCI211Resource {
     resourceType: string;
     arrivalDateTime: string;
     institution: string;
-    matricula: string;
-    personnelCount: string;
-    status: 'Disponible' | 'No Disponible';
-    assignedTo: string;
-    demobilizedBy: string;
-    demobilizedDateTime: string;
-    observations: string;
+    assignedTo?: string;
+    demobilizedDateTime?: string;
+    matricula?: string;
+    personnelCount?: string | number;
+    status?: string;
+    demobilizedBy?: string;
+    observations?: string;
 }
 
 export type TriageCategory = 'Rojo' | 'Amarillo' | 'Verde' | 'Negro' | '';
@@ -239,45 +257,39 @@ export interface SCI207Victim {
     transportDateTime: string;
 }
 
-// New types for Materials Report
-export interface Material {
-  id: string;
-  name: string;
-  quantity: number;
-  condition: 'Para Servicio' | 'Fuera de Servicio';
-  location?: string;
+// New type for Change History
+export interface LogEntry {
+  timestamp: string;
+  user: string;
+  action: string;
 }
 
-export interface MaterialLocation {
-  name: string;
-  materials: Material[];
-}
-
-export interface MaterialsData {
-  reportDate: string;
-  locations: MaterialLocation[];
-}
-
-// New types for Hidro Alert
+// Types for HidroAlert
 export interface PanoramaPoint {
   id: number;
   location: string;
   organism: string;
   coords: [number, number] | null;
-  isRoute?: boolean;
+  isRoute: boolean;
 }
 
 export interface Underpass {
-  id: number;
-  name: string;
-  commune: string;
-  location: string;
-  coords: [number, number] | null;
+    id: number;
+    name: string;
+    commune: string;
+    location: string;
+    coords: [number, number] | null;
+}
+
+export interface DisplacementPoint {
+    location: string;
+    station: string;
+    assignedUnit?: string;
 }
 
 export interface HidroAlertData {
-  panorama2Points: PanoramaPoint[];
-  panorama2Updates: { location: string; station: string }[];
-  panorama3Stations: string[];
-  underpasses: Underpass[];
+    panorama2Updates: DisplacementPoint[];
+    panorama3Stations: string[];
+    panorama2Points: PanoramaPoint[];
+    underpasses: Underpass[];
 }

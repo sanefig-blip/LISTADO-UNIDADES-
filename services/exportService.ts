@@ -577,7 +577,6 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
     doc.save(`Reporte_Unidades_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportEraReportToPdf function
 export const exportEraReportToPdf = (reportData: EraData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -637,7 +636,6 @@ export const exportEraReportToPdf = (reportData: EraData) => {
     doc.save(`Reporte_ERA_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportGeneratorReportToPdf function
 export const exportGeneratorReportToPdf = (reportData: GeneratorData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -697,7 +695,6 @@ export const exportGeneratorReportToPdf = (reportData: GeneratorData) => {
     doc.save(`Reporte_Generadores_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportMaterialsReportToPdf function
 export const exportMaterialsReportToPdf = (reportData: MaterialsData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -944,7 +941,7 @@ export const exportCommandPostToPdf = (
 };
 
 
-export const exportPersonnelToExcel = (personnel, title) => {
+export const exportPersonnelToExcel = (personnel: Personnel[], title: string) => {
     const data = personnel.map(p => ({
         'L.P.': p.id,
         'Jerarquía': p.rank,
@@ -962,7 +959,7 @@ export const exportPersonnelToExcel = (personnel, title) => {
     saveFile(excelBuffer, `${title.replace(/\s/g, '_')}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 };
 
-export const exportUnitsToExcel = (units) => {
+export const exportUnitsToExcel = (units: string[]) => {
     const data = units.map(u => ({ 'ID de Unidad': u }));
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();

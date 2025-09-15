@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { rankOrder, Schedule, Personnel, Rank, Roster, Service, Officer, ServiceTemplate, Assignment, UnitReportData, EraData, GeneratorData, MaterialsData, Zone, UnitGroup, MaterialLocation, User } from './types.ts';
+import { rankOrder, Schedule, Personnel, Rank, Roster, Service, Officer, ServiceTemplate, Assignment, UnitReportData, EraData, GeneratorData, MaterialsData, Zone, UnitGroup, MaterialLocation, User, HidroAlertData, LogEntry } from './types.ts';
 import { scheduleData as preloadedScheduleData } from './data/scheduleData.ts';
 import { unitReportData as preloadedUnitReportData } from './data/unitReportData.ts';
 import { eraData as preloadedEraData } from './data/eraData.ts';
 import { generatorData as preloadedGeneratorData } from './data/generatorData.ts';
 import { materialsData as preloadedMaterialsData } from './data/materialsData.ts';
+import { hidroAlertData as preloadedHidroAlertData } from './data/hidroAlertData.ts';
 import { rosterData as preloadedRosterData } from './data/rosterData.ts';
 import { commandPersonnelData as defaultCommandPersonnel } from './data/commandPersonnelData.ts';
 import { servicePersonnelData as defaultServicePersonnel } from './data/servicePersonnelData.ts';
@@ -27,6 +28,7 @@ import MaterialStatusView from './components/MaterialStatusView.tsx';
 import ForestalView from './components/ForestalView.tsx';
 import HidroAlertView from './components/HidroAlertView.tsx';
 import Login from './components/Login.tsx';
+import ChangeHistory from './components/ChangeHistory.tsx';
 import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon, LogoutIcon, ShieldExclamationIcon } from './components/icons.tsx';
 import HelpModal from './components/HelpModal.tsx';
 import ServiceTemplateModal from './components/ServiceTemplateModal.tsx';
@@ -54,6 +56,7 @@ const App = () => {
     const [eraReport, setEraReport] = useState<EraData | null>(null);
     const [generatorReport, setGeneratorReport] = useState<GeneratorData | null>(null);
     const [materialsReport, setMaterialsReport] = useState<MaterialsData | null>(null);
+    const [hidroAlertData, setHidroAlertData] = useState<HidroAlertData | null>(null);
     const [view, setView] = useState('unit-report'); // Default to new view
     const [displayDate, setDisplayDate] = useState<Date | null>(null);
     const [commandPersonnel, setCommandPersonnel] = useState<Personnel[]>([]);
@@ -65,6 +68,7 @@ const App = () => {
     const [roster, setRoster] = useState<Roster>({});
     const [searchTerm, setSearchTerm] = useState('');
     const [usersData, setUsersData] = useState<User[]>([]);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
 
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -86,6 +90,20 @@ const App = () => {
 
     const handleLogout = () => {
         setCurrentUser(null);
+    };
+
+    const addLogEntry = (action: string) => {
+        if (!currentUser) return;
+        const newLogEntry: LogEntry = {
+            timestamp: new Date().toISOString(),
+            user: currentUser.username,
+            action: action
+        };
+        setLogs(prevLogs => {
+            const newLogs = [newLogEntry, ...prevLogs];
+            localStorage.setItem('changeLogs', JSON.stringify(newLogs));
+            return newLogs;
+        });
     };
 
 
@@ -215,6 +233,15 @@ const App = () => {
             console.error("Failed to load or parse Materials report data, falling back to default.", e);
             materialsReportToLoad = preloadedMaterialsData;
         }
+
+        let hidroAlertDataToLoad;
+        try {
+            const savedHidroAlertDataJSON = localStorage.getItem('hidroAlertData');
+            hidroAlertDataToLoad = savedHidroAlertDataJSON ? JSON.parse(savedHidroAlertDataJSON) : preloadedHidroAlertData;
+        } catch (e) {
+            console.error("Failed to load or parse HidroAlert data, falling back to default.", e);
+            hidroAlertDataToLoad = preloadedHidroAlertData;
+        }
         
         if (unitReportToLoad && materialsReportToLoad) {
             const unitReportOrder = unitReportToLoad.zones.flatMap((zone: Zone) => 
@@ -250,6 +277,7 @@ const App = () => {
         setEraReport(eraReportToLoad);
         setGeneratorReport(generatorReportToLoad);
         setMaterialsReport(materialsReportToLoad);
+        setHidroAlertData(hidroAlertDataToLoad);
         setCommandPersonnel(loadedCommandPersonnel);
         setServicePersonnel(JSON.parse(localStorage.getItem('servicePersonnel') || JSON.stringify(defaultServicePersonnel)));
         setUsersData(loadedUsers);
@@ -265,6 +293,7 @@ const App = () => {
         
         setServiceTemplates(JSON.parse(localStorage.getItem('serviceTemplates') || JSON.stringify(defaultServiceTemplates)));
         setRoster(loadedRoster);
+        setLogs(JSON.parse(localStorage.getItem('changeLogs') || '[]'));
     }, []);
 
     const sortPersonnel = (a: Personnel, b: Personnel) => {
@@ -327,6 +356,11 @@ const App = () => {
     const handleUpdateMaterialsReport = (updatedData: MaterialsData) => {
         localStorage.setItem('materialsData', JSON.stringify(updatedData));
         setMaterialsReport(updatedData);
+    };
+
+    const handleUpdateHidroAlertData = (updatedData: HidroAlertData) => {
+        localStorage.setItem('hidroAlertData', JSON.stringify(updatedData));
+        setHidroAlertData(updatedData);
     };
 
     const handleUpdateService = (updatedService: Service, type: 'common' | 'sports') => {
@@ -810,8 +844,29 @@ const App = () => {
     const renderContent = () => {
         if (!displayDate || !currentUser) return null;
         switch (view) {
+            case 'history':
+                if (currentUser.username !== 'OCOB (Administrador)') {
+                    return <div className="text-center text-red-400 text-lg">Acceso denegado.</div>;
+                }
+                return <ChangeHistory
+                    logs={logs}
+                    onClearLogs={() => {
+                        if (window.confirm("¿Está seguro de que desea borrar todo el historial de cambios? Esta acción no se puede deshacer.")) {
+                            setLogs([]);
+                            localStorage.setItem('changeLogs', '[]');
+                            addLogEntry('Historial de cambios borrado.');
+                        }
+                    }}
+                    currentUser={currentUser}
+                />;
             case 'hidro-alert':
-                return React.createElement(HidroAlertView, {});
+                if (!hidroAlertData) return null;
+                return React.createElement(HidroAlertView, {
+                        hidroAlertData: hidroAlertData,
+                        onUpdateHidroAlertData: handleUpdateHidroAlertData,
+                        unitList: unitList,
+                        currentUser: currentUser
+                    });
             case 'unit-report':
                 if (!unitReport) return null;
                 return React.createElement(UnitReportDisplay, {
@@ -883,7 +938,8 @@ const App = () => {
                         users: usersData,
                         onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)),
                         onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)),
-                        onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers
+                        onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers,
+                        addLogEntry: addLogEntry
                      });
             default:
                 return null;
@@ -896,7 +952,7 @@ const App = () => {
         return React.createElement(Login, { onLogin: handleLogin, users: usersData });
     }
     
-    if (!schedule || !displayDate || !unitReport || !eraReport || !generatorReport || !materialsReport) {
+    if (!schedule || !displayDate || !unitReport || !eraReport || !generatorReport || !materialsReport || !hidroAlertData) {
         return (
             React.createElement("div", { className: "bg-zinc-900 text-white min-h-screen flex justify-center items-center" },
                 React.createElement("div", { className: "animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500" })
@@ -938,7 +994,8 @@ const App = () => {
                             React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
                             currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
                             React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
-                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
+                            currentUser.role === 'admin' && <button className={getButtonClass('nomenclador')} onClick={() => setView('nomenclador')}><BookOpenIcon className="w-5 h-5" /> Nomencladores</button>,
+                            currentUser.username === 'OCOB (Administrador)' && <button className={getButtonClass('history')} onClick={() => setView('history')}><ClipboardListIcon className="w-5 h-5" /> Historial</button>,
 
                             React.createElement("div", { className: "relative", ref: importMenuRef },
                                 React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },

@@ -62,7 +62,7 @@ export const hidroAlertData: HidroAlertData = {
     { id: 24, name: "Bajo Nivel Ceretti", commune: "Comuna 12", location: "Ceretti entre Franklin D. Roosevelt y Monroe", coords: [-34.565, -58.505] },
     { id: 25, name: "Bajo Nivel Holmberg", commune: "Comuna 12", location: "Holmberg entre Dr. Pedro Ignacio Rivera y Monroe", coords: [-34.566, -58.487] },
     { id: 26, name: "Bajo Nivel Donado", commune: "Comuna 12", location: "Donado entre Dr. Pedro Ignacio Rivera y Monroe", coords: [-34.567, -58.489] },
-    { id: 27, name: "Bajo Niv Altolaguirre", commune: "Comuna 12", location: "Altolaguirre entre Franklin D. Roosevelt y Blanco Encalada", coords: [-34.569, -58.502] },
+    { id: 27, name: "Bajo Nivel Altolaguirre", commune: "Comuna 12", location: "Altolaguirre entre Franklin D. Roosevelt y Blanco Encalada", coords: [-34.569, -58.502] },
     { id: 28, name: "Bajo Nivel Lacroze", commune: "Comuna 13", location: "Av. Federico Lacroze entre Conesa Amenabár", coords: [-34.575, -58.459] },
     { id: 29, name: "Bajo Nivel Pacheco", commune: "Comuna 12", location: "Pacheco entre Monroe y Cullen", coords: [-34.561, -58.499] },
     { id: 30, name: "Bajo Nivel Zamudio", commune: "Comuna 12", location: "Zamudio entre José León Cabezón y Griveo", coords: [-34.577, -58.504] },

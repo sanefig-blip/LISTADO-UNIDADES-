@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from './icons.js';
 import { RANKS } from '../types.js';
 
-const UserManagement = ({ users, onUpdateUsers }) => {
+const UserManagement = ({ users, onUpdateUsers, addLogEntry }) => {
     const [editableUsers, setEditableUsers] = useState(() => JSON.parse(JSON.stringify(users)));
     const [passwordVisibility, setPasswordVisibility] = useState({});
 
@@ -30,6 +30,7 @@ const UserManagement = ({ users, onUpdateUsers }) => {
             return;
         }
         onUpdateUsers(editableUsers);
+        addLogEntry('Actualizó las contraseñas de los usuarios.');
         alert('Contraseñas actualizadas con éxito.');
     };
 
@@ -201,7 +202,7 @@ const PersonnelListItem = ({ item, onUpdate, onRemove, extraFieldsToShow }) => {
 };
 
 
-const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow }) => {
+const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow, addLogEntry }) => {
   const [newLp, setNewLp] = useState('');
   const [newName, setNewName] = useState('');
   const [newRank, setNewRank] = useState('OTRO');
@@ -223,6 +224,8 @@ const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemove
       if (extraFieldsToShow.includes('part')) newItem.part = newPart.trim() || undefined;
       
       onAddItem(newItem);
+      addLogEntry(`Añadió a ${newItem.name} a "${title}".`);
+
       setNewLp('');
       setNewName('');
       setNewRank('OTRO');
@@ -230,6 +233,18 @@ const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemove
       setNewDetachment('');
       setNewPoc('');
       setNewPart('');
+    }
+  };
+  
+  const handleUpdate = (item) => {
+    onUpdateItem(item);
+    addLogEntry(`Actualizó a ${item.name} en "${title}".`);
+  };
+
+  const handleRemove = (item) => {
+    if (window.confirm(`¿Seguro que quieres eliminar a ${item.name}?`)) {
+      onRemoveItem(item);
+      addLogEntry(`Eliminó a ${item.name} de "${title}".`);
     }
   };
 
@@ -319,8 +334,8 @@ const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemove
            React.createElement(PersonnelListItem, {
               key: item.id,
               item: item,
-              onUpdate: onUpdateItem,
-              onRemove: onRemoveItem,
+              onUpdate: handleUpdate,
+              onRemove: handleRemove,
               extraFieldsToShow: extraFieldsToShow
             })
         )),
@@ -335,7 +350,7 @@ const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemove
 };
 
 
-const UnitList = ({ items, onUpdateItems }) => {
+const UnitList = ({ items, onUpdateItems, addLogEntry }) => {
     const [newItem, setNewItem] = useState('');
     const draggedItemIndex = useRef(null);
     const dragOverItemIndex = useRef(null);
@@ -343,20 +358,14 @@ const UnitList = ({ items, onUpdateItems }) => {
     const handleAdd = () => {
       if (newItem.trim() && !items.includes(newItem.trim())) {
         onUpdateItems([...items, newItem.trim()]);
+        addLogEntry(`Añadió la unidad "${newItem.trim()}" al nomenclador.`);
         setNewItem('');
       }
     };
 
     const handleRemove = (itemToRemove) => {
         onUpdateItems(items.filter(item => item !== itemToRemove));
-    };
-
-    const handleDragStart = (index) => {
-        draggedItemIndex.current = index;
-    };
-    
-    const handleDragEnter = (index) => {
-        dragOverItemIndex.current = index;
+        addLogEntry(`Eliminó la unidad "${itemToRemove}" del nomenclador.`);
     };
     
     const handleDragEnd = () => {
@@ -370,6 +379,7 @@ const UnitList = ({ items, onUpdateItems }) => {
         dragOverItemIndex.current = null;
       
         onUpdateItems(newItems);
+        addLogEntry('Reordenó la lista de unidades.');
     };
 
     return (
@@ -398,8 +408,8 @@ const UnitList = ({ items, onUpdateItems }) => {
               key: item,
               className: "flex justify-between items-center bg-zinc-700/50 p-2 rounded-md animate-fade-in group",
               draggable: true,
-              onDragStart: () => handleDragStart(index),
-              onDragEnter: () => handleDragEnter(index),
+              onDragStart: () => (draggedItemIndex.current = index),
+              onDragEnter: () => (dragOverItemIndex.current = index),
               onDragEnd: handleDragEnd,
               onDragOver: (e) => e.preventDefault()
             },
@@ -426,19 +436,21 @@ const UnitList = ({ items, onUpdateItems }) => {
     );
 }
 
-const UnitTypeList = ({ items, onUpdateItems }) => {
+const UnitTypeList = ({ items, onUpdateItems, addLogEntry }) => {
     const [newItem, setNewItem] = useState('');
 
     const handleAdd = () => {
       if (newItem.trim() && !items.find(i => i.toLowerCase() === newItem.trim().toLowerCase())) {
         const sorted = [...items, newItem.trim()].sort((a, b) => a.localeCompare(b));
         onUpdateItems(sorted);
+        addLogEntry(`Añadió el tipo de unidad "${newItem.trim()}".`);
         setNewItem('');
       }
     };
 
     const handleRemove = (itemToRemove) => {
         onUpdateItems(items.filter(item => item !== itemToRemove));
+        addLogEntry(`Eliminó el tipo de unidad "${itemToRemove}".`);
     };
 
     return (
@@ -487,7 +499,7 @@ const UnitTypeList = ({ items, onUpdateItems }) => {
     );
 };
 
-const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
+const RosterEditor = ({ roster, onUpdateRoster, personnelList, addLogEntry }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editableMonthRoster, setEditableMonthRoster] = useState({});
   
@@ -553,6 +565,7 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
     const newRoster = { ...filteredRoster, ...editableMonthRoster };
     
     onUpdateRoster(newRoster);
+    addLogEntry(`Actualizó el Rol de Guardia para ${monthNames[monthIndex]} ${year}.`);
     alert('Rol de guardia guardado con éxito.');
   };
 
@@ -573,6 +586,7 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
     }, {});
 
     onUpdateRoster(newRoster);
+    addLogEntry(`Borro el Rol de Guardia para ${monthNames[currentDate.getMonth()]} ${year}.`);
     alert(`Asignaciones para ${monthName} borradas.`);
   };
 
@@ -648,11 +662,12 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
 const Nomenclador = (props) => {
   return (
     React.createElement("div", { className: "animate-fade-in space-y-8" },
-        React.createElement(UserManagement, { users: props.users, onUpdateUsers: props.onUpdateUsers }),
+        React.createElement(UserManagement, { users: props.users, onUpdateUsers: props.onUpdateUsers, addLogEntry: props.addLogEntry }),
         React.createElement(RosterEditor, { 
           roster: props.roster,
           onUpdateRoster: props.onUpdateRoster,
-          personnelList: props.commandPersonnel
+          personnelList: props.commandPersonnel,
+          addLogEntry: props.addLogEntry
         }),
         React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
             React.createElement(EditablePersonnelList, {
@@ -661,7 +676,8 @@ const Nomenclador = (props) => {
                 onAddItem: props.onAddCommandPersonnel,
                 onUpdateItem: props.onUpdateCommandPersonnel,
                 onRemoveItem: props.onRemoveCommandPersonnel,
-                extraFieldsToShow: ['poc']
+                extraFieldsToShow: ['poc'],
+                addLogEntry: props.addLogEntry
             }),
              React.createElement(EditablePersonnelList, {
                 title: "Personal de Servicios",
@@ -669,12 +685,13 @@ const Nomenclador = (props) => {
                 onAddItem: props.onAddServicePersonnel,
                 onUpdateItem: props.onUpdateServicePersonnel,
                 onRemoveItem: props.onRemoveServicePersonnel,
-                extraFieldsToShow: ['station', 'detachment', 'poc', 'part']
+                extraFieldsToShow: ['station', 'detachment', 'poc', 'part'],
+                addLogEntry: props.addLogEntry
             })
         ),
         React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
-             React.createElement(UnitList, { items: props.units, onUpdateItems: props.onUpdateUnits }),
-             React.createElement(UnitTypeList, { items: props.unitTypes, onUpdateItems: props.onUpdateUnitTypes })
+             React.createElement(UnitList, { items: props.units, onUpdateItems: props.onUpdateUnits, addLogEntry: props.addLogEntry }),
+             React.createElement(UnitTypeList, { items: props.unitTypes, onUpdateItems: props.onUpdateUnitTypes, addLogEntry: props.addLogEntry })
         )
     )
   );
