@@ -1,7 +1,5 @@
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Schedule, Officer, Service, Assignment, Personnel, RANKS, Rank } from '../types';
+import { Schedule, Officer, Service, Assignment, Personnel, RANKS, Rank, User } from '../types';
 import { CalendarIcon, UserGroupIcon, ClipboardListIcon, ChevronDownIcon, PencilIcon, XCircleIcon, AnnotationIcon, PlusCircleIcon, ArrowUpIcon, ArrowDownIcon, TrashIcon, BookmarkIcon, RefreshIcon, SearchIcon } from './icons';
 import AssignmentCard from './AssignmentCard';
 
@@ -25,6 +23,7 @@ interface ScheduleDisplayProps {
   unitList: string[];
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  currentUser: User;
 }
 
 interface ServiceSectionProps {
@@ -41,9 +40,10 @@ interface ServiceSectionProps {
   commandPersonnel: Personnel[];
   servicePersonnel: Personnel[];
   unitList: string[];
+  isEditable: boolean;
 }
 
-const ServiceSection: React.FC<ServiceSectionProps> = ({ service, index, totalServices, isSelected, onUpdateService, onMoveService, onDeleteService, onToggleSelection, onSaveAsTemplate, onReplaceFromTemplate, commandPersonnel, servicePersonnel, unitList }) => {
+const ServiceSection: React.FC<ServiceSectionProps> = ({ service, index, totalServices, isSelected, onUpdateService, onMoveService, onDeleteService, onToggleSelection, onSaveAsTemplate, onReplaceFromTemplate, commandPersonnel, servicePersonnel, unitList, isEditable }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editableService, setEditableService] = useState<Service>(() => JSON.parse(JSON.stringify(service)));
@@ -459,27 +459,31 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({ service, index, totalSe
                 >
                     <ArrowDownIcon className="w-5 h-5" />
                 </button>
-                <button 
-                    onClick={() => onSaveAsTemplate(service)}
-                    className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-yellow-400 transition-colors"
-                    aria-label="Guardar como plantilla"
-                >
-                    <BookmarkIcon className="w-5 h-5" />
-                </button>
-                <button 
-                    onClick={() => setIsEditing(true)} 
-                    className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
-                    aria-label="Editar servicio"
-                >
-                    <PencilIcon className="w-5 h-5" />
-                </button>
-                <button 
-                    onClick={onDeleteService}
-                    className="p-2 rounded-full text-zinc-400 hover:bg-red-800/50 hover:text-red-400 transition-colors"
-                    aria-label="Eliminar servicio"
-                >
-                    <TrashIcon className="w-5 h-5" />
-                </button>
+                {isEditable && (
+                    <>
+                        <button 
+                            onClick={() => onSaveAsTemplate(service)}
+                            className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-yellow-400 transition-colors"
+                            aria-label="Guardar como plantilla"
+                        >
+                            <BookmarkIcon className="w-5 h-5" />
+                        </button>
+                        <button 
+                            onClick={() => setIsEditing(true)} 
+                            className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                            aria-label="Editar servicio"
+                        >
+                            <PencilIcon className="w-5 h-5" />
+                        </button>
+                        <button 
+                            onClick={onDeleteService}
+                            className="p-2 rounded-full text-zinc-400 hover:bg-red-800/50 hover:text-red-400 transition-colors"
+                            aria-label="Eliminar servicio"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                        </button>
+                    </>
+                )}
             </div>
         </div>
 
@@ -500,7 +504,7 @@ const ServiceSection: React.FC<ServiceSectionProps> = ({ service, index, totalSe
       >
         <div className="overflow-hidden">
            <div className="p-6 bg-zinc-900/40">
-              {service.title.toUpperCase().includes('EVENTO DEPORTIVO') && (
+              {isEditable && service.title.toUpperCase().includes('EVENTO DEPORTIVO') && (
                 <div className="mb-6">
                   <button
                     onClick={handleAddStadium}
@@ -598,17 +602,107 @@ const isValidLp = (id?: string) => {
     return !id.startsWith('empty-') && !id.startsWith('roster-');
 };
 
+const normalize = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/["'“”]/g, "").replace(/\./g, "").replace(/\s+/g, ' ').trim();
 
 const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
-  const { schedule, displayDate, selectedServiceIds, onDateChange, onUpdateService, onUpdateCommandStaff, onAddNewService, onMoveService, onDeleteService, onToggleServiceSelection, onSelectAllServices, commandPersonnel, servicePersonnel, unitList, onSaveAsTemplate, onReplaceFromTemplate, onImportGuardLine, searchTerm, onSearchChange } = props;
+  const { schedule, displayDate, selectedServiceIds, onDateChange, onUpdateService, onUpdateCommandStaff, onAddNewService, onMoveService, onDeleteService, onToggleServiceSelection, onSelectAllServices, commandPersonnel, servicePersonnel, unitList, onSaveAsTemplate, onReplaceFromTemplate, onImportGuardLine, searchTerm, onSearchChange, currentUser } = props;
   const [isEditingStaff, setIsEditingStaff] = useState(false);
   const [editableStaff, setEditableStaff] = useState<Officer[]>([]);
+
+  const isEditable = !currentUser || currentUser.role === 'admin';
+
+    const scheduleToDisplay = useMemo(() => {
+        if (!schedule) return null;
+        if (!currentUser || currentUser.role === 'admin' || !currentUser.station) {
+            return schedule;
+        }
+
+        const isUserAllowed = (assignment: Assignment) => {
+            const userStationNorm = normalize(currentUser.station!);
+            const assignmentText = `${assignment.personnel || ''} ${assignment.unit || ''} ${assignment.location || ''} ${(assignment.details || []).join(' ')}`;
+            const normalizedAssignmentText = normalize(assignmentText);
+
+            // Standard check: user can see their own station's assignments
+            if (normalizedAssignmentText.includes(userStationNorm)) {
+                return true;
+            }
+            
+            // Special rule for Estacion IV Recoleta
+            if (userStationNorm.includes('ESTACION IV RECOLETA')) {
+                if (normalizedAssignmentText.includes('MISERERE') || normalizedAssignmentText.includes('RETIRO')) {
+                    return true;
+                }
+            }
+            
+            // Special rule for Estacion III Barracas
+            if (userStationNorm.includes('ESTACION III BARRACAS')) {
+                if (normalizedAssignmentText.includes('BOCA')) {
+                    return true;
+                }
+            }
+
+            // Special rule for Estacion II Patricios
+            if (userStationNorm.includes('ESTACION II PATRICIOS')) {
+                if (normalizedAssignmentText.includes('POMPEYA')) {
+                    return true;
+                }
+            }
+
+            // Special rule: Estacion V can view DTO Urquiza and DTO Saavedra.
+            if (userStationNorm.startsWith('ESTACION V ')) {
+                if (normalizedAssignmentText.includes('URQUIZA') || normalizedAssignmentText.includes('SAAVEDRA')) {
+                    return true;
+                }
+            }
+            
+            // Special rule: Estacion VI can view DTO Palermo and DTO Chacarita.
+            if (userStationNorm.startsWith('ESTACION VI ')) {
+                if (normalizedAssignmentText.includes('PALERMO') || normalizedAssignmentText.includes('CHACARITA')) {
+                    return true;
+                }
+            }
+
+            // Special rule: Estacion VIII can view DTO Velez Sarsfield.
+            if (userStationNorm.startsWith('ESTACION VIII ')) {
+                if (normalizedAssignmentText.includes('VELEZ')) {
+                    return true;
+                }
+            }
+
+            // Special rule: Estacion IX can view DTO Devoto.
+            if (userStationNorm.startsWith('ESTACION IX ')) {
+                if (normalizedAssignmentText.includes('DEVOTO')) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+        
+        const filterServiceAssignments = (services: Service[]) => {
+            if (!services) return [];
+            return services.map(service => {
+                const filteredAssignments = service.assignments.filter(isUserAllowed);
+                return { ...service, assignments: filteredAssignments };
+            }).filter(service => service.assignments.length > 0);
+        };
+
+        return {
+            ...schedule,
+            services: filterServiceAssignments(schedule.services),
+            sportsEvents: filterServiceAssignments(schedule.sportsEvents)
+        };
+    }, [schedule, currentUser]);
+
+    if (!scheduleToDisplay) {
+        return null;
+    }
   
-  const visibleServices = schedule.services.filter(s => !s.isHidden);
-  const hiddenServices = schedule.services.filter(s => s.isHidden);
+  const visibleServices = scheduleToDisplay.services.filter(s => !s.isHidden);
+  const hiddenServices = scheduleToDisplay.services.filter(s => s.isHidden);
   
-  const visibleSportsEvents = schedule.sportsEvents.filter(s => !s.isHidden);
-  const hiddenSportsEvents = schedule.sportsEvents.filter(s => s.isHidden);
+  const visibleSportsEvents = scheduleToDisplay.sportsEvents.filter(s => !s.isHidden);
+  const hiddenSportsEvents = scheduleToDisplay.sportsEvents.filter(s => s.isHidden);
   
   const allVisibleServices = [...visibleServices, ...visibleSportsEvents];
   const allHiddenServices = [...hiddenServices, ...hiddenSportsEvents];
@@ -668,25 +762,27 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                     <DateSelector displayDate={displayDate} onDateChange={onDateChange} />
                 </div>
             </div>
-            <div className="flex items-center gap-2 self-center">
-                 {!isEditingStaff && (
-                    <button
-                        onClick={onImportGuardLine}
-                        className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
-                        title="Importar rol desde Nomenclador para la fecha seleccionada"
-                        aria-label="Importar rol de guardia para la fecha seleccionada"
+            {isEditable && (
+                <div className="flex items-center gap-2 self-center">
+                    {!isEditingStaff && (
+                        <button
+                            onClick={onImportGuardLine}
+                            className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                            title="Importar rol desde Nomenclador para la fecha seleccionada"
+                            aria-label="Importar rol de guardia para la fecha seleccionada"
+                        >
+                            <RefreshIcon className="w-5 h-5" />
+                        </button>
+                    )}
+                    <button 
+                        onClick={() => setIsEditingStaff(!isEditingStaff)} 
+                        className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors flex-shrink-0"
+                        aria-label="Editar línea de guardia"
                     >
-                        <RefreshIcon className="w-5 h-5"/>
+                        {isEditingStaff ? <XCircleIcon className="w-6 h-6" /> : <PencilIcon className="w-5 h-5" />}
                     </button>
-                )}
-                <button 
-                    onClick={() => setIsEditingStaff(!isEditingStaff)} 
-                    className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors flex-shrink-0"
-                    aria-label="Editar línea de guardia"
-                >
-                    {isEditingStaff ? <XCircleIcon className="w-6 h-6"/> : <PencilIcon className="w-5 h-5" />}
-                </button>
-            </div>
+                </div>
+            )}
         </div>
         
         {isEditingStaff ? (
@@ -740,11 +836,11 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                  ))}
                  <div className="flex justify-end space-x-4 pt-4">
                     <button onClick={handleCancelStaff} className="flex items-center px-4 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white transition-colors">
-                        <XCircleIcon className="w-5 h-5 mr-2"/>
+                        <XCircleIcon className="w-5 h-5 mr-2" />
                         Cancelar
                     </button>
                     <button onClick={handleSaveStaff} className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold transition-colors">
-                        <PencilIcon className="w-5 h-5 mr-2"/>
+                        <PencilIcon className="w-5 h-5 mr-2" />
                         Guardar Cambios
                     </button>
                 </div>
@@ -769,6 +865,7 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                 </div>
             </div>
         )}
+
       </div>
 
       <div>
@@ -777,16 +874,18 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                 <CalendarIcon className="w-8 h-8 mr-4 text-yellow-300" />
                 <h2 className="text-3xl font-bold text-white">Servicios del Día: <span className="font-normal text-zinc-300">{formattedDate}</span></h2>
             </div>
-            <div className="flex items-center gap-4">
-                 <button 
-                    onClick={() => onAddNewService('common')}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-md transition-colors"
-                    aria-label="Añadir nuevo servicio"
-                >
-                    <PlusCircleIcon className="w-5 h-5" />
-                    Añadir Servicio
-                </button>
-            </div>
+            {isEditable && (
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => onAddNewService('common')}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-md transition-colors"
+                        aria-label="Añadir nuevo servicio"
+                    >
+                        <PlusCircleIcon className="w-5 h-5" />
+                        Añadir Servicio
+                    </button>
+                </div>
+            )}
         </div>
         <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
             <div className="flex items-center gap-3">
@@ -828,6 +927,7 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
             commandPersonnel={commandPersonnel}
             servicePersonnel={servicePersonnel}
             unitList={unitList}
+            isEditable={isEditable}
           />
         ))}
 
@@ -835,14 +935,16 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
             <div className="mt-12">
                 <div className="flex items-center justify-between mb-6 border-b-2 border-zinc-700 pb-4">
                     <h2 className="text-3xl font-bold text-white">Eventos Deportivos</h2>
-                    <button 
-                        onClick={() => onAddNewService('sports')}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-md transition-colors"
-                        aria-label="Añadir nuevo evento deportivo"
-                    >
-                        <PlusCircleIcon className="w-5 h-5" />
-                        Añadir Evento
-                    </button>
+                    {isEditable && (
+                        <button 
+                            onClick={() => onAddNewService('sports')}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-md transition-colors"
+                            aria-label="Añadir nuevo evento deportivo"
+                        >
+                            <PlusCircleIcon className="w-5 h-5" />
+                            Añadir Evento
+                        </button>
+                    )}
                 </div>
                 {visibleSportsEvents.map((service, index) => (
                     <ServiceSection 
@@ -860,6 +962,7 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                         commandPersonnel={commandPersonnel}
                         servicePersonnel={servicePersonnel}
                         unitList={unitList}
+                        isEditable={isEditable}
                     />
                 ))}
             </div>
@@ -884,6 +987,7 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                         commandPersonnel={commandPersonnel}
                         servicePersonnel={servicePersonnel}
                         unitList={unitList}
+                        isEditable={isEditable}
                     />
                 ))}
                 {hiddenSportsEvents.map((service, index) => (
@@ -902,6 +1006,7 @@ const ScheduleDisplay: React.FC<ScheduleDisplayProps> = (props) => {
                         commandPersonnel={commandPersonnel}
                         servicePersonnel={servicePersonnel}
                         unitList={unitList}
+                        isEditable={isEditable}
                     />
                 ))}
             </div>

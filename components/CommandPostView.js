@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { DownloadIcon, PlusCircleIcon, TrashIcon } from './icons.js';
 import { exportCommandPostToPdf } from '../services/exportService.js';
 import Croquis from './Croquis.js';
+import Sketchpad from './Sketchpad.js';
 
 const FormInput = ({ label, name, value, onChange }) => (
     React.createElement("div", null,
@@ -29,6 +30,7 @@ const TabButton = ({ activeTab, tabName, label, onClick }) => (
 const CommandPostView = ({ unitReportData }) => {
     const [activeTab, setActiveTab] = useState('control');
     const [croquisSketch, setCroquisSketch] = useState(null);
+    const [bocetoSketch, setBocetoSketch] = useState(null);
 
     const allUnitsForTracking = useMemo(() => {
         if (!unitReportData) return [];
@@ -174,8 +176,13 @@ const CommandPostView = ({ unitReportData }) => {
 
     const handleExport = () => {
         if (!croquisSketch) {
-            alert("Por favor, primero valide el croquis antes de exportar el reporte.");
+            alert("Por favor, primero valide el croquis táctico antes de exportar el reporte.");
             setActiveTab('croquis');
+            return;
+        }
+        if (!bocetoSketch) {
+            alert("Por favor, primero valide el croquis boceto antes de exportar el reporte.");
+            setActiveTab('boceto');
             return;
         }
         exportCommandPostToPdf(
@@ -185,12 +192,18 @@ const CommandPostView = ({ unitReportData }) => {
             sci201Data,
             sci211Resources,
             sci207Victims,
-            croquisSketch
+            croquisSketch,
+            bocetoSketch
         );
     };
 
     const handleSketchCapture = (imageDataUrl) => {
         setCroquisSketch(imageDataUrl);
+        setActiveTab('control'); // Go back to main tab after capture for preview
+    };
+
+    const handleBocetoCapture = (imageDataUrl) => {
+        setBocetoSketch(imageDataUrl);
         setActiveTab('control');
     };
 
@@ -204,22 +217,33 @@ const CommandPostView = ({ unitReportData }) => {
                 React.createElement("div", { className: "flex flex-wrap gap-2" },
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "control", label: "Control General", onClick: setActiveTab }),
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "croquis", label: "Croquis Táctico", onClick: setActiveTab }),
+                    React.createElement(TabButton, { activeTab: activeTab, tabName: "boceto", label: "Croquis Boceto", onClick: setActiveTab }),
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "sci201", label: "Formulario SCI-201 (Resumen)", onClick: setActiveTab }),
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "sci211", label: "Formulario SCI-211 (Recursos)", onClick: setActiveTab }),
                     React.createElement(TabButton, { activeTab: activeTab, tabName: "sci207", label: "Formulario SCI-207 (Víctimas)", onClick: setActiveTab })
                 ),
-                React.createElement("button", { onClick: handleExport, className: "flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold" },
+                 React.createElement("button", { onClick: handleExport, className: "flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold" },
                     React.createElement(DownloadIcon, { className: "w-5 h-5" }),
                     "Exportar Reporte PDF"
                 )
             ),
 
-            croquisSketch && activeTab === 'control' && (
-                React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl animate-fade-in" },
-                    React.createElement("h3", { className: "text-lg font-semibold text-green-400 mb-2" }, "Vista Previa del Croquis Validado"),
-                    React.createElement("img", { src: croquisSketch, alt: "Vista previa del croquis", className: "max-w-full h-auto rounded-md border-2 border-zinc-600" })
+            activeTab === 'control' && (
+                React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in" },
+                    croquisSketch && (
+                        React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl" },
+                            React.createElement("h3", { className: "text-lg font-semibold text-green-400 mb-2" }, "Vista Previa: Croquis Táctico"),
+                            React.createElement("img", { src: croquisSketch, alt: "Vista previa del croquis", className: "max-w-full h-auto rounded-md border-2 border-zinc-600" })
+                        )
+                    ),
+                    bocetoSketch && (
+                        React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl" },
+                            React.createElement("h3", { className: "text-lg font-semibold text-green-400 mb-2" }, "Vista Previa: Croquis Boceto"),
+                            React.createElement("img", { src: bocetoSketch, alt: "Vista previa del boceto", className: "max-w-full h-auto rounded-md border-2 border-zinc-600" })
+                        )
+                    )
                 )
-            ),
+             ),
 
             activeTab === 'control' && (
                 React.createElement("div", { className: "space-y-6 animate-fade-in" },
@@ -305,6 +329,12 @@ const CommandPostView = ({ unitReportData }) => {
                 )
             ),
             
+            activeTab === 'boceto' && (
+                React.createElement("div", { className: "animate-fade-in" },
+                    React.createElement(Sketchpad, { isActive: activeTab === 'boceto', onSketchCapture: handleBocetoCapture })
+                )
+            ),
+
             activeTab === 'sci201' && (
                 React.createElement("div", { className: "bg-zinc-800/60 p-6 rounded-xl space-y-4 animate-fade-in" },
                     React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2" }, "Formulario SCI-201: Resumen del Incidente"),

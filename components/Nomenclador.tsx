@@ -1,8 +1,6 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
-import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon } from './icons';
-import { Personnel, Rank, RANKS, Roster } from '../types';
+import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from './icons';
+import { Personnel, Rank, RANKS, Roster, User } from '../types';
 
 interface NomencladorProps {
   commandPersonnel: Personnel[];
@@ -18,11 +16,86 @@ interface NomencladorProps {
   units: string[];
   onUpdateUnits: (units: string[]) => void;
 
+  unitTypes: string[];
+  onUpdateUnitTypes: (types: string[]) => void;
+
   roster: Roster;
   onUpdateRoster: (roster: Roster) => void;
+
+  users: User[];
+  onUpdateUsers: (users: User[]) => void;
 }
 
 type ExtraField = 'station' | 'detachment' | 'poc' | 'part';
+
+const UserManagement: React.FC<{
+    users: User[];
+    onUpdateUsers: (users: User[]) => void;
+}> = ({ users, onUpdateUsers }) => {
+    const [editableUsers, setEditableUsers] = useState<User[]>(() => JSON.parse(JSON.stringify(users)));
+    const [passwordVisibility, setPasswordVisibility] = useState<{ [key: string]: boolean }>({});
+
+    useEffect(() => {
+        setEditableUsers(JSON.parse(JSON.stringify(users)));
+    }, [users]);
+
+    const handlePasswordChange = (userId: string, newPassword: string) => {
+        setEditableUsers(prev => prev.map(u => u.id === userId ? { ...u, password: newPassword } : u));
+    };
+    
+    const togglePasswordVisibility = (userId: string) => {
+        setPasswordVisibility(prev => ({ ...prev, [userId]: !prev[userId] }));
+    };
+
+    const handleSave = () => {
+        const adminUser = editableUsers.find(u => u.role === 'admin');
+        if (adminUser && adminUser.password.trim() === '') {
+            alert('La contraseña del administrador no puede estar vacía.');
+            // Revert to original password if empty
+            const originalAdmin = users.find(u => u.id === adminUser.id);
+            if (originalAdmin) {
+                setEditableUsers(prev => prev.map(u => u.id === adminUser.id ? { ...u, password: originalAdmin.password } : u));
+            }
+            return;
+        }
+        onUpdateUsers(editableUsers);
+        alert('Contraseñas actualizadas con éxito.');
+    };
+
+    return (
+        <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6">
+            <h3 className="text-2xl font-bold text-white mb-4">Gestión de Usuarios y Contraseñas</h3>
+            <div className="space-y-3">
+                {editableUsers.map(user => (
+                    <div key={user.id} className="grid grid-cols-[1fr,1fr,auto] gap-4 items-center p-2 bg-zinc-700/50 rounded-md">
+                        <span className="text-zinc-200 font-medium">{user.username}</span>
+                        <div className="relative">
+                            <input
+                                type={passwordVisibility[user.id] ? 'text' : 'password'}
+                                value={user.password}
+                                onChange={e => handlePasswordChange(user.id, e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-600 rounded-md px-3 py-2 text-white"
+                                autoComplete="new-password"
+                            />
+                            <button type="button" onClick={() => togglePasswordVisibility(user.id)} className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-white">
+                                {passwordVisibility[user.id] ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
+                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-yellow-500 text-black' : 'bg-blue-500 text-white'}`}>
+                            {user.role === 'admin' ? 'Admin' : 'Estación'}
+                        </span>
+                    </div>
+                ))}
+            </div>
+            <div className="flex justify-end mt-6">
+                <button onClick={handleSave} className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold transition-colors">
+                    <PencilIcon className="w-5 h-5 mr-2"/>
+                    Guardar Cambios de Contraseñas
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const PersonnelListItem: React.FC<{
   item: Personnel;
@@ -397,6 +470,70 @@ const UnitList: React.FC<{
     );
 }
 
+const UnitTypeList: React.FC<{
+  items: string[];
+  onUpdateItems: (items: string[]) => void;
+}> = ({ items, onUpdateItems }) => {
+    const [newItem, setNewItem] = useState('');
+
+    const handleAdd = () => {
+      if (newItem.trim() && !items.find(i => i.toLowerCase() === newItem.trim().toLowerCase())) {
+        const sorted = [...items, newItem.trim()].sort((a, b) => a.localeCompare(b));
+        onUpdateItems(sorted);
+        setNewItem('');
+      }
+    };
+
+    const handleRemove = (itemToRemove: string) => {
+        onUpdateItems(items.filter(item => item !== itemToRemove));
+    };
+
+    return (
+      <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]">
+        <h3 className="text-2xl font-bold text-white mb-4">Tipos de Unidades</h3>
+        <div className="flex space-x-2 mb-4">
+          <input
+            type="text"
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            placeholder="Añadir nuevo tipo..."
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
+            aria-label="Añadir nuevo tipo de unidad"
+          />
+          <button
+            onClick={handleAdd}
+            className="flex-shrink-0 flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold"
+            aria-label="Añadir tipo de unidad"
+          >
+            <PlusCircleIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <ul className="space-y-2 overflow-y-auto pr-2 flex-grow">
+          {items.map((item) => (
+            <li
+              key={item}
+              className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md animate-fade-in"
+            >
+              <span className="text-zinc-200">{item}</span>
+              <button
+                onClick={() => handleRemove(item)}
+                className="text-zinc-400 hover:text-red-400 transition-colors"
+                aria-label={`Eliminar ${item}`}
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            </li>
+          ))}
+           {items.length === 0 && (
+              <div className="flex justify-center items-center h-full">
+                  <p className="text-zinc-500">No hay tipos de unidades.</p>
+              </div>
+          )}
+        </ul>
+      </div>
+    );
+};
+
 const RosterEditor: React.FC<{
   roster: Roster;
   onUpdateRoster: (roster: Roster) => void;
@@ -562,6 +699,7 @@ const RosterEditor: React.FC<{
 const Nomenclador: React.FC<NomencladorProps> = (props) => {
   return (
     <div className="animate-fade-in space-y-8">
+        <UserManagement users={props.users} onUpdateUsers={props.onUpdateUsers} />
         <RosterEditor 
           roster={props.roster}
           onUpdateRoster={props.onUpdateRoster}
@@ -585,11 +723,9 @@ const Nomenclador: React.FC<NomencladorProps> = (props) => {
                 extraFieldsToShow={['station', 'detachment', 'poc', 'part']}
             />
         </div>
-        <div className="max-w-xl mx-auto">
-            <UnitList
-                items={props.units}
-                onUpdateItems={props.onUpdateUnits}
-            />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <UnitList items={props.units} onUpdateItems={props.onUpdateUnits} />
+             <UnitTypeList items={props.unitTypes} onUpdateItems={props.onUpdateUnitTypes} />
         </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { UnitReportData, SCI201Data, SCI211Resource, SCI207Victim, TriageCategor
 import { DownloadIcon, PlusCircleIcon, TrashIcon } from './icons';
 import { exportCommandPostToPdf } from '../services/exportService';
 import Croquis from './Croquis';
+import Sketchpad from './Sketchpad';
 
 interface TrackedUnit {
   id: string;
@@ -56,6 +57,7 @@ interface CommandPostViewProps {
 const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => {
     const [activeTab, setActiveTab] = useState('control');
     const [croquisSketch, setCroquisSketch] = useState<string | null>(null);
+    const [bocetoSketch, setBocetoSketch] = useState<string | null>(null);
 
     const allUnitsForTracking = useMemo(() => {
         if (!unitReportData) return [];
@@ -201,8 +203,13 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
 
     const handleExport = () => {
         if (!croquisSketch) {
-            alert("Por favor, primero valide el croquis antes de exportar el reporte.");
+            alert("Por favor, primero valide el croquis táctico antes de exportar el reporte.");
             setActiveTab('croquis');
+            return;
+        }
+         if (!bocetoSketch) {
+            alert("Por favor, primero valide el croquis boceto antes de exportar el reporte.");
+            setActiveTab('boceto');
             return;
         }
         exportCommandPostToPdf(
@@ -212,13 +219,19 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
             sci201Data,
             sci211Resources,
             sci207Victims,
-            croquisSketch
+            croquisSketch,
+            bocetoSketch
         );
     };
 
     const handleSketchCapture = (imageDataUrl: string) => {
         setCroquisSketch(imageDataUrl);
         setActiveTab('control'); // Go back to main tab after capture for preview
+    };
+
+    const handleBocetoCapture = (imageDataUrl: string) => {
+        setBocetoSketch(imageDataUrl);
+        setActiveTab('control');
     };
 
     const handleUnlockSketch = () => {
@@ -231,6 +244,7 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                 <div className="flex flex-wrap gap-2">
                     <TabButton activeTab={activeTab} tabName="control" label="Control General" onClick={setActiveTab} />
                     <TabButton activeTab={activeTab} tabName="croquis" label="Croquis Táctico" onClick={setActiveTab} />
+                    <TabButton activeTab={activeTab} tabName="boceto" label="Croquis Boceto" onClick={setActiveTab} />
                     <TabButton activeTab={activeTab} tabName="sci201" label="Formulario SCI-201 (Resumen)" onClick={setActiveTab} />
                     <TabButton activeTab={activeTab} tabName="sci211" label="Formulario SCI-211 (Recursos)" onClick={setActiveTab} />
                     <TabButton activeTab={activeTab} tabName="sci207" label="Formulario SCI-207 (Víctimas)" onClick={setActiveTab} />
@@ -241,12 +255,22 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                 </button>
             </div>
 
-            {croquisSketch && activeTab === 'control' && (
-                <div className="bg-zinc-800/60 p-4 rounded-xl animate-fade-in">
-                    <h3 className="text-lg font-semibold text-green-400 mb-2">Vista Previa del Croquis Validado</h3>
-                    <img src={croquisSketch} alt="Vista previa del croquis" className="max-w-full h-auto rounded-md border-2 border-zinc-600" />
+            {activeTab === 'control' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                    {croquisSketch && (
+                        <div className="bg-zinc-800/60 p-4 rounded-xl">
+                            <h3 className="text-lg font-semibold text-green-400 mb-2">Vista Previa: Croquis Táctico</h3>
+                            <img src={croquisSketch} alt="Vista previa del croquis" className="max-w-full h-auto rounded-md border-2 border-zinc-600" />
+                        </div>
+                    )}
+                    {bocetoSketch && (
+                        <div className="bg-zinc-800/60 p-4 rounded-xl">
+                            <h3 className="text-lg font-semibold text-green-400 mb-2">Vista Previa: Croquis Boceto</h3>
+                            <img src={bocetoSketch} alt="Vista previa del boceto" className="max-w-full h-auto rounded-md border-2 border-zinc-600" />
+                        </div>
+                    )}
                 </div>
-            )}
+             )}
 
             {activeTab === 'control' && (
                 <div className="space-y-6 animate-fade-in">
@@ -332,6 +356,12 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                 </div>
             )}
             
+            {activeTab === 'boceto' && (
+                <div className="animate-fade-in">
+                    <Sketchpad isActive={activeTab === 'boceto'} onSketchCapture={handleBocetoCapture} />
+                </div>
+            )}
+
             {activeTab === 'sci201' && (
                 <div className="bg-zinc-800/60 p-6 rounded-xl space-y-4 animate-fade-in">
                     <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2">Formulario SCI-201: Resumen del Incidente</h3>

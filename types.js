@@ -38,6 +38,7 @@ export const rankOrder = {
   'OTRO': 17
 };
 
+// User interface: { id, username, password, role, station }
 // SCI Forms Types - these are interfaces in TS, but we export them as placeholders
 // The actual shape is defined by usage in the components.
 export const SCI201Action = {};
@@ -60,3 +61,8 @@ export const GeneratorData = {};
 export const Material = {};
 export const MaterialLocation = {};
 export const MaterialsData = {};
+
+// Hidro Alert Types
+export const PanoramaPoint = {};
+export const Underpass = {};
+export const HidroAlertData = {};

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { ChevronDownIcon, SearchIcon, PencilIcon, XCircleIcon, TrashIcon, PlusCircleIcon, DownloadIcon } from './icons.js';
 import { exportUnitReportToPdf } from '../services/exportService.js';
 import { RANKS } from '../types.js';
@@ -12,12 +12,76 @@ const getStatusColor = (status) => {
   return 'bg-zinc-500 text-white';
 };
 
-const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateReport, commandPersonnel, servicePersonnel, unitList }) => {
+const normalize = (str) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/["'“”]/g, "").replace(/\./g, "").replace(/\s+/g, ' ').trim() : '';
+
+const isGroupViewable = (groupName, user) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role !== 'station' || !user.station) return false;
+
+    const normalizedUserStation = normalize(user.station);
+    const normalizedGroupName = normalize(groupName);
+
+    // A user can always see their own station/detachment.
+    if (normalizedUserStation.startsWith(normalizedGroupName)) {
+        return true;
+    }
+
+    // Special rule: Estacion III Barracas can view and edit Destacamento Boca.
+    if (normalizedUserStation.includes('ESTACION III BARRACAS') && normalizedGroupName.includes('DESTACAMENTO BOCA')) {
+        return true;
+    }
+
+    // Special rule: Estacion II Patricios can view and edit Destacamento Pompeya.
+    if (normalizedUserStation.includes('ESTACION II PATRICIOS') && normalizedGroupName.includes('DESTACAMENTO POMPEYA')) {
+        return true;
+    }
+
+    // Special rule: Estacion IV Recoleta can view DTO Miserere and DTO Retiro.
+    if (normalizedUserStation.includes('ESTACION IV RECOLETA') &&
+        (normalizedGroupName.includes('DESTACAMENTO MISERERE') || normalizedGroupName.includes('DESTACAMENTO RETIRO'))) {
+        return true;
+    }
+
+    // Special rule: Estacion V can view DTO Urquiza and DTO Saavedra.
+    if (normalizedUserStation.startsWith('ESTACION V ') &&
+        (normalizedGroupName.includes('DESTACAMENTO URQUIZA') || normalizedGroupName.includes('DESTACAMENTO SAAVEDRA'))) {
+        return true;
+    }
+    
+    // Special rule: Estacion VI can view DTO Palermo and DTO Chacarita.
+    if (normalizedUserStation.startsWith('ESTACION VI ') &&
+        (normalizedGroupName.includes('DESTACAMENTO PALERMO') || normalizedGroupName.includes('DESTACAMENTO CHACARITA'))) {
+        return true;
+    }
+
+    // Special rule: Estacion VIII can view DTO Velez Sarsfield.
+    if (normalizedUserStation.startsWith('ESTACION VIII ') &&
+        (normalizedGroupName.includes('DESTACAMENTO VELEZ SARSFIELD'))) {
+        return true;
+    }
+
+    // Special rule: Estacion IX can view DTO Devoto.
+    if (normalizedUserStation.startsWith('ESTACION IX ') &&
+        (normalizedGroupName.includes('DESTACAMENTO DEVOTO'))) {
+        return true;
+    }
+
+    return false;
+};
+
+const isGroupEditable = (groupName, user) => {
+    return isGroupViewable(groupName, user);
+};
+
+
+const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateReport, commandPersonnel, servicePersonnel, unitList, unitTypes, currentUser }) => {
   const [collapsedZones, setCollapsedZones] = useState(new Set());
   const [isEditing, setIsEditing] = useState(false);
   const [editableReport, setEditableReport] = useState(null);
   const [addOfficerInput, setAddOfficerInput] = useState({});
   const [activeDropdown, setActiveDropdown] = useState(null);
+
 
   const allPersonnel = useMemo(() => {
     const combined = [...(commandPersonnel || []), ...(servicePersonnel || [])];
@@ -27,8 +91,22 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
 
   const sortedRanks = useMemo(() => [...RANKS].sort((a, b) => b.length - a.length), []);
 
+    const viewableReportData = useMemo(() => {
+        if (!reportData || !currentUser || currentUser.role === 'admin') {
+            return reportData;
+        }
+
+        const filteredZones = reportData.zones.map(zone => {
+            const filteredGroups = zone.groups.filter(group => isGroupViewable(group.name, currentUser));
+            return { ...zone, groups: filteredGroups };
+        }).filter(zone => zone.groups.length > 0);
+
+        return { ...reportData, zones: filteredZones };
+    }, [reportData, currentUser]);
+
+
   const handleEdit = () => {
-    setEditableReport(JSON.parse(JSON.stringify(reportData)));
+    setEditableReport(JSON.parse(JSON.stringify(viewableReportData)));
     setIsEditing(true);
   };
 
@@ -39,7 +117,24 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
 
   const handleSave = () => {
     if (editableReport) {
-      const reportWithDate = { ...editableReport, reportDate: new Date().toLocaleString('es-AR') };
+      const fullReport = JSON.parse(JSON.stringify(reportData));
+      const editableGroupsMap = new Map();
+      
+      editableReport.zones.forEach(zone => {
+          zone.groups.forEach(group => {
+              editableGroupsMap.set(group.name, group);
+          });
+      });
+
+      fullReport.zones.forEach((zone) => {
+          zone.groups.forEach((group, groupIndex) => {
+              if (editableGroupsMap.has(group.name)) {
+                  zone.groups[groupIndex] = editableGroupsMap.get(group.name);
+              }
+          });
+      });
+      
+      const reportWithDate = { ...fullReport, reportDate: new Date().toLocaleString('es-AR') };
       onUpdateReport(reportWithDate);
     }
     setIsEditing(false);
@@ -58,15 +153,15 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
           } else {
               unit[field] = value;
           }
-
+          
           if (field === 'status' && !value.toLowerCase().includes('fuera de servicio')) {
             unit.outOfServiceReason = '';
           }
-          
+
           return newReport;
       });
   };
-
+  
     const handleAddUnit = (zoneIdx, groupIdx) => {
      setEditableReport(prev => {
        if (!prev) return null;
@@ -132,7 +227,7 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
     setActiveDropdown(null);
   };
 
-  const dataToDisplay = isEditing ? editableReport : reportData;
+  const dataToDisplay = isEditing ? editableReport : viewableReportData;
 
   const toggleZone = (zoneName) => {
     setCollapsedZones(prev => {
@@ -186,16 +281,15 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
     };
   }, [dataToDisplay, searchTerm]);
 
-
   const stats = useMemo(() => {
-    const allUnits = reportData.zones.flatMap(z => z.groups.flatMap(g => g.units));
+    const allUnits = (viewableReportData?.zones || []).flatMap(z => z.groups.flatMap(g => g.units));
     const total = allUnits.length;
     const inService = allUnits.filter(u => u.status.toLowerCase().includes('para servicio')).length;
     const outOfService = allUnits.filter(u => u.status.toLowerCase().includes('fuera de servicio')).length;
     const reserve = allUnits.filter(u => u.status.toLowerCase().includes('reserva')).length;
     const onLoan = allUnits.filter(u => u.status.toLowerCase().includes('préstamo')).length;
     return { total, inService, outOfService, reserve, onLoan };
-  }, [reportData]);
+  }, [viewableReportData]);
   
   if (!filteredData) {
       return null;
@@ -235,7 +329,7 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
     );
   };
 
-    const renderEditableOfficerList = (title, listType, officers, zoneIdx, groupIdx) => {
+    const renderEditableOfficerList = (title, listType, officers, zoneIdx, groupIdx, groupIsEditable) => {
     const key = `${zoneIdx}-${groupIdx}-${listType}`;
     const searchTerm = addOfficerInput[key] || '';
     const filteredPersonnel = allPersonnel.filter(p => 
@@ -254,13 +348,15 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                 type: "text",
                 value: officer,
                 onChange: (e) => handleOfficerListChange(zoneIdx, groupIdx, listType, officerIdx, e.target.value),
-                className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white"
+                className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800 disabled:text-zinc-500",
+                disabled: !groupIsEditable
               }),
               React.createElement("button", {
                 type: "button",
                 onClick: () => handleRemoveFromOfficerList(zoneIdx, groupIdx, listType, officerIdx),
-                className: "p-1 text-zinc-400 hover:text-red-400 rounded-full hover:bg-zinc-800 transition-colors",
-                "aria-label": `Eliminar ${officer}`
+                className: "p-1 text-zinc-400 hover:text-red-400 rounded-full hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                "aria-label": `Eliminar ${officer}`,
+                disabled: !groupIsEditable
               },
                 React.createElement(TrashIcon, { className: "w-5 h-5" })
               )
@@ -275,7 +371,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
             onChange: e => setAddOfficerInput(prev => ({ ...prev, [key]: e.target.value })),
             onFocus: () => setActiveDropdown(key),
             onBlur: () => setTimeout(() => setActiveDropdown(null), 200),
-            className: "w-full bg-zinc-900 border-zinc-700 rounded-md px-3 py-2 text-white"
+            className: "w-full bg-zinc-900 border-zinc-700 rounded-md px-3 py-2 text-white disabled:bg-zinc-800",
+            disabled: !groupIsEditable
           }),
            activeDropdown === key && searchTerm && (
              React.createElement("div", { className: "absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-600 rounded-md shadow-lg max-h-60 overflow-y-auto" },
@@ -347,11 +444,11 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
           )
         ),
         React.createElement("div", { className: "mt-4 flex flex-wrap gap-2 text-sm" },
-            React.createElement("span", { className: "px-3 py-1 bg-zinc-700 rounded-full text-white" }, "Total: ", React.createElement("strong", {className:"font-semibold"}, stats.total)),
-            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('para servicio')}` }, "En Servicio: ", React.createElement("strong", {className:"font-semibold"}, stats.inService)),
-            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('fuera de servicio')}` }, "Fuera de Servicio: ", React.createElement("strong", {className:"font-semibold"}, stats.outOfService)),
-            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('reserva')}` }, "Reserva: ", React.createElement("strong", {className:"font-semibold"}, stats.reserve)),
-            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('préstamo')}` }, "A Préstamo: ", React.createElement("strong", {className:"font-semibold"}, stats.onLoan))
+            React.createElement("span", { className: "px-3 py-1 bg-zinc-700 rounded-full text-white" }, "Total: ", React.createElement("strong", null, stats.total)),
+            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('para servicio')}` }, "En Servicio: ", React.createElement("strong", null, stats.inService)),
+            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('fuera de servicio')}` }, "Fuera de Servicio: ", React.createElement("strong", null, stats.outOfService)),
+            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('reserva')}` }, "Reserva: ", React.createElement("strong", null, stats.reserve)),
+            React.createElement("span", { className: `px-3 py-1 rounded-full ${getStatusColor('préstamo')}` }, "A Préstamo: ", React.createElement("strong", null, stats.onLoan))
         )
       ),
       
@@ -371,8 +468,9 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                     const totalPersonnelInUnits = group.units.reduce((sum, unit) => sum + (unit.personnelCount || 0), 0);
                     const totalStandbyOfficers = (group.standbyOfficers || []).length;
                     const totalPersonnel = totalPersonnelInUnits + totalStandbyOfficers;
+                    const groupIsEditable = isEditing && isGroupEditable(group.name, currentUser);
                     return (
-                      React.createElement("div", { key: group.name, className: "bg-zinc-900/40 p-4 rounded-lg" },
+                      React.createElement("div", { key: group.name, className: `bg-zinc-900/40 p-4 rounded-lg ${isEditing && !groupIsEditable ? 'opacity-60' : ''}` },
                         React.createElement("h4", { className: "text-xl font-semibold text-yellow-300 mb-2 border-b border-zinc-700 pb-2 flex justify-between items-center" },
                           React.createElement("span", null, group.name),
                           React.createElement("span", { className: "text-base text-zinc-300 font-medium" }, "Personal Total: ", React.createElement("span", { className: "font-bold text-white" }, totalPersonnel))
@@ -400,7 +498,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                         type: "text",
                                         value: unit.internalId || '',
                                         onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'internalId', e.target.value),
-                                        className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white"
+                                        className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800",
+                                        disabled: !groupIsEditable
                                       })
                                     ) : (
                                       React.createElement("span", { className: "text-zinc-300" }, unit.internalId || '-')
@@ -411,16 +510,23 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                       React.createElement("input", {
                                         type: "text", value: unit.id,
                                         onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'id', e.target.value),
-                                        className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white",
-                                        list: "unit-list-nomenclador"})
+                                        className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800",
+                                        list: "unit-list-nomenclador",
+                                        disabled: !groupIsEditable
+                                        })
                                     ) : unit.id
                                   ),
                                   React.createElement("td", { className: "p-2 text-zinc-300" },
                                       isEditing ? (
-                                        React.createElement("input", {
-                                            type: "text", value: unit.type,
-                                            onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'type', e.target.value),
-                                            className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white"})
+                                        React.createElement("select", {
+                                          value: unit.type,
+                                          onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'type', e.target.value),
+                                          className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800",
+                                          disabled: !groupIsEditable
+                                        }, 
+                                          !unitTypes.includes(unit.type) && React.createElement("option", { key: unit.type, value: unit.type }, unit.type),
+                                          unitTypes.map(type => React.createElement("option", { key: type, value: type }, type))
+                                        )
                                     ) : unit.type
                                   ),
                                   React.createElement("td", { className: "p-2" },
@@ -429,7 +535,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                             React.createElement("select", {
                                                 value: unit.status,
                                                 onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'status', e.target.value),
-                                                className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white"
+                                                className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800",
+                                                disabled: !groupIsEditable
                                             },
                                                 React.createElement("option", null, "Para Servicio"),
                                                 React.createElement("option", null, "Fuera de Servicio"),
@@ -442,7 +549,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                                     placeholder: "Motivo...",
                                                     value: unit.outOfServiceReason || '',
                                                     onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'outOfServiceReason', e.target.value),
-                                                    className: "mt-1 w-full bg-zinc-900 border-zinc-700 rounded-md px-2 py-1 text-white text-xs"
+                                                    className: "mt-1 w-full bg-zinc-900 border-zinc-700 rounded-md px-2 py-1 text-white text-xs disabled:bg-zinc-800",
+                                                    disabled: !groupIsEditable
                                                 })
                                             )
                                         )
@@ -470,8 +578,9 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                                     handleUnitChange(zoneIdx, groupIdx, unitIdx, 'officerInCharge', `${person.rank} ${person.name}`);
                                                 }
                                             },
-                                            className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white",
-                                            placeholder: "Nombre..."
+                                            className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800",
+                                            placeholder: "Nombre...",
+                                            disabled: !groupIsEditable
                                         })
                                     ) : (() => {
                                         const officerInChargeText = unit.officerInCharge || '-';
@@ -501,7 +610,9 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                       React.createElement("input", {
                                         type: "text", value: unit.poc || '',
                                         onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'poc', e.target.value),
-                                        className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white"})
+                                        className: "w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800",
+                                        disabled: !groupIsEditable
+                                        })
                                     ) : (unit.poc || '-')
                                   ),
                                   React.createElement("td", { className: "p-2 text-right text-zinc-200 font-semibold" },
@@ -510,7 +621,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                             type: "number",
                                             value: unit.personnelCount ?? '',
                                             onChange: (e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'personnelCount', e.target.value),
-                                            className: "w-20 bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-right"
+                                            className: "w-20 bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-right disabled:bg-zinc-800",
+                                            disabled: !groupIsEditable
                                         })
                                     ) : (unit.personnelCount ?? '-')
                                   ),
@@ -519,8 +631,9 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                             React.createElement("button", {
                                                 type: "button",
                                                 onClick: () => handleRemoveUnit(zoneIdx, groupIdx, unitIdx),
-                                                className: "p-1 text-red-400 hover:text-red-300",
-                                                "aria-label": "Eliminar unidad"
+                                                className: "p-1 text-red-400 hover:text-red-300 disabled:opacity-50",
+                                                "aria-label": "Eliminar unidad",
+                                                disabled: !groupIsEditable
                                             },
                                                 React.createElement(TrashIcon, { className: "w-5 h-5" })
                                             )
@@ -536,7 +649,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                                             React.createElement("button", {
                                                 type: "button",
                                                 onClick: () => handleAddUnit(zoneIdx, groupIdx),
-                                                className: "w-full flex items-center justify-center gap-2 text-sm px-3 py-2 bg-green-600/50 hover:bg-green-600/80 rounded-md text-white transition-colors"
+                                                className: "w-full flex items-center justify-center gap-2 text-sm px-3 py-2 bg-green-600/50 hover:bg-green-600/80 rounded-md text-white transition-colors disabled:opacity-50",
+                                                disabled: !groupIsEditable
                                             },
                                                 React.createElement(PlusCircleIcon, { className: "w-5 h-5" }), " Añadir Unidad"
                                             )
@@ -548,8 +662,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                         ),
                         isEditing ? (
                             React.createElement(React.Fragment, null,
-                                renderEditableOfficerList('Oficiales de Dotación', 'crewOfficers', group.crewOfficers, zoneIdx, groupIdx),
-                                renderEditableOfficerList('Oficiales en Estación en Apresto', 'standbyOfficers', group.standbyOfficers, zoneIdx, groupIdx)
+                                renderEditableOfficerList('Oficiales de Dotación', 'crewOfficers', group.crewOfficers, zoneIdx, groupIdx, groupIsEditable),
+                                renderEditableOfficerList('Oficiales en Estación en Apresto', 'standbyOfficers', group.standbyOfficers, zoneIdx, groupIdx, groupIsEditable)
                             )
                         ) : (
                             React.createElement(React.Fragment, null,
@@ -568,5 +682,4 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
     )
   );
 };
-
 export default UnitReportDisplay;

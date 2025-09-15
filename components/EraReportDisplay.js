@@ -1,6 +1,4 @@
-
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PencilIcon, XCircleIcon, TrashIcon, PlusCircleIcon, DownloadIcon } from './icons.js';
 import { exportEraReportToPdf } from '../services/exportService.js';
 
@@ -11,12 +9,83 @@ const getConditionColor = (condition) => {
   return 'bg-zinc-500 text-white';
 };
 
-const EraReportDisplay = ({ reportData, onUpdateReport }) => {
+const normalize = (str) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/["'“”]/g, "").replace(/\./g, "").replace(/\s+/g, ' ').trim() : '';
+
+const isStationViewable = (stationName, user) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role !== 'station' || !user.station) return false;
+
+    const normalizedUserStation = normalize(user.station);
+    const normalizedStationName = normalize(stationName);
+
+    // Get the base station part from the user's full station name (e.g., "ESTACION III" from "ESTACION III BARRACAS")
+    const userBaseStationMatch = normalizedUserStation.match(/^(ESTACION\s[IVXLCDM]+)/);
+    const userBaseStation = userBaseStationMatch ? userBaseStationMatch[0] : null;
+
+    // A user can see a station if their base station name matches the station name
+    if (userBaseStation && userBaseStation === normalizedStationName) {
+        return true;
+    }
+    
+    // A user can see their own specific detachment if names match exactly
+    if (normalizedUserStation === normalizedStationName) {
+        return true;
+    }
+
+    // Special rule: Estacion III Barracas can view and edit Destacamento Boca.
+    if (normalizedUserStation.includes('ESTACION III BARRACAS') && normalizedStationName.includes('BOCA')) {
+        return true;
+    }
+    
+    // Special rule: Estacion V can view DTO Urquiza and DTO Saavedra.
+    if (normalizedUserStation.startsWith('ESTACION V ') && 
+        (normalizedStationName.includes('URQUIZA') || normalizedStationName.includes('SAAVEDRA'))) {
+        return true;
+    }
+    
+    // Special rule: Estacion VI can view DTO Palermo and DTO Chacarita.
+    if (normalizedUserStation.startsWith('ESTACION VI ') && 
+        (normalizedStationName.includes('PALERMO') || normalizedStationName.includes('CHACARITA'))) {
+        return true;
+    }
+
+    // Special rule: Estacion VIII can view DTO Velez Sarsfield.
+    if (normalizedUserStation.startsWith('ESTACION VIII ') && 
+        (normalizedStationName.includes('VELEZ SARSFIELD'))) {
+        return true;
+    }
+    
+    // Special rule: Estacion IX can view DTO Devoto.
+    if (normalizedUserStation.startsWith('ESTACION IX ') && 
+        (normalizedStationName.includes('DEVOTO'))) {
+        return true;
+    }
+    
+    return false;
+};
+
+
+const isStationEditable = (stationName, user) => {
+    return isStationViewable(stationName, user);
+};
+
+const EraReportDisplay = ({ reportData, onUpdateReport, currentUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableReport, setEditableReport] = useState(null);
 
+  const viewableReportData = useMemo(() => {
+    if (!reportData || !currentUser || currentUser.role === 'admin') {
+      return reportData;
+    }
+    return {
+      ...reportData,
+      stations: reportData.stations.filter(station => isStationViewable(station.name, currentUser))
+    };
+  }, [reportData, currentUser]);
+
   const handleEdit = () => {
-    setEditableReport(JSON.parse(JSON.stringify(reportData)));
+    setEditableReport(JSON.parse(JSON.stringify(viewableReportData)));
     setIsEditing(true);
   };
 
@@ -27,7 +96,19 @@ const EraReportDisplay = ({ reportData, onUpdateReport }) => {
 
   const handleSave = () => {
     if (editableReport) {
-      const reportWithDate = { ...editableReport, reportDate: new Date().toLocaleString('es-AR') };
+      const fullReport = JSON.parse(JSON.stringify(reportData));
+      const editableStationsMap = new Map();
+      editableReport.stations.forEach(station => {
+          editableStationsMap.set(station.name, station);
+      });
+
+      fullReport.stations.forEach((station, stationIndex) => {
+          if (editableStationsMap.has(station.name)) {
+              fullReport.stations[stationIndex] = editableStationsMap.get(station.name);
+          }
+      });
+      
+      const reportWithDate = { ...fullReport, reportDate: new Date().toLocaleString('es-AR') };
       onUpdateReport(reportWithDate);
     }
     setIsEditing(false);
@@ -80,7 +161,7 @@ const EraReportDisplay = ({ reportData, onUpdateReport }) => {
     });
   };
   
-  const data = isEditing ? editableReport : reportData;
+  const data = isEditing ? editableReport : viewableReportData;
 
   if (!data) return null;
 
@@ -99,10 +180,10 @@ const EraReportDisplay = ({ reportData, onUpdateReport }) => {
                     )
                 ) : (
                     React.createElement(React.Fragment, null,
-                        React.createElement("button", { onClick: () => exportEraReportToPdf(reportData), className: "px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" },
-                            React.createElement(DownloadIcon, { className: "w-5 h-5" }), " Exportar PDF"
-                        ),
-                        React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5" }), " Editar")
+                    React.createElement("button", { onClick: () => exportEraReportToPdf(reportData), className: "px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" },
+                        React.createElement(DownloadIcon, { className: "w-5 h-5" }), " Exportar PDF"
+                    ),
+                    React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5" }), " Editar")
                     )
                 )
              )
@@ -122,30 +203,31 @@ const EraReportDisplay = ({ reportData, onUpdateReport }) => {
                 ),
                 React.createElement("tbody", null,
                     data.stations.map((station, stationIdx) => {
+                        const stationIsEditable = isEditing && isStationEditable(station.name, currentUser);
                         if (isEditing && station.hasEquipment && station.equipment.length === 0) {
                             return (
                                 React.createElement("tr", { key: station.name, className: "border-t border-zinc-700" },
                                     React.createElement("td", { className: "p-3 font-semibold text-yellow-300 align-top" },
                                         React.createElement("div", { className: "flex items-center gap-2" },
-                                            React.createElement("input", { type: "checkbox", checked: station.hasEquipment, onChange: (e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked), className: "h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500" }),
+                                            React.createElement("input", { type: "checkbox", checked: station.hasEquipment, onChange: (e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked), className: "h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500", disabled: !stationIsEditable }),
                                             React.createElement("span", null, station.name)
                                         )
                                     ),
                                     React.createElement("td", { colSpan: 4 },
-                                        React.createElement("button", { onClick: () => handleAddEquipment(stationIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white" }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir")
+                                        React.createElement("button", { onClick: () => handleAddEquipment(stationIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50", disabled: !stationIsEditable }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir")
                                     ),
-                                    React.createElement("td")
+                                    React.createElement("td", null)
                                 )
                             );
                         }
-
+                        
                         if (!station.hasEquipment) {
                             return (
                                 React.createElement("tr", { key: station.name, className: "border-t border-zinc-700" },
                                     React.createElement("td", { className: "p-3 font-semibold text-yellow-300 align-top" },
                                         isEditing ? (
                                             React.createElement("div", { className: "flex items-center gap-2" },
-                                                React.createElement("input", { type: "checkbox", checked: station.hasEquipment, onChange: (e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked), className: "h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500" }),
+                                                React.createElement("input", { type: "checkbox", checked: station.hasEquipment, onChange: (e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked), className: "h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500", disabled: !stationIsEditable }),
                                                 React.createElement("span", null, station.name)
                                             )
                                         ) : station.name
@@ -165,32 +247,32 @@ const EraReportDisplay = ({ reportData, onUpdateReport }) => {
                         }
 
                         return station.equipment.map((equip, equipIdx) => (
-                            React.createElement("tr", { key: equip.id, className: "border-t border-zinc-700 hover:bg-zinc-700/50" },
+                            React.createElement("tr", { key: equip.id, className: `border-t border-zinc-700 ${isEditing && !stationIsEditable ? 'opacity-60' : 'hover:bg-zinc-700/50'}` },
                                 equipIdx === 0 && (
                                     React.createElement("td", { rowSpan: station.equipment.length, className: "p-3 font-semibold text-yellow-300 align-top" },
                                          isEditing ? (
                                             React.createElement("div", { className: "flex flex-col items-start gap-2" },
                                                 React.createElement("div", { className: "flex items-center gap-2" },
-                                                    React.createElement("input", { type: "checkbox", checked: station.hasEquipment, onChange: (e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked), className: "h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500" }),
+                                                    React.createElement("input", { type: "checkbox", checked: station.hasEquipment, onChange: (e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked), className: "h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500", disabled: !stationIsEditable }),
                                                     React.createElement("span", null, station.name)
                                                 ),
-                                                React.createElement("button", { onClick: () => handleAddEquipment(stationIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white" }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir")
+                                                React.createElement("button", { onClick: () => handleAddEquipment(stationIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50", disabled: !stationIsEditable }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir")
                                             )
                                         ) : station.name
                                     )
                                 ),
                                 isEditing ? (
                                     React.createElement(React.Fragment, null,
-                                        React.createElement("td", null, React.createElement("input", { value: equip.brand, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'brand', e.target.value), className: "w-full bg-zinc-700 rounded p-1" })),
-                                        React.createElement("td", null, React.createElement("input", { value: equip.voltage, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'voltage', e.target.value), className: "w-full bg-zinc-700 rounded p-1" })),
+                                        React.createElement("td", null, React.createElement("input", { value: equip.brand, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'brand', e.target.value), className: "w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800", disabled: !stationIsEditable })),
+                                        React.createElement("td", null, React.createElement("input", { value: equip.voltage, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'voltage', e.target.value), className: "w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800", disabled: !stationIsEditable })),
                                         React.createElement("td", null,
-                                            React.createElement("select", { value: equip.condition, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'condition', e.target.value), className: `w-full border-zinc-600 rounded p-1 font-semibold ${getConditionColor(equip.condition)}` },
+                                            React.createElement("select", { value: equip.condition, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'condition', e.target.value), className: `w-full border-zinc-600 rounded p-1 font-semibold ${getConditionColor(equip.condition)} disabled:bg-zinc-800 disabled:text-zinc-500`, disabled: !stationIsEditable },
                                                 React.createElement("option", { value: "P/S" }, "P/S"),
                                                 React.createElement("option", { value: "F/S" }, "F/S")
                                             )
                                         ),
-                                        React.createElement("td", null, React.createElement("input", { value: equip.dependency, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'dependency', e.target.value), className: "w-full bg-zinc-700 rounded p-1" })),
-                                        React.createElement("td", null, React.createElement("button", { onClick: () => handleRemoveEquipment(stationIdx, equipIdx), className: "p-1 text-red-400 hover:text-red-300" }, React.createElement(TrashIcon, { className: "w-5 h-5" })))
+                                        React.createElement("td", null, React.createElement("input", { value: equip.dependency, onChange: e => handleEquipmentChange(stationIdx, equipIdx, 'dependency', e.target.value), className: "w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800", disabled: !stationIsEditable })),
+                                        React.createElement("td", null, React.createElement("button", { onClick: () => handleRemoveEquipment(stationIdx, equipIdx), className: "p-1 text-red-400 hover:text-red-300 disabled:opacity-50", disabled: !stationIsEditable }, React.createElement(TrashIcon, { className: "w-5 h-5" })))
                                     )
                                 ) : (
                                     React.createElement(React.Fragment, null,

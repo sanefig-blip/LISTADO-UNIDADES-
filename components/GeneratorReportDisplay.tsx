@@ -1,13 +1,12 @@
-
-
-import React, { useState } from 'react';
-import { GeneratorData, GeneratorReportStation, GeneratorEquipment } from '../types';
+import React, { useState, useMemo } from 'react';
+import { GeneratorData, GeneratorReportStation, GeneratorEquipment, User } from '../types';
 import { PencilIcon, XCircleIcon, TrashIcon, PlusCircleIcon, DownloadIcon } from './icons';
 import { exportGeneratorReportToPdf } from '../services/exportService';
 
 interface GeneratorReportDisplayProps {
   reportData: GeneratorData;
   onUpdateReport: (updatedData: GeneratorData) => void;
+  currentUser: User;
 }
 
 const getConditionColor = (condition: string) => {
@@ -17,12 +16,84 @@ const getConditionColor = (condition: string) => {
   return 'bg-zinc-500 text-white';
 };
 
-const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportData, onUpdateReport }) => {
+const normalize = (str: string) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/["'“”]/g, "").replace(/\./g, "").replace(/\s+/g, ' ').trim() : '';
+
+const isStationViewable = (stationName: string, user: User | null): boolean => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role !== 'station' || !user.station) return false;
+
+    const normalizedUserStation = normalize(user.station);
+    const normalizedStationName = normalize(stationName);
+
+    // Get the base station part from the user's full station name (e.g., "ESTACION III" from "ESTACION III BARRACAS")
+    const userBaseStationMatch = normalizedUserStation.match(/^(ESTACION\s[IVXLCDM]+)/);
+    const userBaseStation = userBaseStationMatch ? userBaseStationMatch[0] : null;
+
+    // A user can see a station if their base station name matches the station name
+    if (userBaseStation && userBaseStation === normalizedStationName) {
+        return true;
+    }
+    
+    // A user can see their own specific detachment if names match exactly
+    if (normalizedUserStation === normalizedStationName) {
+        return true;
+    }
+
+    // Special rule: Estacion III Barracas can view and edit Destacamento Boca.
+    if (normalizedUserStation.includes('ESTACION III BARRACAS') && normalizedStationName.includes('BOCA')) {
+        return true;
+    }
+    
+    // Special rule: Estacion V can view DTO Urquiza and DTO Saavedra.
+    if (normalizedUserStation.startsWith('ESTACION V ') && 
+        (normalizedStationName.includes('URQUIZA') || normalizedStationName.includes('SAAVEDRA'))) {
+        return true;
+    }
+    
+    // Special rule: Estacion VI can view DTO Palermo and DTO Chacarita.
+    if (normalizedUserStation.startsWith('ESTACION VI ') && 
+        (normalizedStationName.includes('PALERMO') || normalizedStationName.includes('CHACARITA'))) {
+        return true;
+    }
+
+    // Special rule: Estacion VIII can view DTO Velez Sarsfield.
+    if (normalizedUserStation.startsWith('ESTACION VIII ') && 
+        (normalizedStationName.includes('VELEZ SARSFIELD'))) {
+        return true;
+    }
+
+    // Special rule: Estacion IX can view DTO Devoto.
+    if (normalizedUserStation.startsWith('ESTACION IX ') && 
+        (normalizedStationName.includes('DEVOTO'))) {
+        return true;
+    }
+
+    return false;
+};
+
+
+const isStationEditable = (stationName: string, user: User | null): boolean => {
+    return isStationViewable(stationName, user);
+};
+
+
+const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportData, onUpdateReport, currentUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableReport, setEditableReport] = useState<GeneratorData | null>(null);
 
+    const viewableReportData = useMemo(() => {
+        if (!reportData || !currentUser || currentUser.role === 'admin') {
+            return reportData;
+        }
+        return {
+            ...reportData,
+            stations: reportData.stations.filter(station => isStationViewable(station.name, currentUser))
+        };
+    }, [reportData, currentUser]);
+
   const handleEdit = () => {
-    setEditableReport(JSON.parse(JSON.stringify(reportData)));
+    setEditableReport(JSON.parse(JSON.stringify(viewableReportData)));
     setIsEditing(true);
   };
 
@@ -33,7 +104,19 @@ const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportD
 
   const handleSave = () => {
     if (editableReport) {
-      const reportWithDate = { ...editableReport, reportDate: new Date().toLocaleString('es-AR') };
+        const fullReport = JSON.parse(JSON.stringify(reportData));
+        const editableStationsMap = new Map<string, GeneratorReportStation>();
+        editableReport.stations.forEach(station => {
+            editableStationsMap.set(station.name, station);
+        });
+
+        fullReport.stations.forEach((station: GeneratorReportStation, stationIndex: number) => {
+            if (editableStationsMap.has(station.name)) {
+                fullReport.stations[stationIndex] = editableStationsMap.get(station.name)!;
+            }
+        });
+
+      const reportWithDate = { ...fullReport, reportDate: new Date().toLocaleString('es-AR') };
       onUpdateReport(reportWithDate);
     }
     setIsEditing(false);
@@ -86,7 +169,7 @@ const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportD
     });
   };
   
-  const data = isEditing ? editableReport : reportData;
+  const data = isEditing ? editableReport : viewableReportData;
 
   if (!data) return null;
 
@@ -128,17 +211,18 @@ const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportD
                 </thead>
                 <tbody>
                     {data.stations.map((station, stationIdx) => {
+                        const stationIsEditable = isEditing && isStationEditable(station.name, currentUser);
                         if (isEditing && station.hasEquipment && station.equipment.length === 0) {
                              return (
                                 <tr key={station.name} className="border-t border-zinc-700">
                                     <td className="p-3 font-semibold text-yellow-300 align-top">
                                         <div className="flex items-center gap-2">
-                                            <input type="checkbox" checked={station.hasEquipment} onChange={(e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500"/>
+                                            <input type="checkbox" checked={station.hasEquipment} onChange={(e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500" disabled={!stationIsEditable}/>
                                             <span>{station.name}</span>
                                         </div>
                                     </td>
                                     <td colSpan={4}>
-                                        <button onClick={() => handleAddEquipment(stationIdx)} className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white"><PlusCircleIcon className="w-4 h-4" /> Añadir</button>
+                                        <button onClick={() => handleAddEquipment(stationIdx)} className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50" disabled={!stationIsEditable}><PlusCircleIcon className="w-4 h-4" /> Añadir</button>
                                     </td>
                                     <td/>
                                 </tr>
@@ -151,7 +235,7 @@ const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportD
                                     <td className="p-3 font-semibold text-yellow-300 align-top">
                                         {isEditing ? (
                                             <div className="flex items-center gap-2">
-                                                <input type="checkbox" checked={station.hasEquipment} onChange={(e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500"/>
+                                                <input type="checkbox" checked={station.hasEquipment} onChange={(e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500" disabled={!stationIsEditable}/>
                                                 <span>{station.name}</span>
                                             </div>
                                         ) : station.name}
@@ -171,32 +255,32 @@ const GeneratorReportDisplay: React.FC<GeneratorReportDisplayProps> = ({ reportD
                         }
 
                         return station.equipment.map((equip, equipIdx) => (
-                            <tr key={equip.id} className="border-t border-zinc-700 hover:bg-zinc-700/50">
+                            <tr key={equip.id} className={`border-t border-zinc-700 ${isEditing && !stationIsEditable ? 'opacity-60' : 'hover:bg-zinc-700/50'}`}>
                                 {equipIdx === 0 && (
                                     <td rowSpan={station.equipment.length} className="p-3 font-semibold text-yellow-300 align-top">
                                          {isEditing ? (
                                             <div className="flex flex-col items-start gap-2">
                                                 <div className="flex items-center gap-2">
-                                                    <input type="checkbox" checked={station.hasEquipment} onChange={(e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500"/>
+                                                    <input type="checkbox" checked={station.hasEquipment} onChange={(e) => handleStationChange(stationIdx, 'hasEquipment', e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500" disabled={!stationIsEditable}/>
                                                     <span>{station.name}</span>
                                                 </div>
-                                                <button onClick={() => handleAddEquipment(stationIdx)} className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white"><PlusCircleIcon className="w-4 h-4" /> Añadir</button>
+                                                <button onClick={() => handleAddEquipment(stationIdx)} className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50" disabled={!stationIsEditable}><PlusCircleIcon className="w-4 h-4" /> Añadir</button>
                                             </div>
                                         ) : station.name}
                                     </td>
                                 )}
                                 {isEditing ? (
                                     <>
-                                        <td><input value={equip.brand} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'brand', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={equip.kva} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'kva', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
+                                        <td><input value={equip.brand} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'brand', e.target.value)} className="w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800" disabled={!stationIsEditable}/></td>
+                                        <td><input value={equip.kva} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'kva', e.target.value)} className="w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800" disabled={!stationIsEditable}/></td>
                                         <td>
-                                            <select value={equip.condition} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'condition', e.target.value)} className={`w-full border-zinc-600 rounded p-1 font-semibold ${getConditionColor(equip.condition)}`}>
+                                            <select value={equip.condition} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'condition', e.target.value)} className={`w-full border-zinc-600 rounded p-1 font-semibold ${getConditionColor(equip.condition)} disabled:bg-zinc-800 disabled:text-zinc-500`} disabled={!stationIsEditable}>
                                                 <option value="P/S">P/S</option>
                                                 <option value="F/S">F/S</option>
                                             </select>
                                         </td>
-                                        <td><input value={equip.dependency} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'dependency', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><button onClick={() => handleRemoveEquipment(stationIdx, equipIdx)} className="p-1 text-red-400 hover:text-red-300"><TrashIcon className="w-5 h-5"/></button></td>
+                                        <td><input value={equip.dependency} onChange={e => handleEquipmentChange(stationIdx, equipIdx, 'dependency', e.target.value)} className="w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800" disabled={!stationIsEditable}/></td>
+                                        <td><button onClick={() => handleRemoveEquipment(stationIdx, equipIdx)} className="p-1 text-red-400 hover:text-red-300 disabled:opacity-50" disabled={!stationIsEditable}><TrashIcon className="w-5 h-5"/></button></td>
                                     </>
                                 ) : (
                                     <>

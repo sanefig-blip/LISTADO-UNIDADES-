@@ -22,9 +22,20 @@ export const generatorData: GeneratorData = {
       name: 'ESTACION VI',
       hasEquipment: true,
       equipment: [
-        { id: 'gen-3', brand: 'CATERPILLAR', kva: '75 KVA', condition: 'F/S', dependency: 'En Taller' },
-        { id: 'gen-4', brand: 'KIPOR', kva: '15 KVA', condition: 'P/S', dependency: 'Dto. Palermo' }
+        { id: 'gen-3', brand: 'CATERPILLAR', kva: '75 KVA', condition: 'F/S', dependency: 'En Taller' }
       ]
+    },
+    {
+      name: 'DTO. PALERMO',
+      hasEquipment: true,
+      equipment: [
+        { id: 'gen-4', brand: 'KIPOR', kva: '15 KVA', condition: 'P/S', dependency: 'En dependencia' }
+      ]
+    },
+    { 
+      name: 'DTO. CHACARITA', 
+      hasEquipment: false, 
+      equipment: [] 
     },
     { name: 'ESTACION VII', hasEquipment: false, equipment: [] },
     {
@@ -32,7 +43,9 @@ export const generatorData: GeneratorData = {
       hasEquipment: true,
       equipment: [{ id: 'gen-5', brand: 'CATERPILLAR', kva: '50 KVA', condition: 'P/S', dependency: 'En dependencia' }]
     },
+    { name: 'DESTACAMENTO VELEZ SARSFIELD', hasEquipment: false, equipment: [] },
     { name: 'ESTACION IX', hasEquipment: false, equipment: [] },
+    { name: 'DESTACAMENTO DEVOTO', hasEquipment: false, equipment: [] },
     {
       name: 'ESTACION X',
       hasEquipment: true,

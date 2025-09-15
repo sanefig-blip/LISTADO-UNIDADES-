@@ -26,17 +26,27 @@ export const eraData: EraData = {
       name: 'ESTACION V',
       hasEquipment: true,
       equipment: [
-        { id: 'era-5', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' },
-        { id: 'era-6', brand: 'COLTRI', voltage: '220W', condition: 'P/S', dependency: 'En Dto. URQUIZA' }
+        { id: 'era-5', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' }
       ]
     },
     {
       name: 'ESTACION VI',
       hasEquipment: true,
       equipment: [
-        { id: 'era-7', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' },
-        { id: 'era-8', brand: 'COLTRI', voltage: '220W', condition: 'P/S', dependency: 'Dto. Palermo' }
+        { id: 'era-7', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' }
       ]
+    },
+    {
+      name: 'DTO. PALERMO',
+      hasEquipment: true,
+      equipment: [
+        { id: 'era-8', brand: 'COLTRI', voltage: '220W', condition: 'P/S', dependency: 'En dependencia' }
+      ]
+    },
+    { 
+      name: 'DTO. CHACARITA', 
+      hasEquipment: false, 
+      equipment: [] 
     },
     {
       name: 'ESTACION VII',
@@ -51,11 +61,13 @@ export const eraData: EraData = {
       hasEquipment: true,
       equipment: [{ id: 'era-11', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' }]
     },
+    { name: 'DESTACAMENTO VELEZ SARSFIELD', hasEquipment: false, equipment: [] },
     {
       name: 'ESTACION IX',
       hasEquipment: true,
       equipment: [{ id: 'era-12', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' }]
     },
+    { name: 'DESTACAMENTO DEVOTO', hasEquipment: false, equipment: [] },
     {
       name: 'ESTACION X',
       hasEquipment: true,
@@ -75,6 +87,13 @@ export const eraData: EraData = {
       equipment: [
         { id: 'era-16', brand: 'OCEANIC', voltage: '380W', condition: 'P/S', dependency: 'En dependencia' },
         { id: 'era-17', brand: 'COLTRI', voltage: '220W', condition: 'F/S', dependency: 'En dependencia' }
+      ]
+    },
+    {
+      name: 'DTO. URQUIZA',
+      hasEquipment: true,
+      equipment: [
+        { id: 'era-6', brand: 'COLTRI', voltage: '220W', condition: 'P/S', dependency: 'En dependencia' }
       ]
     },
     {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { rankOrder, Schedule, Personnel, Rank, Roster, Service, Officer, ServiceTemplate, Assignment, UnitReportData, EraData, GeneratorData, MaterialsData, Zone, UnitGroup, MaterialLocation } from './types.ts';
+import { rankOrder, Schedule, Personnel, Rank, Roster, Service, Officer, ServiceTemplate, Assignment, UnitReportData, EraData, GeneratorData, MaterialsData, Zone, UnitGroup, MaterialLocation, User } from './types.ts';
 import { scheduleData as preloadedScheduleData } from './data/scheduleData.ts';
 import { unitReportData as preloadedUnitReportData } from './data/unitReportData.ts';
 import { eraData as preloadedEraData } from './data/eraData.ts';
@@ -9,7 +9,9 @@ import { rosterData as preloadedRosterData } from './data/rosterData.ts';
 import { commandPersonnelData as defaultCommandPersonnel } from './data/commandPersonnelData.ts';
 import { servicePersonnelData as defaultServicePersonnel } from './data/servicePersonnelData.ts';
 import { defaultUnits } from './data/unitData.ts';
+import { defaultUnitTypes } from './data/unitTypeData.ts';
 import { defaultServiceTemplates } from './data/serviceTemplates.ts';
+import { users as defaultUsers } from './data/userData.ts';
 import { exportScheduleToWord, exportScheduleByTimeToWord, exportScheduleAsExcelTemplate, exportScheduleAsWordTemplate, exportRosterWordTemplate } from './services/exportService.ts';
 import { parseScheduleFromFile, parseFullUnitReportFromExcel, parseRosterFromWord, parseUnitReportFromPdf } from './services/wordImportService.ts';
 import ScheduleDisplay from './components/ScheduleDisplay.tsx';
@@ -22,7 +24,10 @@ import EraReportDisplay from './components/EraReportDisplay.tsx';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay.tsx';
 import MaterialsDisplay from './components/MaterialsDisplay.tsx';
 import MaterialStatusView from './components/MaterialStatusView.tsx';
-import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon } from './components/icons.tsx';
+import ForestalView from './components/ForestalView.tsx';
+import HidroAlertView from './components/HidroAlertView.tsx';
+import Login from './components/Login.tsx';
+import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon, LogoutIcon, ShieldExclamationIcon } from './components/icons.tsx';
 import HelpModal from './components/HelpModal.tsx';
 import ServiceTemplateModal from './components/ServiceTemplateModal.tsx';
 import ExportTemplateModal from './components/ExportTemplateModal.tsx';
@@ -42,7 +47,8 @@ const parseDateFromString = (dateString: string): Date => {
 };
 
 
-const App: React.FC = () => {
+const App = () => {
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [schedule, setSchedule] = useState<Schedule | null>(null);
     const [unitReport, setUnitReport] = useState<UnitReportData | null>(null);
     const [eraReport, setEraReport] = useState<EraData | null>(null);
@@ -53,10 +59,12 @@ const App: React.FC = () => {
     const [commandPersonnel, setCommandPersonnel] = useState<Personnel[]>([]);
     const [servicePersonnel, setServicePersonnel] = useState<Personnel[]>([]);
     const [unitList, setUnitList] = useState<string[]>([]);
+    const [unitTypes, setUnitTypes] = useState<string[]>([]);
     const [selectedServiceIds, setSelectedServiceIds] = useState(new Set<string>());
     const [serviceTemplates, setServiceTemplates] = useState<ServiceTemplate[]>([]);
     const [roster, setRoster] = useState<Roster>({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [usersData, setUsersData] = useState<User[]>([]);
 
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -71,6 +79,14 @@ const App: React.FC = () => {
     const rosterInputRef = useRef<HTMLInputElement>(null);
     const importMenuRef = useRef<HTMLDivElement>(null);
     const exportMenuRef = useRef<HTMLDivElement>(null);
+
+    const handleLogin = (user: User) => {
+        setCurrentUser(user);
+    };
+
+    const handleLogout = () => {
+        setCurrentUser(null);
+    };
 
 
     useEffect(() => {
@@ -162,6 +178,7 @@ const App: React.FC = () => {
           
         const loadedCommandPersonnel = JSON.parse(localStorage.getItem('commandPersonnel') || JSON.stringify(defaultCommandPersonnel));
         const loadedRoster = JSON.parse(localStorage.getItem('rosterData') || JSON.stringify(preloadedRosterData));
+        const loadedUsers = JSON.parse(localStorage.getItem('usersData') || JSON.stringify(defaultUsers));
         
         let unitReportToLoad;
         try {
@@ -235,6 +252,8 @@ const App: React.FC = () => {
         setMaterialsReport(materialsReportToLoad);
         setCommandPersonnel(loadedCommandPersonnel);
         setServicePersonnel(JSON.parse(localStorage.getItem('servicePersonnel') || JSON.stringify(defaultServicePersonnel)));
+        setUsersData(loadedUsers);
+        setUnitTypes(JSON.parse(localStorage.getItem('unitTypes') || JSON.stringify(defaultUnitTypes)));
 
         const nomencladorUnits: string[] = JSON.parse(localStorage.getItem('unitList') || JSON.stringify(defaultUnits));
         const reportUnits: string[] = unitReportToLoad.zones.flatMap((zone: any) =>
@@ -270,6 +289,11 @@ const App: React.FC = () => {
         setUnitList(newList);
     };
 
+    const updateAndSaveUnitTypes = (newTypes: string[]) => {
+        localStorage.setItem('unitTypes', JSON.stringify(newTypes));
+        setUnitTypes(newTypes);
+    };
+
     const updateAndSaveRoster = (newRoster: Roster) => {
         localStorage.setItem('rosterData', JSON.stringify(newRoster));
         setRoster(newRoster);
@@ -278,6 +302,11 @@ const App: React.FC = () => {
     const updateAndSaveTemplates = (templates: ServiceTemplate[]) => {
         localStorage.setItem('serviceTemplates', JSON.stringify(templates));
         setServiceTemplates(templates);
+    };
+
+    const updateAndSaveUsers = (newUsers: User[]) => {
+        localStorage.setItem('usersData', JSON.stringify(newUsers));
+        setUsersData(newUsers);
     };
     
     const handleUpdateUnitReport = (updatedData: UnitReportData) => {
@@ -314,7 +343,7 @@ const App: React.FC = () => {
         setSchedule(prevSchedule => {
             if (!prevSchedule) return null;
             const key = type === 'common' ? 'services' : 'sportsEvents';
-            const newService: Service = {
+            const newService = {
                 id: `new-service-${Date.now()}`,
                 title: type === 'common' ? "Nuevo Servicio (Editar)" : "Nuevo Evento Deportivo (Editar)",
                 assignments: [], isHidden: false
@@ -452,7 +481,7 @@ const App: React.FC = () => {
             const newSchedule = JSON.parse(JSON.stringify(prevSchedule));
             const allServices = [...newSchedule.services, ...newSchedule.sportsEvents];
             for (const service of allServices) {
-                const assignment = service.assignments.find((a: any) => a.id === assignmentId);
+                const assignment = service.assignments.find((a: Assignment) => a.id === assignmentId);
                 if (assignment) {
                     if ('inService' in statusUpdate) assignment.inService = statusUpdate.inService;
                     if ('serviceEnded' in statusUpdate) assignment.serviceEnded = statusUpdate.serviceEnded;
@@ -565,7 +594,7 @@ const App: React.FC = () => {
                 if (importMode === '1') { // Add
                     const now = Date.now();
                     let counter = 0;
-                    const reIdService = (service: Service): Service => ({
+                    const reIdService = (service: Service) => ({
                         ...service,
                         id: `imported-add-${now}-${counter++}`,
                         assignments: service.assignments.map(assignment => ({
@@ -668,7 +697,7 @@ const App: React.FC = () => {
     
         if (window.confirm("¿Deseas fusionar los datos de este archivo con el rol de guardia actual?")) {
             try {
-                let newRosterData: Roster;
+                let newRosterData;
                 if (file.name.endsWith('.json')) {
                     newRosterData = JSON.parse(await file.text());
                     if (typeof newRosterData !== 'object' || newRosterData === null || Array.isArray(newRosterData)) {
@@ -697,20 +726,20 @@ const App: React.FC = () => {
     };
     
     const handleSaveAsTemplate = (service: Service) => {
-        const newTemplate: ServiceTemplate = { ...JSON.parse(JSON.stringify(service)), templateId: `template-${Date.now()}` };
+        const newTemplate = { ...JSON.parse(JSON.stringify(service)), templateId: `template-${Date.now()}` };
         updateAndSaveTemplates([...serviceTemplates, newTemplate]);
         showToast(`Servicio "${service.title}" guardado como plantilla.`);
     };
 
     const handleSelectTemplate = (template: ServiceTemplate, { mode, serviceType, serviceToReplaceId }: { mode: 'add' | 'replace', serviceType: 'common' | 'sports', serviceToReplaceId?: string }) => {
-        setSchedule((prevSchedule: Schedule | null) => {
+        setSchedule((prevSchedule) => {
             if (!prevSchedule) return null;
             const listKey = serviceType === 'common' ? 'services' : 'sportsEvents';
-            let newSchedule: Schedule = { ...prevSchedule };
+            let newSchedule = { ...prevSchedule };
 
             if (mode === 'add') {
-                const newService: Service = { ...JSON.parse(JSON.stringify(template)), id: `service-from-template-${Date.now()}` };
-                delete (newService as any).templateId;
+                const newService = { ...JSON.parse(JSON.stringify(template)), id: `service-from-template-${Date.now()}` };
+                delete newService.templateId;
                 const list = [...newSchedule[listKey]];
                 const firstHiddenIndex = list.findIndex(s => s.isHidden);
                 const insertIndex = firstHiddenIndex === -1 ? list.length : firstHiddenIndex;
@@ -718,10 +747,10 @@ const App: React.FC = () => {
                 newSchedule[listKey] = list;
                 showToast(`Servicio "${template.title}" añadido desde plantilla.`);
             } else if (mode === 'replace' && serviceToReplaceId) {
-                newSchedule[listKey] = newSchedule[listKey].map((s: Service) => {
+                newSchedule[listKey] = newSchedule[listKey].map((s) => {
                     if (s.id === serviceToReplaceId) {
-                        const updatedService: Service = { ...JSON.parse(JSON.stringify(template)), id: s.id };
-                        delete (updatedService as any).templateId;
+                        const updatedService = { ...JSON.parse(JSON.stringify(template)), id: s.id };
+                        delete updatedService.templateId;
                         return updatedService;
                     }
                     return s;
@@ -755,7 +784,7 @@ const App: React.FC = () => {
 
     const getAssignmentsByTime = useMemo(() => {
         if (!filteredSchedule) return {};
-        const grouped: { [time: string]: Assignment[] } = {};
+        const grouped: {[key: string]: Assignment[]} = {};
         [...filteredSchedule.services, ...filteredSchedule.sportsEvents].filter(s => !s.isHidden).forEach(service => {
           service.assignments.forEach(assignment => {
             const timeKey = assignment.time;
@@ -779,8 +808,10 @@ const App: React.FC = () => {
     }, [selectedServiceIds, schedule]);
 
     const renderContent = () => {
-        if (!displayDate) return null;
+        if (!displayDate || !currentUser) return null;
         switch (view) {
+            case 'hidro-alert':
+                return React.createElement(HidroAlertView, {});
             case 'unit-report':
                 if (!unitReport) return null;
                 return React.createElement(UnitReportDisplay, {
@@ -790,7 +821,9 @@ const App: React.FC = () => {
                         onUpdateReport: handleUpdateUnitReport,
                         commandPersonnel: commandPersonnel,
                         servicePersonnel: servicePersonnel,
-                        unitList: unitList
+                        unitList: unitList,
+                        unitTypes: unitTypes,
+                        currentUser: currentUser
                     });
             case 'unit-status':
                 if (!unitReport) return null;
@@ -803,31 +836,37 @@ const App: React.FC = () => {
             case 'command-post':
                 if (!unitReport) return null;
                 return React.createElement(CommandPostView, { unitReportData: unitReport });
+            case 'forestal':
+                return React.createElement(ForestalView, {});
             case 'era-report':
                 if (!eraReport) return null;
                 return React.createElement(EraReportDisplay, {
                         reportData: eraReport,
-                        onUpdateReport: handleUpdateEraReport
+                        onUpdateReport: handleUpdateEraReport,
+                        currentUser: currentUser
                     });
             case 'generator-report':
                 if (!generatorReport) return null;
                 return React.createElement(GeneratorReportDisplay, {
                     reportData: generatorReport,
-                    onUpdateReport: handleUpdateGeneratorReport
+                    onUpdateReport: handleUpdateGeneratorReport,
+                    currentUser: currentUser
                 });
             case 'materials':
                 if (!materialsReport) return null;
                 return React.createElement(MaterialsDisplay, {
                     reportData: materialsReport,
-                    onUpdateReport: handleUpdateMaterialsReport
+                    onUpdateReport: handleUpdateMaterialsReport,
+                    currentUser: currentUser
                 });
             case 'schedule':
                 if (!filteredSchedule) return null;
                 return React.createElement(ScheduleDisplay, {
                         schedule: filteredSchedule, displayDate: displayDate, selectedServiceIds: selectedServiceIds, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, unitList: unitList,
-                        onDateChange: handleDateChange, onUpdateService: handleUpdateService, onUpdateCommandStaff: handleUpdateCommandStaff, onAddNewService: handleAddNewService, onMoveService: handleMoveService, onToggleServiceSelection: handleToggleServiceSelection, onSelectAllServices: handleSelectAllServices, onSaveAsTemplate: handleSaveAsTemplate, onReplaceFromTemplate: (serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId }), onImportGuardLine: () => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule!.commandStaff, commandPersonnel), true),
+                        onDateChange: handleDateChange, onUpdateService: handleUpdateService, onUpdateCommandStaff: handleUpdateCommandStaff, onAddNewService: handleAddNewService, onMoveService: handleMoveService, onToggleServiceSelection: handleToggleServiceSelection, onSelectAllServices: handleSelectAllServices, onSaveAsTemplate: handleSaveAsTemplate, onReplaceFromTemplate: (serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId }), onImportGuardLine: () => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true),
                         onDeleteService: handleDeleteService,
                         searchTerm: searchTerm, onSearchChange: setSearchTerm,
+                        currentUser: currentUser,
                     });
             case 'time-grouped':
                 if (!filteredSchedule) return null;
@@ -836,11 +875,15 @@ const App: React.FC = () => {
                         onAssignmentStatusChange: handleAssignmentStatusChange
                     });
             case 'nomenclador':
+                 if (currentUser.role !== 'admin') {
+                    return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado. Se requieren permisos de administrador.");
+                }
                 return React.createElement(Nomenclador, {
-                        commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, roster: roster,
+                        commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, unitTypes: unitTypes, roster: roster,
+                        users: usersData,
                         onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)),
                         onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)),
-                        onUpdateUnits: updateAndSaveUnits, onUpdateRoster: updateAndSaveRoster
+                        onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers
                      });
             default:
                 return null;
@@ -848,6 +891,10 @@ const App: React.FC = () => {
     };
     
     const getButtonClass = (buttonView: string) => `flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${view === buttonView ? 'bg-blue-600 text-white shadow-lg' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`;
+    
+     if (!currentUser) {
+        return React.createElement(Login, { onLogin: handleLogin, users: usersData });
+    }
     
     if (!schedule || !displayDate || !unitReport || !eraReport || !generatorReport || !materialsReport) {
         return (
@@ -867,21 +914,27 @@ const App: React.FC = () => {
                 React.createElement("div", { className: "container mx-auto px-4 sm:px-6 lg:px-8" },
                     React.createElement("div", { className: "flex flex-col sm:flex-row items-center justify-between h-auto sm:h-20 py-4 sm:py-0" },
                         React.createElement("div", { className: "flex items-center mb-4 sm:mb-0" },
+                            React.createElement("img", { src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png", alt: "Escudo Bomberos de la Ciudad", className: "h-12 mr-3" }),
                             React.createElement("button", { onClick: handleResetData, className: "mr-2 text-zinc-400 hover:text-white transition-colors", "aria-label": "Reiniciar Datos"}, React.createElement(RefreshIcon, { className: "w-6 h-6" })),
-                            React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" })),
-                            React.createElement("img", { src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png", alt: "Escudo Bomberos de la Ciudad", className: "h-12 mr-3" })
+                            React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" }))
                         ),
                         React.createElement("div", { className: "flex flex-wrap items-center justify-end gap-2" },
+                             React.createElement("div", { className: "flex items-center text-sm text-zinc-300 mr-4" },
+                                React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
+                                React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión"}, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
+                            ),
                             React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
+                            React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
                             React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
                             React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
-                            React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
+                            (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
                             React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
                             React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
                             React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
                             React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
-                            React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
-                            React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
                             
                             React.createElement("div", { className: "relative", ref: importMenuRef },
                                 React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },

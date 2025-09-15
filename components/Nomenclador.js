@@ -1,6 +1,72 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon } from './icons.js';
+import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from './icons.js';
 import { RANKS } from '../types.js';
+
+const UserManagement = ({ users, onUpdateUsers }) => {
+    const [editableUsers, setEditableUsers] = useState(() => JSON.parse(JSON.stringify(users)));
+    const [passwordVisibility, setPasswordVisibility] = useState({});
+
+    useEffect(() => {
+        setEditableUsers(JSON.parse(JSON.stringify(users)));
+    }, [users]);
+
+    const handlePasswordChange = (userId, newPassword) => {
+        setEditableUsers(prev => prev.map(u => u.id === userId ? { ...u, password: newPassword } : u));
+    };
+    
+    const togglePasswordVisibility = (userId) => {
+        setPasswordVisibility(prev => ({ ...prev, [userId]: !prev[userId] }));
+    };
+
+    const handleSave = () => {
+        const adminUser = editableUsers.find(u => u.role === 'admin');
+        if (adminUser && adminUser.password.trim() === '') {
+            alert('La contraseña del administrador no puede estar vacía.');
+            // Revert to original password if empty
+            const originalAdmin = users.find(u => u.id === adminUser.id);
+            if (originalAdmin) {
+                setEditableUsers(prev => prev.map(u => u.id === adminUser.id ? { ...u, password: originalAdmin.password } : u));
+            }
+            return;
+        }
+        onUpdateUsers(editableUsers);
+        alert('Contraseñas actualizadas con éxito.');
+    };
+
+    return (
+        React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6" },
+            React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, "Gestión de Usuarios y Contraseñas"),
+            React.createElement("div", { className: "space-y-3" },
+                editableUsers.map(user => (
+                    React.createElement("div", { key: user.id, className: "grid grid-cols-[1fr,1fr,auto] gap-4 items-center p-2 bg-zinc-700/50 rounded-md" },
+                        React.createElement("span", { className: "text-zinc-200 font-medium" }, user.username),
+                        React.createElement("div", { className: "relative" },
+                            React.createElement("input", {
+                                type: passwordVisibility[user.id] ? 'text' : 'password',
+                                value: user.password,
+                                onChange: e => handlePasswordChange(user.id, e.target.value),
+                                className: "w-full bg-zinc-900 border border-zinc-600 rounded-md px-3 py-2 text-white",
+                                autoComplete: "new-password",
+                            }),
+                            React.createElement("button", { type: "button", onClick: () => togglePasswordVisibility(user.id), className: "absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-white" },
+                                passwordVisibility[user.id] ? React.createElement(EyeOffIcon, { className: "w-5 h-5" }) : React.createElement(EyeIcon, { className: "w-5 h-5" })
+                            )
+                        ),
+                        React.createElement("span", { className: `text-sm font-semibold px-3 py-1 rounded-full ${user.role === 'admin' ? 'bg-yellow-500 text-black' : 'bg-blue-500 text-white'}` },
+                            user.role === 'admin' ? 'Admin' : 'Estación'
+                        )
+                    )
+                ))
+            ),
+            React.createElement("div", { className: "flex justify-end mt-6" },
+                React.createElement("button", { onClick: handleSave, className: "flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold transition-colors" },
+                    React.createElement(PencilIcon, { className: "w-5 h-5 mr-2" }),
+                    "Guardar Cambios de Contraseñas"
+                )
+            )
+        )
+    );
+};
 
 const PersonnelListItem = ({ item, onUpdate, onRemove, extraFieldsToShow }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -96,8 +162,8 @@ const PersonnelListItem = ({ item, onUpdate, onRemove, extraFieldsToShow }) => {
             )
         ),
         React.createElement("div", { className: "flex items-center space-x-2 flex-shrink-0 self-end" },
-          React.createElement("button", { onClick: handleSave, className: "text-green-400 hover:text-green-300 transition-colors p-1" }, React.createElement(PencilIcon, { className: "w-5 h-5" })),
-          React.createElement("button", { onClick: handleCancel, className: "text-zinc-400 hover:text-zinc-200 transition-colors p-1" }, React.createElement(XCircleIcon, { className: "w-5 h-5" }))
+          React.createElement("button", { onClick: handleSave, className: "text-green-400 hover:text-green-300 transition-colors p-1"}, React.createElement(PencilIcon, { className: "w-5 h-5"})),
+          React.createElement("button", { onClick: handleCancel, className: "text-zinc-400 hover:text-zinc-200 transition-colors p-1"}, React.createElement(XCircleIcon, { className: "w-5 h-5"}))
         )
       )
     );
@@ -360,6 +426,67 @@ const UnitList = ({ items, onUpdateItems }) => {
     );
 }
 
+const UnitTypeList = ({ items, onUpdateItems }) => {
+    const [newItem, setNewItem] = useState('');
+
+    const handleAdd = () => {
+      if (newItem.trim() && !items.find(i => i.toLowerCase() === newItem.trim().toLowerCase())) {
+        const sorted = [...items, newItem.trim()].sort((a, b) => a.localeCompare(b));
+        onUpdateItems(sorted);
+        setNewItem('');
+      }
+    };
+
+    const handleRemove = (itemToRemove) => {
+        onUpdateItems(items.filter(item => item !== itemToRemove));
+    };
+
+    return (
+      React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]" },
+        React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, "Tipos de Unidades"),
+        React.createElement("div", { className: "flex space-x-2 mb-4" },
+          React.createElement("input", {
+            type: "text",
+            value: newItem,
+            onChange: (e) => setNewItem(e.target.value),
+            placeholder: "Añadir nuevo tipo...",
+            className: "w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white",
+            "aria-label": "Añadir nuevo tipo de unidad"
+          }),
+          React.createElement("button", {
+            onClick: handleAdd,
+            className: "flex-shrink-0 flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold",
+            "aria-label": "Añadir tipo de unidad"
+          },
+            React.createElement(PlusCircleIcon, { className: "w-5 h-5" })
+          )
+        ),
+        React.createElement("ul", { className: "space-y-2 overflow-y-auto pr-2 flex-grow" },
+          items.map((item) => (
+            React.createElement("li", {
+              key: item,
+              className: "flex justify-between items-center bg-zinc-700/50 p-2 rounded-md animate-fade-in"
+            },
+              React.createElement("span", { className: "text-zinc-200" }, item),
+              React.createElement("button", {
+                onClick: () => handleRemove(item),
+                className: "text-zinc-400 hover:text-red-400 transition-colors",
+                "aria-label": `Eliminar ${item}`
+              },
+                React.createElement(TrashIcon, { className: "w-5 h-5" })
+              )
+            )
+          )),
+           items.length === 0 && (
+              React.createElement("div", { className: "flex justify-center items-center h-full" },
+                  React.createElement("p", { className: "text-zinc-500" }, "No hay tipos de unidades.")
+              )
+          )
+        )
+      )
+    );
+};
+
 const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editableMonthRoster, setEditableMonthRoster] = useState({});
@@ -521,6 +648,7 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
 const Nomenclador = (props) => {
   return (
     React.createElement("div", { className: "animate-fade-in space-y-8" },
+        React.createElement(UserManagement, { users: props.users, onUpdateUsers: props.onUpdateUsers }),
         React.createElement(RosterEditor, { 
           roster: props.roster,
           onUpdateRoster: props.onUpdateRoster,
@@ -544,11 +672,9 @@ const Nomenclador = (props) => {
                 extraFieldsToShow: ['station', 'detachment', 'poc', 'part']
             })
         ),
-        React.createElement("div", { className: "max-w-xl mx-auto" },
-            React.createElement(UnitList, {
-                items: props.units,
-                onUpdateItems: props.onUpdateUnits
-            })
+        React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
+             React.createElement(UnitList, { items: props.units, onUpdateItems: props.onUpdateUnits }),
+             React.createElement(UnitTypeList, { items: props.unitTypes, onUpdateItems: props.onUpdateUnitTypes })
         )
     )
   );

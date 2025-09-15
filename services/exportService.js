@@ -576,6 +576,186 @@ export const exportUnitReportToPdf = (reportData) => {
     doc.save(`Reporte_Unidades_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
+export const exportEraReportToPdf = (reportData) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 14;
+
+    const drawPageHeader = () => {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor('#c93131');
+        doc.text("Reporte de Trasvazadores de E.R.A.", margin, 15);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150);
+        const reportDateTime = reportData.reportDate || new Date().toLocaleString('es-AR');
+        doc.text(reportDateTime, pageWidth - margin, 15, { align: 'right' });
+    };
+
+    const allRows = [];
+    
+    reportData.stations.forEach(station => {
+        if (station.hasEquipment && station.equipment.length > 0) {
+            station.equipment.forEach((equip, index) => {
+                allRows.push([
+                    index === 0 ? station.name : '',
+                    equip.brand,
+                    equip.voltage,
+                    equip.condition,
+                    equip.dependency
+                ]);
+            });
+        } else {
+            allRows.push([station.name, 'NO POSEE', '', '', '']);
+        }
+    });
+
+    autoTable(doc, {
+        head: [['ESTACIÓN', 'MARCA', 'VOLTAJE', 'COND.', 'DEPENDENCIA']],
+        body: allRows,
+        startY: 25,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: '#52525b',
+            textColor: '#ffffff',
+            fontStyle: 'bold'
+        },
+        styles: { 
+            fontSize: 8, 
+            cellPadding: 2,
+            font: 'helvetica'
+        },
+        didDrawPage: (data) => {
+            drawPageHeader();
+        }
+    });
+
+    doc.save(`Reporte_ERA_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
+};
+
+export const exportGeneratorReportToPdf = (reportData) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 14;
+
+    const drawPageHeader = () => {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor('#c93131');
+        doc.text("Reporte de Grupos Electrógenos", margin, 15);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150);
+        const reportDateTime = reportData.reportDate || new Date().toLocaleString('es-AR');
+        doc.text(reportDateTime, pageWidth - margin, 15, { align: 'right' });
+    };
+
+    const allRows = [];
+    
+    reportData.stations.forEach(station => {
+        if (station.hasEquipment && station.equipment.length > 0) {
+            station.equipment.forEach((equip, index) => {
+                allRows.push([
+                    index === 0 ? station.name : '',
+                    equip.brand,
+                    equip.kva,
+                    equip.condition,
+                    equip.dependency
+                ]);
+            });
+        } else {
+            allRows.push([station.name, 'NO POSEE', '', '', '']);
+        }
+    });
+
+    autoTable(doc, {
+        head: [['ESTACIÓN', 'MARCA', 'KVA', 'COND.', 'DEPENDENCIA']],
+        body: allRows,
+        startY: 25,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: '#52525b',
+            textColor: '#ffffff',
+            fontStyle: 'bold'
+        },
+        styles: { 
+            fontSize: 8, 
+            cellPadding: 2,
+            font: 'helvetica'
+        },
+        didDrawPage: (data) => {
+            drawPageHeader();
+        }
+    });
+
+    doc.save(`Reporte_Generadores_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
+};
+
+export const exportMaterialsReportToPdf = (reportData) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 14;
+
+    const drawPageHeader = () => {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor('#c93131');
+        doc.text("Reporte de Materiales", margin, 15);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150);
+        const reportDateTime = reportData.reportDate || new Date().toLocaleString('es-AR');
+        doc.text(reportDateTime, pageWidth - margin, 15, { align: 'right' });
+    };
+
+    const allRows = [];
+    
+    reportData.locations.forEach(location => {
+        if (location.materials.length > 0) {
+            location.materials.forEach((material, index) => {
+                allRows.push([
+                    index === 0 ? location.name : '',
+                    material.name,
+                    material.quantity,
+                    material.condition,
+                    material.location || '-'
+                ]);
+            });
+        } else {
+            allRows.push([location.name, 'Sin materiales registrados', '', '', '']);
+        }
+    });
+
+    autoTable(doc, {
+        head: [['UBICACIÓN', 'MATERIAL', 'CANT.', 'CONDICIÓN', 'UBICACIÓN INTERNA']],
+        body: allRows,
+        startY: 25,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: '#52525b',
+            textColor: '#ffffff',
+            fontStyle: 'bold'
+        },
+        styles: { 
+            fontSize: 8, 
+            cellPadding: 2,
+            font: 'helvetica'
+        },
+        columnStyles: {
+            2: { halign: 'center' }
+        },
+        didDrawPage: (data) => {
+            drawPageHeader();
+        }
+    });
+
+    doc.save(`Reporte_Materiales_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
+};
+
 const createPdfTable = (doc, title, head, body, startY) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -591,161 +771,6 @@ const createPdfTable = (doc, title, head, body, startY) => {
     return doc.lastAutoTable.finalY + 10;
 };
 
-export const exportEraReportToPdf = (reportData) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    let y = 15;
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Reporte de Trasvazadores E.R.A.", pageWidth / 2, y, { align: 'center' });
-    y += 5;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(150);
-    doc.text(reportData.reportDate, pageWidth / 2, y, { align: 'center' });
-    y += 10;
-
-    const body = reportData.stations.reduce((acc, station) => {
-        if (!station.hasEquipment || station.equipment.length === 0) {
-            acc.push([{ content: station.name, styles: { fontStyle: 'bold' } }, { content: 'NO POSEE', colSpan: 4, styles: { halign: 'center' } }]);
-        } else {
-            station.equipment.forEach((equip, index) => {
-                acc.push([
-                    index === 0 ? { content: station.name, rowSpan: station.equipment.length, styles: { fontStyle: 'bold', valign: 'middle' } } : '',
-                    equip.brand,
-                    equip.voltage,
-                    equip.condition,
-                    equip.dependency
-                ]);
-            });
-        }
-        return acc;
-    }, []);
-
-    autoTable(doc, {
-        head: [['ESTACIÓN', 'MARCA', 'VOLTAJE', 'COND.', 'DEPENDENCIA']],
-        body: body,
-        startY: y,
-        theme: 'grid',
-        headStyles: { fillColor: '#3f3f46' },
-        styles: { fontSize: 9 }
-    });
-
-    doc.save(`Reporte_ERA_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
-};
-
-export const exportGeneratorReportToPdf = (reportData) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    let y = 15;
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Reporte de Grupos Electrógenos", pageWidth / 2, y, { align: 'center' });
-    y += 5;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(150);
-    doc.text(reportData.reportDate, pageWidth / 2, y, { align: 'center' });
-    y += 10;
-
-    const body = reportData.stations.reduce((acc, station) => {
-        if (!station.hasEquipment || station.equipment.length === 0) {
-            acc.push([{ content: station.name, styles: { fontStyle: 'bold' } }, { content: 'NO POSEE', colSpan: 4, styles: { halign: 'center' } }]);
-        } else {
-            station.equipment.forEach((equip, index) => {
-                acc.push([
-                    index === 0 ? { content: station.name, rowSpan: station.equipment.length, styles: { fontStyle: 'bold', valign: 'middle' } } : '',
-                    equip.brand,
-                    equip.kva,
-                    equip.condition,
-                    equip.dependency
-                ]);
-            });
-        }
-        return acc;
-    }, []);
-
-    autoTable(doc, {
-        head: [['ESTACIÓN', 'MARCA', 'KVA', 'COND.', 'DEPENDENCIA']],
-        body: body,
-        startY: y,
-        theme: 'grid',
-        headStyles: { fillColor: '#3f3f46' },
-        styles: { fontSize: 9 }
-    });
-
-    doc.save(`Reporte_Grupos_Electrogenos_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
-};
-
-export const exportUnitStatusToPdf = (filteredUnits) => {
-    const doc = new jsPDF('landscape');
-    let y = 15;
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Estado de Unidades Filtradas", 14, y);
-    y += 10;
-
-    autoTable(doc, {
-        head: [['Unidad', 'Tipo', 'Estado', 'Oficial a Cargo', 'Personal', 'Ubicación']],
-        body: filteredUnits.map(u => [
-            u.id, u.type, u.status, u.officerInCharge || '-', u.personnelCount ?? '-', u.groupName
-        ]),
-        startY: y,
-        theme: 'grid',
-        headStyles: { fillColor: '#3f3f46' },
-        styles: { fontSize: 8 }
-    });
-
-    doc.save(`Estado_Unidades_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`);
-};
-
-export const exportMaterialsReportToPdf = (reportData) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    let y = 15;
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Reporte de Materiales", pageWidth / 2, y, { align: 'center' });
-    y += 5;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(150);
-    doc.text(reportData.reportDate, pageWidth / 2, y, { align: 'center' });
-    y += 10;
-
-    const body = reportData.locations.reduce((acc, location) => {
-        if (location.materials.length === 0) {
-            acc.push([{ content: location.name, styles: { fontStyle: 'bold' } }, { content: 'NO POSEE', colSpan: 4, styles: { halign: 'center' } }]);
-        } else {
-            location.materials.forEach((material, index) => {
-                acc.push([
-                    index === 0 ? { content: location.name, rowSpan: location.materials.length, styles: { fontStyle: 'bold', valign: 'middle' } } : '',
-                    material.name,
-                    material.quantity,
-                    material.condition,
-                    material.location || '-'
-                ]);
-            });
-        }
-        return acc;
-    }, []);
-
-    autoTable(doc, {
-        head: [['ESTACIÓN / DEST.', 'MATERIAL', 'CANT.', 'CONDICIÓN', 'UBICACIÓN']],
-        body: body,
-        startY: y,
-        theme: 'grid',
-        headStyles: { fillColor: '#3f3f46' },
-        styles: { fontSize: 9 }
-    });
-
-    doc.save(`Reporte_Materiales_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
-};
-
 export const exportCommandPostToPdf = (
     incidentDetails, 
     trackedUnits, 
@@ -753,7 +778,8 @@ export const exportCommandPostToPdf = (
     sci201Data,
     sci211Data,
     sci207Data,
-    croquisSketch
+    croquisSketch,
+    bocetoSketch
 ) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -861,24 +887,22 @@ export const exportCommandPostToPdf = (
         });
     }
 
-    // --- Croquis Page ---
-    if (croquisSketch) {
+    const addImageToPage = (title, imageData) => {
         try {
-            const imgProps = doc.getImageProperties(croquisSketch);
+            const imgProps = doc.getImageProperties(imageData);
             const isLandscape = imgProps.width > imgProps.height;
-            // FIX: Correctly call addPage with format and orientation arguments. The options object syntax is not supported by the version of jsPDF being used.
-            doc.addPage(undefined, isLandscape ? 'landscape' : 'portrait');
+            doc.addPage(undefined, isLandscape ? 'l' : 'p');
             
             const pageW = doc.internal.pageSize.getWidth();
             const pageH = doc.internal.pageSize.getHeight();
-            y = 15;
+            let localY = 15;
 
             doc.setFontSize(16);
-            doc.text("Croquis del Incidente", pageW / 2, y, { align: 'center' });
-            y += 10;
+            doc.text(title, pageW / 2, localY, { align: 'center' });
+            localY += 10;
 
             const availableWidth = pageW - (margin * 2);
-            const availableHeight = pageH - y - margin;
+            const availableHeight = pageH - localY - margin;
 
             const imgRatio = imgProps.width / imgProps.height;
             const pageRatio = availableWidth / availableHeight;
@@ -893,13 +917,23 @@ export const exportCommandPostToPdf = (
             }
 
             const xPos = (pageW - finalWidth) / 2;
-            doc.addImage(croquisSketch, 'PNG', xPos, y, finalWidth, finalHeight);
+            doc.addImage(imageData, 'PNG', xPos, localY, finalWidth, finalHeight);
         } catch (error) {
-            console.error("Error adding image to PDF:", error);
+            console.error(`Error adding image "${title}" to PDF:`, error);
             doc.addPage();
             doc.setTextColor(255, 0, 0);
-            doc.text("No se pudo cargar el croquis.", margin, 15);
+            doc.text(`No se pudo cargar la imagen: ${title}.`, margin, 15);
         }
+    }
+
+    // --- Croquis Táctico Page ---
+    if (croquisSketch) {
+        addImageToPage("Croquis Táctico del Incidente", croquisSketch);
+    }
+
+    // --- Croquis Boceto Page ---
+    if (bocetoSketch) {
+        addImageToPage("Croquis Boceto Inicial", bocetoSketch);
     }
     
     doc.save(`Reporte_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);

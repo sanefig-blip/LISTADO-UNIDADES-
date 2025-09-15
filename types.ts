@@ -20,6 +20,14 @@ export const RANKS = [
 
 export type Rank = typeof RANKS[number];
 
+export interface User {
+    id: string;
+    username: string;
+    password: string;
+    role: 'admin' | 'station';
+    station?: string;
+}
+
 export interface Personnel {
     id: string;
     name: string;
@@ -248,4 +256,28 @@ export interface MaterialLocation {
 export interface MaterialsData {
   reportDate: string;
   locations: MaterialLocation[];
+}
+
+// New types for Hidro Alert
+export interface PanoramaPoint {
+  id: number;
+  location: string;
+  organism: string;
+  coords: [number, number] | null;
+  isRoute?: boolean;
+}
+
+export interface Underpass {
+  id: number;
+  name: string;
+  commune: string;
+  location: string;
+  coords: [number, number] | null;
+}
+
+export interface HidroAlertData {
+  panorama2Points: PanoramaPoint[];
+  panorama2Updates: { location: string; station: string }[];
+  panorama3Stations: string[];
+  underpasses: Underpass[];
 }

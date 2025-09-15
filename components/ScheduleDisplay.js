@@ -1,11 +1,9 @@
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { RANKS } from '../types.js';
 import { CalendarIcon, UserGroupIcon, ClipboardListIcon, ChevronDownIcon, PencilIcon, XCircleIcon, AnnotationIcon, PlusCircleIcon, ArrowUpIcon, ArrowDownIcon, TrashIcon, BookmarkIcon, RefreshIcon, SearchIcon } from './icons.js';
 import AssignmentCard from './AssignmentCard.js';
 
-const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateService, onMoveService, onDeleteService, onToggleSelection, onSaveAsTemplate, onReplaceFromTemplate, commandPersonnel, servicePersonnel, unitList }) => {
+const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateService, onMoveService, onDeleteService, onToggleSelection, onSaveAsTemplate, onReplaceFromTemplate, commandPersonnel, servicePersonnel, unitList, isEditable }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editableService, setEditableService] = useState(() => JSON.parse(JSON.stringify(service)));
@@ -81,35 +79,36 @@ const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateSer
       }));
   };
 
-    const handleDetailChange = (e, assignmentIndex, detailIndex) => {
-        const { value } = e.target;
-        setEditableService(prev => {
-            const newAssignments = [...prev.assignments];
-            const newDetails = [...(newAssignments[assignmentIndex].details || [])];
-            newDetails[detailIndex] = value;
-            newAssignments[assignmentIndex] = { ...newAssignments[assignmentIndex], details: newDetails };
-            return { ...prev, assignments: newAssignments };
-        });
-    };
+  const handleDetailChange = (e, assignmentIndex, detailIndex) => {
+    const { value } = e.target;
+    setEditableService(prev => {
+        const newAssignments = [...prev.assignments];
+        const newDetails = [...(newAssignments[assignmentIndex].details || [])];
+        newDetails[detailIndex] = value;
+        newAssignments[assignmentIndex] = { ...newAssignments[assignmentIndex], details: newDetails };
+        return { ...prev, assignments: newAssignments };
+    });
+  };
 
-    const handleAddDetail = (assignmentIndex) => {
-        setEditableService(prev => {
-            const newAssignments = [...prev.assignments];
-            const currentDetails = newAssignments[assignmentIndex].details || [];
-            newAssignments[assignmentIndex] = { ...newAssignments[assignmentIndex], details: [...currentDetails, ''] };
-            return { ...prev, assignments: newAssignments };
-        });
-    };
+  const handleAddDetail = (assignmentIndex) => {
+    setEditableService(prev => {
+        const newAssignments = [...prev.assignments];
+        const currentDetails = newAssignments[assignmentIndex].details || [];
+        newAssignments[assignmentIndex] = { ...newAssignments[assignmentIndex], details: [...currentDetails, ''] };
+        return { ...prev, assignments: newAssignments };
+    });
+  };
 
-    const handleRemoveDetail = (assignmentIndex, detailIndex) => {
-        setEditableService(prev => {
-            const newAssignments = [...prev.assignments];
-            const newDetails = [...(newAssignments[assignmentIndex].details || [])];
-            newDetails.splice(detailIndex, 1);
-            newAssignments[assignmentIndex] = { ...newAssignments[assignmentIndex], details: newDetails };
-            return { ...prev, assignments: newAssignments };
-        });
-    };
+  const handleRemoveDetail = (assignmentIndex, detailIndex) => {
+    setEditableService(prev => {
+        const newAssignments = [...prev.assignments];
+        const newDetails = [...(newAssignments[assignmentIndex].details || [])];
+        newDetails.splice(detailIndex, 1);
+        newAssignments[assignmentIndex] = { ...newAssignments[assignmentIndex], details: newDetails };
+        return { ...prev, assignments: newAssignments };
+    });
+  };
+
 
   const handleSave = () => {
     onUpdateService(editableService);
@@ -263,7 +262,7 @@ const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateSer
                                 if (extraInfo.length > 0) {
                                     label += ` (${extraInfo.join(' / ')})`;
                                 }
-                                return React.createElement("option", { key: p.id, value: label })
+                                return React.createElement("option", { key: p.id, value: label });
                             })
                         )
                     ),
@@ -320,10 +319,11 @@ const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateSer
                                                 React.createElement("div", { className: "text-xs text-zinc-400 font-mono" }, "L.P. ", p.id)
                                             )
                                         ))
-                                )
+                                    )
                                )
                             )
                         ),
+                        
                         React.createElement("div", { className: "space-y-2" },
                           (assignment.details || []).map((detail, detailIndex) => (
                               React.createElement("div", { key: detailIndex, className: "flex items-center gap-2 animate-fade-in" },
@@ -418,26 +418,30 @@ const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateSer
                 },
                     React.createElement(ArrowDownIcon, { className: "w-5 h-5" })
                 ),
-                React.createElement("button", { 
-                    onClick: () => onSaveAsTemplate(service),
-                    className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-yellow-400 transition-colors",
-                    "aria-label": "Guardar como plantilla"
-                },
-                    React.createElement(BookmarkIcon, { className: "w-5 h-5" })
-                ),
-                React.createElement("button", { 
-                    onClick: () => setIsEditing(true), 
-                    className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors",
-                    "aria-label": "Editar servicio"
-                },
-                    React.createElement(PencilIcon, { className: "w-5 h-5" })
-                ),
-                React.createElement("button", { 
-                    onClick: onDeleteService,
-                    className: "p-2 rounded-full text-zinc-400 hover:bg-red-800/50 hover:text-red-400 transition-colors",
-                    "aria-label": "Eliminar servicio"
-                },
-                    React.createElement(TrashIcon, { className: "w-5 h-5" })
+                isEditable && (
+                    React.createElement(React.Fragment, null,
+                        React.createElement("button", { 
+                            onClick: () => onSaveAsTemplate(service),
+                            className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-yellow-400 transition-colors",
+                            "aria-label": "Guardar como plantilla"
+                        },
+                            React.createElement(BookmarkIcon, { className: "w-5 h-5" })
+                        ),
+                        React.createElement("button", { 
+                            onClick: () => setIsEditing(true), 
+                            className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors",
+                            "aria-label": "Editar servicio"
+                        },
+                            React.createElement(PencilIcon, { className: "w-5 h-5" })
+                        ),
+                        React.createElement("button", { 
+                            onClick: onDeleteService,
+                            className: "p-2 rounded-full text-zinc-400 hover:bg-red-800/50 hover:text-red-400 transition-colors",
+                            "aria-label": "Eliminar servicio"
+                        },
+                            React.createElement(TrashIcon, { className: "w-5 h-5" })
+                        )
+                    )
                 )
             )
         ),
@@ -459,7 +463,7 @@ const ServiceSection = ({ service, index, totalServices, isSelected, onUpdateSer
       },
         React.createElement("div", { className: "overflow-hidden" },
            React.createElement("div", { className: "p-6 bg-zinc-900/40" },
-              service.title.toUpperCase().includes('EVENTO DEPORTIVO') && (
+              isEditable && service.title.toUpperCase().includes('EVENTO DEPORTIVO') && (
                 React.createElement("div", { className: "mb-6" },
                   React.createElement("button", {
                     onClick: handleAddStadium,
@@ -510,10 +514,11 @@ const DateSelector = ({ displayDate, onDateChange }) => {
     const handleYearBlur = () => {
         const newYear = parseInt(yearInput, 10);
         if (!isNaN(newYear) && newYear > 1000 && newYear < 9999) {
-            if (year !== newYear) {
+            if(year !== newYear) {
                 onDateChange('year', newYear);
             }
         } else {
+            // If invalid, reset input to the current valid year from props
             setYearInput(year.toString());
         }
     };
@@ -521,28 +526,30 @@ const DateSelector = ({ displayDate, onDateChange }) => {
     const handleYearKeyDown = (e) => {
         if (e.key === 'Enter') {
             handleYearBlur();
-            e.target.blur();
+            e.target.blur(); // remove focus
         }
     };
 
-    return React.createElement("div", { className: "flex items-center gap-2" },
-        React.createElement("select", { value: day, onChange: (e) => onDateChange('day', parseInt(e.target.value)), className: "bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white" },
-            Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => React.createElement("option", { key: d, value: d }, d))
-        ),
-        React.createElement("span", { className: "text-zinc-400" }, "de"),
-        React.createElement("select", { value: month, onChange: (e) => onDateChange('month', parseInt(e.target.value)), className: "bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white" },
-            monthNames.map((m, i) => React.createElement("option", { key: i, value: i }, m))
-        ),
-        React.createElement("span", { className: "text-zinc-400" }, "de"),
-        React.createElement("input", {
-            type: "number",
-            value: yearInput,
-            onChange: handleYearChange,
-            onBlur: handleYearBlur,
-            onKeyDown: handleYearKeyDown,
-            className: "bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white w-24 text-center",
-            "aria-label": "Año"
-        })
+    return (
+        React.createElement("div", { className: "flex items-center gap-2" },
+             React.createElement("select", { value: day, onChange: (e) => onDateChange('day', parseInt(e.target.value)), className: "bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white" },
+                Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => React.createElement("option", { key: d, value: d }, d))
+            ),
+            React.createElement("span", { className: "text-zinc-400" }, "de"),
+            React.createElement("select", { value: month, onChange: (e) => onDateChange('month', parseInt(e.target.value)), className: "bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white" },
+                monthNames.map((m, i) => React.createElement("option", { key: i, value: i }, m))
+            ),
+            React.createElement("span", { className: "text-zinc-400" }, "de"),
+            React.createElement("input", {
+                type: "number",
+                value: yearInput,
+                onChange: handleYearChange,
+                onBlur: handleYearBlur,
+                onKeyDown: handleYearKeyDown,
+                className: "bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white w-24 text-center",
+                "aria-label": "Año"
+            })
+        )
     );
 };
 
@@ -551,17 +558,107 @@ const isValidLp = (id) => {
     return !id.startsWith('empty-') && !id.startsWith('roster-');
 };
 
+const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/["'“”]/g, "").replace(/\./g, "").replace(/\s+/g, ' ').trim();
 
 const ScheduleDisplay = (props) => {
-  const { schedule, displayDate, selectedServiceIds, onDateChange, onUpdateService, onUpdateCommandStaff, onAddNewService, onMoveService, onDeleteService, onToggleServiceSelection, onSelectAllServices, commandPersonnel, servicePersonnel, unitList, onSaveAsTemplate, onReplaceFromTemplate, onImportGuardLine, searchTerm, onSearchChange } = props;
+  const { schedule, displayDate, selectedServiceIds, onDateChange, onUpdateService, onUpdateCommandStaff, onAddNewService, onMoveService, onDeleteService, onToggleServiceSelection, onSelectAllServices, commandPersonnel, servicePersonnel, unitList, onSaveAsTemplate, onReplaceFromTemplate, onImportGuardLine, searchTerm, onSearchChange, currentUser } = props;
   const [isEditingStaff, setIsEditingStaff] = useState(false);
   const [editableStaff, setEditableStaff] = useState([]);
+
+  const isEditable = !currentUser || currentUser.role === 'admin';
+
+    const scheduleToDisplay = useMemo(() => {
+        if (!schedule) return null;
+        if (!currentUser || currentUser.role === 'admin' || !currentUser.station) {
+            return schedule;
+        }
+
+        const isUserAllowed = (assignment) => {
+            const userStationNorm = normalize(currentUser.station);
+            const assignmentText = `${assignment.personnel || ''} ${assignment.unit || ''} ${assignment.location || ''} ${(assignment.details || []).join(' ')}`;
+            const normalizedAssignmentText = normalize(assignmentText);
+
+            // Standard check: user can see their own station's assignments
+            if (normalizedAssignmentText.includes(userStationNorm)) {
+                return true;
+            }
+            
+            // Special rule for Estacion IV Recoleta
+            if (userStationNorm.includes('ESTACION IV RECOLETA')) {
+                if (normalizedAssignmentText.includes('MISERERE') || normalizedAssignmentText.includes('RETIRO')) {
+                    return true;
+                }
+            }
+            
+            // Special rule for Estacion III Barracas
+            if (userStationNorm.includes('ESTACION III BARRACAS')) {
+                if (normalizedAssignmentText.includes('BOCA')) {
+                    return true;
+                }
+            }
+
+            // Special rule for Estacion II Patricios
+            if (userStationNorm.includes('ESTACION II PATRICIOS')) {
+                if (normalizedAssignmentText.includes('POMPEYA')) {
+                    return true;
+                }
+            }
+            
+            // Special rule: Estacion V can view DTO Urquiza and DTO Saavedra.
+            if (userStationNorm.startsWith('ESTACION V ')) {
+                if (normalizedAssignmentText.includes('URQUIZA') || normalizedAssignmentText.includes('SAAVEDRA')) {
+                    return true;
+                }
+            }
+            
+            // Special rule: Estacion VI can view DTO Palermo and DTO Chacarita.
+            if (userStationNorm.startsWith('ESTACION VI ')) {
+                if (normalizedAssignmentText.includes('PALERMO') || normalizedAssignmentText.includes('CHACARITA')) {
+                    return true;
+                }
+            }
+
+            // Special rule: Estacion VIII can view DTO Velez Sarsfield.
+            if (userStationNorm.startsWith('ESTACION VIII ')) {
+                if (normalizedAssignmentText.includes('VELEZ')) {
+                    return true;
+                }
+            }
+            
+            // Special rule: Estacion IX can view DTO Devoto.
+            if (userStationNorm.startsWith('ESTACION IX ')) {
+                if (normalizedAssignmentText.includes('DEVOTO')) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+        
+        const filterServiceAssignments = (services) => {
+            if (!services) return [];
+            return services.map(service => {
+                const filteredAssignments = service.assignments.filter(isUserAllowed);
+                return { ...service, assignments: filteredAssignments };
+            }).filter(service => service.assignments.length > 0);
+        };
+
+        return {
+            ...schedule,
+            services: filterServiceAssignments(schedule.services),
+            sportsEvents: filterServiceAssignments(schedule.sportsEvents)
+        };
+    }, [schedule, currentUser]);
+
+    if (!scheduleToDisplay) {
+        return null;
+    }
   
-  const visibleServices = schedule.services.filter(s => !s.isHidden);
-  const hiddenServices = schedule.services.filter(s => s.isHidden);
+  const visibleServices = scheduleToDisplay.services.filter(s => !s.isHidden);
+  const hiddenServices = scheduleToDisplay.services.filter(s => s.isHidden);
   
-  const visibleSportsEvents = schedule.sportsEvents.filter(s => !s.isHidden);
-  const hiddenSportsEvents = schedule.sportsEvents.filter(s => s.isHidden);
+  const visibleSportsEvents = scheduleToDisplay.sportsEvents.filter(s => !s.isHidden);
+  const hiddenSportsEvents = scheduleToDisplay.sportsEvents.filter(s => s.isHidden);
   
   const allVisibleServices = [...visibleServices, ...visibleSportsEvents];
   const allHiddenServices = [...hiddenServices, ...hiddenSportsEvents];
@@ -621,23 +718,25 @@ const ScheduleDisplay = (props) => {
                     React.createElement(DateSelector, { displayDate: displayDate, onDateChange: onDateChange })
                 )
             ),
-            React.createElement("div", { className: "flex items-center gap-2 self-center" },
-                 !isEditingStaff && (
-                    React.createElement("button", {
-                        onClick: onImportGuardLine,
-                        className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors",
-                        title: "Importar rol desde Nomenclador para la fecha seleccionada",
-                        "aria-label": "Importar rol de guardia para la fecha seleccionada"
+            isEditable && (
+                React.createElement("div", { className: "flex items-center gap-2 self-center" },
+                    !isEditingStaff && (
+                        React.createElement("button", {
+                            onClick: onImportGuardLine,
+                            className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors",
+                            title: "Importar rol desde Nomenclador para la fecha seleccionada",
+                            "aria-label": "Importar rol de guardia para la fecha seleccionada"
+                        },
+                            React.createElement(RefreshIcon, { className: "w-5 h-5" })
+                        )
+                    ),
+                    React.createElement("button", { 
+                        onClick: () => setIsEditingStaff(!isEditingStaff), 
+                        className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors flex-shrink-0",
+                        "aria-label": "Editar línea de guardia"
                     },
-                        React.createElement(RefreshIcon, { className: "w-5 h-5" })
+                        isEditingStaff ? React.createElement(XCircleIcon, { className: "w-6 h-6" }) : React.createElement(PencilIcon, { className: "w-5 h-5" })
                     )
-                ),
-                React.createElement("button", { 
-                    onClick: () => setIsEditingStaff(!isEditingStaff), 
-                    className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors flex-shrink-0",
-                    "aria-label": "Editar línea de guardia"
-                },
-                    isEditingStaff ? React.createElement(XCircleIcon, { className: "w-6 h-6" }) : React.createElement(PencilIcon, { className: "w-5 h-5" })
                 )
             )
         ),
@@ -715,7 +814,7 @@ const ScheduleDisplay = (props) => {
                     React.createElement("div", { key: officer.id || index, className: "grid grid-cols-[2fr,1fr,1.5fr,2.5fr] gap-4 items-center p-2 rounded-md" },
                         React.createElement("div", { className: "font-semibold text-blue-300 truncate", title: officer.role }, officer.role),
                         React.createElement("div", { className: "text-zinc-300 font-mono" }, isValidLp(officer.id) ? officer.id : ''),
-                        React.createElement("div", { className: `${officer.rank === 'OTRO' ? 'text-zinc-400 italic' : 'text-yellow-400 font-bold'}` }, officer.rank || 'OTRO'),
+                        React.createElement("div", { className: `${officer.rank === 'OTRO' ? 'text-zinc-400 italic' : 'text-yellow-400 font-bold'}`}, officer.rank || 'OTRO'),
                         React.createElement("div", { className: "text-zinc-100" }, officer.name)
                     )
                     ))
@@ -731,14 +830,16 @@ const ScheduleDisplay = (props) => {
                 React.createElement(CalendarIcon, { className: "w-8 h-8 mr-4 text-yellow-300" }),
                 React.createElement("h2", { className: "text-3xl font-bold text-white" }, "Servicios del Día: ", React.createElement("span", { className: "font-normal text-zinc-300" }, formattedDate))
             ),
-            React.createElement("div", { className: "flex items-center gap-4" },
-                 React.createElement("button", { 
-                    onClick: () => onAddNewService('common'),
-                    className: "flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-md transition-colors",
-                    "aria-label": "Añadir nuevo servicio"
-                },
-                    React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
-                    "Añadir Servicio"
+            isEditable && (
+                React.createElement("div", { className: "flex items-center gap-4" },
+                    React.createElement("button", { 
+                        onClick: () => onAddNewService('common'),
+                        className: "flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-md transition-colors",
+                        "aria-label": "Añadir nuevo servicio"
+                    },
+                        React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
+                        "Añadir Servicio"
+                    )
                 )
             )
         ),
@@ -781,7 +882,8 @@ const ScheduleDisplay = (props) => {
             onReplaceFromTemplate: (id) => onReplaceFromTemplate(id, 'common'),
             commandPersonnel: commandPersonnel,
             servicePersonnel: servicePersonnel,
-            unitList: unitList
+            unitList: unitList,
+            isEditable: isEditable
           })
         )),
 
@@ -789,13 +891,15 @@ const ScheduleDisplay = (props) => {
             React.createElement("div", { className: "mt-12" },
                 React.createElement("div", { className: "flex items-center justify-between mb-6 border-b-2 border-zinc-700 pb-4" },
                     React.createElement("h2", { className: "text-3xl font-bold text-white" }, "Eventos Deportivos"),
-                    React.createElement("button", { 
-                        onClick: () => onAddNewService('sports'),
-                        className: "flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-md transition-colors",
-                        "aria-label": "Añadir nuevo evento deportivo"
-                    },
-                        React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
-                        "Añadir Evento"
+                    isEditable && (
+                        React.createElement("button", { 
+                            onClick: () => onAddNewService('sports'),
+                            className: "flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-md transition-colors",
+                            "aria-label": "Añadir nuevo evento deportivo"
+                        },
+                            React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
+                            "Añadir Evento"
+                        )
                     )
                 ),
                 visibleSportsEvents.map((service, index) => (
@@ -813,7 +917,8 @@ const ScheduleDisplay = (props) => {
                         onReplaceFromTemplate: (id) => onReplaceFromTemplate(id, 'sports'),
                         commandPersonnel: commandPersonnel,
                         servicePersonnel: servicePersonnel,
-                        unitList: unitList
+                        unitList: unitList,
+                        isEditable: isEditable
                     })
                 ))
             )
@@ -837,7 +942,8 @@ const ScheduleDisplay = (props) => {
                         onReplaceFromTemplate: (id) => onReplaceFromTemplate(id, 'common'),
                         commandPersonnel: commandPersonnel,
                         servicePersonnel: servicePersonnel,
-                        unitList: unitList
+                        unitList: unitList,
+                        isEditable: isEditable
                     })
                 )),
                 hiddenSportsEvents.map((service, index) => (
@@ -855,7 +961,8 @@ const ScheduleDisplay = (props) => {
                         onReplaceFromTemplate: (id) => onReplaceFromTemplate(id, 'sports'),
                         commandPersonnel: commandPersonnel,
                         servicePersonnel: servicePersonnel,
-                        unitList: unitList
+                        unitList: unitList,
+                        isEditable: isEditable
                     })
                 ))
             )
@@ -864,4 +971,5 @@ const ScheduleDisplay = (props) => {
     )
   );
 };
+
 export default ScheduleDisplay;

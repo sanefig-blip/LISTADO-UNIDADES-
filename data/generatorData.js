@@ -20,9 +20,20 @@ export const generatorData = {
       name: 'ESTACION VI',
       hasEquipment: true,
       equipment: [
-        { id: 'gen-3', brand: 'CATERPILLAR', kva: '75 KVA', condition: 'F/S', dependency: 'En Taller' },
-        { id: 'gen-4', brand: 'KIPOR', kva: '15 KVA', condition: 'P/S', dependency: 'Dto. Palermo' }
+        { id: 'gen-3', brand: 'CATERPILLAR', kva: '75 KVA', condition: 'F/S', dependency: 'En Taller' }
       ]
+    },
+    {
+      name: 'DTO. PALERMO',
+      hasEquipment: true,
+      equipment: [
+        { id: 'gen-4', brand: 'KIPOR', kva: '15 KVA', condition: 'P/S', dependency: 'En dependencia' }
+      ]
+    },
+    { 
+      name: 'DTO. CHACARITA', 
+      hasEquipment: false, 
+      equipment: [] 
     },
     { name: 'ESTACION VII', hasEquipment: false, equipment: [] },
     {

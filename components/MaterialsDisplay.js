@@ -9,13 +9,86 @@ const getConditionColor = (condition) => {
   return 'bg-zinc-500 text-white';
 };
 
-const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
+const normalize = (str) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/["'“”]/g, "").replace(/\./g, "").replace(/\s+/g, ' ').trim() : '';
+
+const isLocationViewable = (locationName, user) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role !== 'station' || !user.station) return false;
+
+    const normalizedUserStation = normalize(user.station);
+    const normalizedLocationName = normalize(locationName);
+
+    // A user can always see their own station/detachment.
+    if (normalizedUserStation.startsWith(normalizedLocationName)) {
+        return true;
+    }
+
+    // Special rule: Estacion III Barracas can view and edit Destacamento Boca.
+    if (normalizedUserStation.includes('ESTACION III BARRACAS') && normalizedLocationName.includes('DESTACAMENTO BOCA')) {
+        return true;
+    }
+
+    // Special rule: Estacion II Patricios can view and edit Destacamento Pompeya.
+    if (normalizedUserStation.includes('ESTACION II PATRICIOS') && normalizedLocationName.includes('DESTACAMENTO POMPEYA')) {
+        return true;
+    }
+
+    // Special rule: Estacion IV Recoleta can view DTO Miserere and DTO Retiro.
+    if (normalizedUserStation.includes('ESTACION IV RECOLETA') &&
+        (normalizedLocationName.includes('DESTACAMENTO MISERERE') || normalizedLocationName.includes('DESTACAMENTO RETIRO'))) {
+        return true;
+    }
+    
+    // Special rule: Estacion V can view DTO Urquiza and DTO Saavedra.
+    if (normalizedUserStation.startsWith('ESTACION V ') &&
+        (normalizedLocationName.includes('DESTACAMENTO URQUIZA') || normalizedLocationName.includes('DESTACAMENTO SAAVEDRA'))) {
+        return true;
+    }
+    
+    // Special rule: Estacion VI can view DTO Palermo and DTO Chacarita.
+    if (normalizedUserStation.startsWith('ESTACION VI ') &&
+        (normalizedLocationName.includes('DESTACAMENTO PALERMO') || normalizedLocationName.includes('DESTACAMENTO CHACARITA'))) {
+        return true;
+    }
+
+    // Special rule: Estacion VIII can view DTO Velez Sarsfield.
+    if (normalizedUserStation.startsWith('ESTACION VIII ') &&
+        (normalizedLocationName.includes('DESTACAMENTO VELEZ SARSFIELD'))) {
+        return true;
+    }
+
+    // Special rule: Estacion IX can view DTO Devoto.
+    if (normalizedUserStation.startsWith('ESTACION IX ') &&
+        (normalizedLocationName.includes('DESTACAMENTO DEVOTO'))) {
+        return true;
+    }
+
+    return false;
+};
+
+const isLocationEditable = (locationName, user) => {
+    return isLocationViewable(locationName, user);
+};
+
+
+const MaterialsDisplay = ({ reportData, onUpdateReport, currentUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableReport, setEditableReport] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const viewableReportData = useMemo(() => {
+    if (!reportData || !currentUser || currentUser.role === 'admin') {
+      return reportData;
+    }
+    return {
+      ...reportData,
+      locations: reportData.locations.filter(location => isLocationViewable(location.name, currentUser))
+    };
+  }, [reportData, currentUser]);
+
   const handleEdit = () => {
-    setEditableReport(JSON.parse(JSON.stringify(reportData)));
+    setEditableReport(JSON.parse(JSON.stringify(viewableReportData)));
     setIsEditing(true);
   };
 
@@ -26,7 +99,19 @@ const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
 
   const handleSave = () => {
     if (editableReport) {
-      const reportWithDate = { ...editableReport, reportDate: new Date().toLocaleString('es-AR') };
+      const fullReport = JSON.parse(JSON.stringify(reportData));
+      const editableLocationsMap = new Map();
+      editableReport.locations.forEach(loc => {
+          editableLocationsMap.set(loc.name, loc);
+      });
+
+      fullReport.locations.forEach((loc, locIndex) => {
+          if (editableLocationsMap.has(loc.name)) {
+              fullReport.locations[locIndex] = editableLocationsMap.get(loc.name);
+          }
+      });
+        
+      const reportWithDate = { ...fullReport, reportDate: new Date().toLocaleString('es-AR') };
       onUpdateReport(reportWithDate);
     }
     setIsEditing(false);
@@ -74,7 +159,7 @@ const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
      }
   };
   
-  const data = isEditing ? editableReport : reportData;
+  const data = isEditing ? editableReport : viewableReportData;
 
   const filteredLocations = useMemo(() => {
     if (!data) return [];
@@ -93,18 +178,17 @@ const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
         );
 
         if (locationNameMatches) {
-          return location; 
+          return location; // If location name matches, return the whole location with all its materials
         }
 
         if (filteredMaterials.length > 0) {
-          return { ...location, materials: filteredMaterials };
+          return { ...location, materials: filteredMaterials }; // If only materials match, return location with filtered materials
         }
 
         return null;
       })
-      .filter(location => location !== null);
+      .filter((location) => location !== null);
   }, [data, searchTerm]);
-
 
   if (!data) return null;
 
@@ -134,10 +218,10 @@ const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
                     )
                 ) : (
                     React.createElement(React.Fragment, null,
-                        React.createElement("button", { onClick: () => exportMaterialsReportToPdf(reportData), className: "px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" },
-                            React.createElement(DownloadIcon, { className: "w-5 h-5" }), " Exportar PDF"
-                        ),
-                        React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5" }), " Editar")
+                    React.createElement("button", { onClick: () => exportMaterialsReportToPdf(reportData), className: "px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" },
+                        React.createElement(DownloadIcon, { className: "w-5 h-5" }), " Exportar PDF"
+                    ),
+                    React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5" }), " Editar")
                     )
                 )
              )
@@ -157,17 +241,19 @@ const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
                 ),
                 React.createElement("tbody", null,
                     filteredLocations.length > 0 ? (
-                        filteredLocations.flatMap((loc) => {
+                        filteredLocations.flatMap((loc, locIndex) => {
                             const sourceData = isEditing ? editableReport : reportData;
                             const originalLocIdx = sourceData.locations.findIndex(originalLoc => originalLoc.name === loc.name);
+                            const locIsEditable = isEditing && isLocationEditable(loc.name, currentUser);
+
                             if (loc.materials.length === 0) {
                                 return (
-                                     React.createElement("tr", { key: loc.name, className: "border-t border-zinc-700" },
+                                     React.createElement("tr", { key: loc.name, className: `border-t border-zinc-700 ${isEditing && !locIsEditable ? 'opacity-60' : ''}` },
                                         React.createElement("td", { className: "p-3 font-semibold text-yellow-300 align-top" },
                                             isEditing ? (
                                                 React.createElement("div", { className: "flex flex-col items-start gap-2" },
                                                     React.createElement("span", null, loc.name),
-                                                    React.createElement("button", { onClick: () => handleAddMaterial(originalLocIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white" }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir Material")
+                                                    React.createElement("button", { onClick: () => handleAddMaterial(originalLocIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50", disabled: !locIsEditable }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir Material")
                                                 )
                                             ) : loc.name
                                         ),
@@ -178,29 +264,29 @@ const MaterialsDisplay = ({ reportData, onUpdateReport }) => {
                             return loc.materials.map((mat, matIdx) => {
                                 const originalMatIdx = sourceData.locations[originalLocIdx].materials.findIndex(originalMat => originalMat.id === mat.id);
                                 return (
-                                    React.createElement("tr", { key: mat.id, className: "border-t border-zinc-700 hover:bg-zinc-700/50" },
+                                    React.createElement("tr", { key: mat.id, className: `border-t border-zinc-700 ${isEditing && !locIsEditable ? 'opacity-60' : 'hover:bg-zinc-700/50'}` },
                                         matIdx === 0 && (
                                             React.createElement("td", { rowSpan: loc.materials.length, className: "p-3 font-semibold text-yellow-300 align-top" },
                                                 isEditing ? (
                                                     React.createElement("div", { className: "flex flex-col items-start gap-2" },
                                                         React.createElement("span", null, loc.name),
-                                                        React.createElement("button", { onClick: () => handleAddMaterial(originalLocIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white" }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir Material")
+                                                        React.createElement("button", { onClick: () => handleAddMaterial(originalLocIdx), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50", disabled: !locIsEditable }, React.createElement(PlusCircleIcon, { className: "w-4 h-4" }), " Añadir Material")
                                                     )
                                                 ) : loc.name
                                             )
                                         ),
                                         isEditing ? (
                                             React.createElement(React.Fragment, null,
-                                                React.createElement("td", null, React.createElement("input", { value: mat.name, onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'name', e.target.value), className: "w-full bg-zinc-700 rounded p-1" })),
-                                                React.createElement("td", { className: "text-center" }, React.createElement("input", { type: "number", value: mat.quantity, onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'quantity', e.target.value), className: "w-20 bg-zinc-700 rounded p-1 text-center" })),
+                                                React.createElement("td", null, React.createElement("input", { value: mat.name, onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'name', e.target.value), className: "w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800", disabled: !locIsEditable })),
+                                                React.createElement("td", { className: "text-center" }, React.createElement("input", { type: "number", value: mat.quantity, onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'quantity', e.target.value), className: "w-20 bg-zinc-700 rounded p-1 text-center disabled:bg-zinc-800", disabled: !locIsEditable })),
                                                 React.createElement("td", null,
-                                                    React.createElement("select", { value: mat.condition, onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'condition', e.target.value), className: `w-full border-zinc-600 rounded p-1 font-semibold ${getConditionColor(mat.condition)}` },
+                                                    React.createElement("select", { value: mat.condition, onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'condition', e.target.value), className: `w-full border-zinc-600 rounded p-1 font-semibold ${getConditionColor(mat.condition)} disabled:bg-zinc-800 disabled:text-zinc-500`, disabled: !locIsEditable },
                                                         React.createElement("option", { value: "Para Servicio" }, "Para Servicio"),
                                                         React.createElement("option", { value: "Fuera de Servicio" }, "Fuera de Servicio")
                                                     )
                                                 ),
-                                                React.createElement("td", null, React.createElement("input", { value: mat.location || '', onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'location', e.target.value), className: "w-full bg-zinc-700 rounded p-1" })),
-                                                React.createElement("td", null, React.createElement("button", { onClick: () => handleRemoveMaterial(originalLocIdx, originalMatIdx), className: "p-1 text-red-400 hover:text-red-300" }, React.createElement(TrashIcon, { className: "w-5 h-5" })))
+                                                React.createElement("td", null, React.createElement("input", { value: mat.location || '', onChange: e => handleMaterialChange(originalLocIdx, originalMatIdx, 'location', e.target.value), className: "w-full bg-zinc-700 rounded p-1 disabled:bg-zinc-800", disabled: !locIsEditable })),
+                                                React.createElement("td", null, React.createElement("button", { onClick: () => handleRemoveMaterial(originalLocIdx, originalMatIdx), className: "p-1 text-red-400 hover:text-red-300 disabled:opacity-50", disabled: !locIsEditable }, React.createElement(TrashIcon, { className: "w-5 h-5" })))
                                             )
                                         ) : (
                                             React.createElement(React.Fragment, null,

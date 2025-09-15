@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fire-dept-organizer-cache-v32';
+const CACHE_NAME = 'fire-dept-organizer-cache-v39';
 const urlsToCache = [
   './',
   './index.html',
@@ -21,8 +21,11 @@ const urlsToCache = [
   './components/EraReportDisplay.js',
   './components/GeneratorReportDisplay.js',
   './components/Croquis.js',
+  './components/Sketchpad.js',
   './components/MaterialsDisplay.js',
   './components/MaterialStatusView.js',
+  './components/ForestalView.js',
+  './components/HidroAlertView.js',
   './services/geminiService.js',
   './services/exportService.js',
   './services/wordImportService.js',
@@ -31,12 +34,14 @@ const urlsToCache = [
   './data/commandPersonnelData.js',
   './data/servicePersonnelData.js',
   './data/unitData.js',
+  './data/unitTypeData.js',
   './data/serviceTemplates.js',
   './data/unitReportData.js',
   './data/eraData.js',
   './data/generatorData.js',
   './data/materialsData.js',
   './data/streets.js',
+  './data/hidroAlertData.js',
   'https://cdn.tailwindcss.com',
   'https://esm.sh/docx@8.5.0',
   'https://esm.sh/xlsx@0.18.5',
@@ -48,6 +53,7 @@ const urlsToCache = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  'https://esm.sh/@tmcw/togeojson@5.2.2',
   'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
 ];

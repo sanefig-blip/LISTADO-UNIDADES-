@@ -9,7 +9,9 @@ import { rosterData as preloadedRosterData } from './data/rosterData.js';
 import { commandPersonnelData as defaultCommandPersonnel } from './data/commandPersonnelData.js';
 import { servicePersonnelData as defaultServicePersonnel } from './data/servicePersonnelData.js';
 import { defaultUnits } from './data/unitData.js';
+import { defaultUnitTypes } from './data/unitTypeData.js';
 import { defaultServiceTemplates } from './data/serviceTemplates.js';
+import { users as defaultUsers } from './data/userData.js';
 import { exportScheduleToWord, exportScheduleByTimeToWord, exportScheduleAsExcelTemplate, exportScheduleAsWordTemplate, exportRosterWordTemplate } from './services/exportService.js';
 import { parseScheduleFromFile, parseFullUnitReportFromExcel, parseRosterFromWord, parseUnitReportFromPdf } from './services/wordImportService.js';
 import ScheduleDisplay from './components/ScheduleDisplay.js';
@@ -22,7 +24,10 @@ import EraReportDisplay from './components/EraReportDisplay.js';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay.js';
 import MaterialsDisplay from './components/MaterialsDisplay.js';
 import MaterialStatusView from './components/MaterialStatusView.js';
-import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon } from './components/icons.js';
+import ForestalView from './components/ForestalView.js';
+import HidroAlertView from './components/HidroAlertView.js';
+import Login from './components/Login.js';
+import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon, LogoutIcon, ShieldExclamationIcon } from './components/icons.js';
 import HelpModal from './components/HelpModal.js';
 import ServiceTemplateModal from './components/ServiceTemplateModal.js';
 import ExportTemplateModal from './components/ExportTemplateModal.js';
@@ -43,6 +48,7 @@ const parseDateFromString = (dateString) => {
 
 
 const App = () => {
+    const [currentUser, setCurrentUser] = useState(null);
     const [schedule, setSchedule] = useState(null);
     const [unitReport, setUnitReport] = useState(null);
     const [eraReport, setEraReport] = useState(null);
@@ -53,10 +59,12 @@ const App = () => {
     const [commandPersonnel, setCommandPersonnel] = useState([]);
     const [servicePersonnel, setServicePersonnel] = useState([]);
     const [unitList, setUnitList] = useState([]);
+    const [unitTypes, setUnitTypes] = useState([]);
     const [selectedServiceIds, setSelectedServiceIds] = useState(new Set());
     const [serviceTemplates, setServiceTemplates] = useState([]);
     const [roster, setRoster] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [usersData, setUsersData] = useState([]);
 
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -71,6 +79,14 @@ const App = () => {
     const rosterInputRef = useRef(null);
     const importMenuRef = useRef(null);
     const exportMenuRef = useRef(null);
+
+    const handleLogin = (user) => {
+        setCurrentUser(user);
+    };
+
+    const handleLogout = () => {
+        setCurrentUser(null);
+    };
 
 
     useEffect(() => {
@@ -162,6 +178,7 @@ const App = () => {
           
         const loadedCommandPersonnel = JSON.parse(localStorage.getItem('commandPersonnel') || JSON.stringify(defaultCommandPersonnel));
         const loadedRoster = JSON.parse(localStorage.getItem('rosterData') || JSON.stringify(preloadedRosterData));
+        const loadedUsers = JSON.parse(localStorage.getItem('usersData') || JSON.stringify(defaultUsers));
         
         let unitReportToLoad;
         try {
@@ -235,6 +252,8 @@ const App = () => {
         setMaterialsReport(materialsReportToLoad);
         setCommandPersonnel(loadedCommandPersonnel);
         setServicePersonnel(JSON.parse(localStorage.getItem('servicePersonnel') || JSON.stringify(defaultServicePersonnel)));
+        setUsersData(loadedUsers);
+        setUnitTypes(JSON.parse(localStorage.getItem('unitTypes') || JSON.stringify(defaultUnitTypes)));
 
         const nomencladorUnits = JSON.parse(localStorage.getItem('unitList') || JSON.stringify(defaultUnits));
         const reportUnits = unitReportToLoad.zones.flatMap((zone) =>
@@ -269,6 +288,11 @@ const App = () => {
         localStorage.setItem('unitList', JSON.stringify(newList));
         setUnitList(newList);
     };
+    
+    const updateAndSaveUnitTypes = (newTypes) => {
+        localStorage.setItem('unitTypes', JSON.stringify(newTypes));
+        setUnitTypes(newTypes);
+    };
 
     const updateAndSaveRoster = (newRoster) => {
         localStorage.setItem('rosterData', JSON.stringify(newRoster));
@@ -278,6 +302,11 @@ const App = () => {
     const updateAndSaveTemplates = (templates) => {
         localStorage.setItem('serviceTemplates', JSON.stringify(templates));
         setServiceTemplates(templates);
+    };
+
+    const updateAndSaveUsers = (newUsers) => {
+        localStorage.setItem('usersData', JSON.stringify(newUsers));
+        setUsersData(newUsers);
     };
     
     const handleUpdateUnitReport = (updatedData) => {
@@ -779,8 +808,10 @@ const App = () => {
     }, [selectedServiceIds, schedule]);
 
     const renderContent = () => {
-        if (!displayDate) return null;
+        if (!displayDate || !currentUser) return null;
         switch (view) {
+            case 'hidro-alert':
+                return React.createElement(HidroAlertView, {});
             case 'unit-report':
                 if (!unitReport) return null;
                 return React.createElement(UnitReportDisplay, {
@@ -790,7 +821,9 @@ const App = () => {
                         onUpdateReport: handleUpdateUnitReport,
                         commandPersonnel: commandPersonnel,
                         servicePersonnel: servicePersonnel,
-                        unitList: unitList
+                        unitList: unitList,
+                        unitTypes: unitTypes,
+                        currentUser: currentUser
                     });
             case 'unit-status':
                 if (!unitReport) return null;
@@ -803,23 +836,28 @@ const App = () => {
             case 'command-post':
                 if (!unitReport) return null;
                 return React.createElement(CommandPostView, { unitReportData: unitReport });
+            case 'forestal':
+                return React.createElement(ForestalView, {});
             case 'era-report':
                 if (!eraReport) return null;
                 return React.createElement(EraReportDisplay, {
                         reportData: eraReport,
-                        onUpdateReport: handleUpdateEraReport
+                        onUpdateReport: handleUpdateEraReport,
+                        currentUser: currentUser
                     });
             case 'generator-report':
                 if (!generatorReport) return null;
                 return React.createElement(GeneratorReportDisplay, {
                     reportData: generatorReport,
-                    onUpdateReport: handleUpdateGeneratorReport
+                    onUpdateReport: handleUpdateGeneratorReport,
+                    currentUser: currentUser
                 });
             case 'materials':
                 if (!materialsReport) return null;
                 return React.createElement(MaterialsDisplay, {
                     reportData: materialsReport,
-                    onUpdateReport: handleUpdateMaterialsReport
+                    onUpdateReport: handleUpdateMaterialsReport,
+                    currentUser: currentUser
                 });
             case 'schedule':
                 if (!filteredSchedule) return null;
@@ -828,6 +866,7 @@ const App = () => {
                         onDateChange: handleDateChange, onUpdateService: handleUpdateService, onUpdateCommandStaff: handleUpdateCommandStaff, onAddNewService: handleAddNewService, onMoveService: handleMoveService, onToggleServiceSelection: handleToggleServiceSelection, onSelectAllServices: handleSelectAllServices, onSaveAsTemplate: handleSaveAsTemplate, onReplaceFromTemplate: (serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId }), onImportGuardLine: () => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true),
                         onDeleteService: handleDeleteService,
                         searchTerm: searchTerm, onSearchChange: setSearchTerm,
+                        currentUser: currentUser,
                     });
             case 'time-grouped':
                 if (!filteredSchedule) return null;
@@ -836,11 +875,15 @@ const App = () => {
                         onAssignmentStatusChange: handleAssignmentStatusChange
                     });
             case 'nomenclador':
+                 if (currentUser.role !== 'admin') {
+                    return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado. Se requieren permisos de administrador.");
+                }
                 return React.createElement(Nomenclador, {
-                        commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, roster: roster,
+                        commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, unitTypes: unitTypes, roster: roster,
+                        users: usersData,
                         onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)),
                         onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)),
-                        onUpdateUnits: updateAndSaveUnits, onUpdateRoster: updateAndSaveRoster
+                        onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers
                      });
             default:
                 return null;
@@ -848,6 +891,10 @@ const App = () => {
     };
     
     const getButtonClass = (buttonView) => `flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${view === buttonView ? 'bg-blue-600 text-white shadow-lg' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`;
+    
+     if (!currentUser) {
+        return React.createElement(Login, { onLogin: handleLogin, users: usersData });
+    }
     
     if (!schedule || !displayDate || !unitReport || !eraReport || !generatorReport || !materialsReport) {
         return (
@@ -867,21 +914,27 @@ const App = () => {
                 React.createElement("div", { className: "container mx-auto px-4 sm:px-6 lg:px-8" },
                     React.createElement("div", { className: "flex flex-col sm:flex-row items-center justify-between h-auto sm:h-20 py-4 sm:py-0" },
                         React.createElement("div", { className: "flex items-center mb-4 sm:mb-0" },
+                            React.createElement("img", { src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png", alt: "Escudo Bomberos de la Ciudad", className: "h-12 mr-3" }),
                             React.createElement("button", { onClick: handleResetData, className: "mr-2 text-zinc-400 hover:text-white transition-colors", "aria-label": "Reiniciar Datos"}, React.createElement(RefreshIcon, { className: "w-6 h-6" })),
-                            React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" })),
-                            React.createElement("img", { src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png", alt: "Escudo Bomberos de la Ciudad", className: "h-12 mr-3" })
+                            React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" }))
                         ),
                         React.createElement("div", { className: "flex flex-wrap items-center justify-end gap-2" },
+                             React.createElement("div", { className: "flex items-center text-sm text-zinc-300 mr-4" },
+                                React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
+                                React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión"}, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
+                            ),
                             React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
+                            React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
                             React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
                             React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
-                            React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
+                            (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
                             React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
                             React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
                             React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
                             React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
-                            React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
-                            React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
                             
                             React.createElement("div", { className: "relative", ref: importMenuRef },
                                 React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },

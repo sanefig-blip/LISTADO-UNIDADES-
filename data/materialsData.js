@@ -34,5 +34,13 @@ export const materialsData = {
          { id: 'm9', name: 'Salvavidas Circulares', quantity: 10, condition: 'Para Servicio', location: 'Bote' },
       ],
     },
+    {
+      name: 'ESTACIÓN IX VERSAILLES',
+      materials: [],
+    },
+    {
+      name: 'DESTACAMENTO DEVOTO',
+      materials: [],
+    },
   ],
 };
