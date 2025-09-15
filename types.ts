@@ -284,7 +284,7 @@ export interface Underpass {
 export interface DisplacementPoint {
     location: string;
     station: string;
-    assignedUnit?: string;
+    assignedUnits: string[];
 }
 
 export interface HidroAlertData {

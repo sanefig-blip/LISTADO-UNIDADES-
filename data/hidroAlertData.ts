@@ -2,14 +2,15 @@ import { HidroAlertData } from '../types';
 
 export const hidroAlertData: HidroAlertData = {
   panorama2Updates: [
-    { location: "Cramer y Avenida ELCANO", station: "ESTACION IV \"C.M.M.C.F.P.\"" },
-    { location: "Garcia del Río y Avenida Cabildo", station: "ESTACION V \"C.G.A.G.V.\"" },
-    { location: "Blanco Encalada y Av. Dr. R. BALBIN", station: "ESTACION V \"C.G.A.G.V.\"" },
-    { location: "La Pampa y Burela", station: "DESTACAMENTO \"DEVOTO\"" },
-    { location: "Av. Dr. R. BALBIN y Estomba", station: "ESTACION V \"C.G.A.G.V.\"" },
-    { location: "Barrio Mitre (Arias 3700) y MELIAN", station: "ESTACION IV \"RECOLETA\"" },
-    { location: "V SOLDATI (Int. Rabanal y Pergamino)", station: "ESTACION X \"LUGANO\"" },
-    { location: "Recorrido por A. Vieytes, Osvaldo Cruz, Av. Velez Sarfield e Av. Iriarte", station: "ESTACION III \"BARRACAS\"" }
+    // FIX: Added assignedUnits property to satisfy DisplacementPoint interface
+    { location: "Cramer y Avenida ELCANO", station: "ESTACION IV \"C.M.M.C.F.P.\"", assignedUnits: [] },
+    { location: "Garcia del Río y Avenida Cabildo", station: "ESTACION V \"C.G.A.G.V.\"", assignedUnits: [] },
+    { location: "Blanco Encalada y Av. Dr. R. BALBIN", station: "ESTACION V \"C.G.A.G.V.\"", assignedUnits: [] },
+    { location: "La Pampa y Burela", station: "DESTACAMENTO \"DEVOTO\"", assignedUnits: [] },
+    { location: "Av. Dr. R. BALBIN y Estomba", station: "ESTACION V \"C.G.A.G.V.\"", assignedUnits: [] },
+    { location: "Barrio Mitre (Arias 3700) y MELIAN", station: "ESTACION IV \"RECOLETA\"", assignedUnits: [] },
+    { location: "V SOLDATI (Int. Rabanal y Pergamino)", station: "ESTACION X \"LUGANO\"", assignedUnits: [] },
+    { location: "Recorrido por A. Vieytes, Osvaldo Cruz, Av. Velez Sarfield e Av. Iriarte", station: "ESTACION III \"BARRACAS\"", assignedUnits: [] }
   ],
   panorama3Stations: [
     "ESTACION VIII \"Nva CHICAGO\"",

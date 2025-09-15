@@ -238,6 +238,18 @@ const App = () => {
         try {
             const savedHidroAlertDataJSON = localStorage.getItem('hidroAlertData');
             hidroAlertDataToLoad = savedHidroAlertDataJSON ? JSON.parse(savedHidroAlertDataJSON) : preloadedHidroAlertData;
+
+            // MIGRATION LOGIC for hidroAlertData
+            if (hidroAlertDataToLoad && hidroAlertDataToLoad.panorama2Updates) {
+                hidroAlertDataToLoad.panorama2Updates.forEach((point: any) => {
+                    if (point.assignedUnit && !point.assignedUnits) {
+                        point.assignedUnits = [point.assignedUnit];
+                        delete point.assignedUnit;
+                    } else if (!point.assignedUnits) {
+                        point.assignedUnits = [];
+                    }
+                });
+            }
         } catch (e) {
             console.error("Failed to load or parse HidroAlert data, falling back to default.", e);
             hidroAlertDataToLoad = preloadedHidroAlertData;
@@ -846,19 +858,19 @@ const App = () => {
         switch (view) {
             case 'history':
                 if (currentUser.username !== 'OCOB (Administrador)') {
-                    return <div className="text-center text-red-400 text-lg">Acceso denegado.</div>;
+                    return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado.");
                 }
-                return <ChangeHistory
-                    logs={logs}
-                    onClearLogs={() => {
+                return React.createElement(ChangeHistory, {
+                    logs: logs,
+                    onClearLogs: () => {
                         if (window.confirm("¿Está seguro de que desea borrar todo el historial de cambios? Esta acción no se puede deshacer.")) {
                             setLogs([]);
                             localStorage.setItem('changeLogs', '[]');
                             addLogEntry('Historial de cambios borrado.');
                         }
-                    }}
-                    currentUser={currentUser}
-                />;
+                    },
+                    currentUser: currentUser
+                });
             case 'hidro-alert':
                 if (!hidroAlertData) return null;
                 return React.createElement(HidroAlertView, {
@@ -994,8 +1006,8 @@ const App = () => {
                             React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
                             currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
                             React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
-                            currentUser.role === 'admin' && <button className={getButtonClass('nomenclador')} onClick={() => setView('nomenclador')}><BookOpenIcon className="w-5 h-5" /> Nomencladores</button>,
-                            currentUser.username === 'OCOB (Administrador)' && <button className={getButtonClass('history')} onClick={() => setView('history')}><ClipboardListIcon className="w-5 h-5" /> Historial</button>,
+                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador')}, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
+                            currentUser.username === 'OCOB (Administrador)' && React.createElement("button", { className: getButtonClass('history'), onClick: () => setView('history')}, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Historial"),
 
                             React.createElement("div", { className: "relative", ref: importMenuRef },
                                 React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },

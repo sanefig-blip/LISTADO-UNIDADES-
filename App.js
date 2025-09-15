@@ -238,6 +238,18 @@ const App = () => {
         try {
             const savedHidroAlertDataJSON = localStorage.getItem('hidroAlertData');
             hidroAlertDataToLoad = savedHidroAlertDataJSON ? JSON.parse(savedHidroAlertDataJSON) : preloadedHidroAlertData;
+
+            // MIGRATION LOGIC for hidroAlertData
+            if (hidroAlertDataToLoad && hidroAlertDataToLoad.panorama2Updates) {
+                hidroAlertDataToLoad.panorama2Updates.forEach((point) => {
+                    if (point.assignedUnit && !point.assignedUnits) {
+                        point.assignedUnits = [point.assignedUnit];
+                        delete point.assignedUnit;
+                    } else if (!point.assignedUnits) {
+                        point.assignedUnits = [];
+                    }
+                });
+            }
         } catch (e) {
             console.error("Failed to load or parse HidroAlert data, falling back to default.", e);
             hidroAlertDataToLoad = preloadedHidroAlertData;

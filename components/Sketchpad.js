@@ -1,15 +1,35 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { PencilSwooshIcon, TrashIcon, CameraIcon } from './icons.js';
+import { PencilSwooshIcon, TrashIcon, CameraIcon, EngineIcon, LadderIcon, AmbulanceIcon, CommandPostIcon, PersonIcon, PlusCircleIcon } from './icons.js';
+
+const unitConfig = {
+    engine: { icon: React.createElement(EngineIcon, { className: "w-5 h-5"}), color: 'red' },
+    ladder: { icon: React.createElement(LadderIcon, { className: "w-5 h-5"}), color: 'blue' },
+    ambulance: { icon: React.createElement(AmbulanceIcon, { className: "w-5 h-5"}), color: 'green' },
+    command: { icon: React.createElement(CommandPostIcon, { className: "w-5 h-5"}), color: 'orange' },
+    person: { icon: React.createElement(PersonIcon, { className: "w-5 h-5"}), color: 'purple' },
+};
 
 const Sketchpad = ({ isActive, onSketchCapture }) => {
     const canvasRef = useRef(null);
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [tool, setTool] = useState('pencil');
-    const [color, setColor] = useState('#ffde03'); // Yellow
-    const [lineWidth, setLineWidth] = useState(3);
-    const [points, setPoints] = useState([]);
+    const [elements, setElements] = useState([]);
+    const [tool, setTool] = useState('select');
+    const [lineColor, setLineColor] = useState('#ff0000'); // Red for attack line
     
-    const draw = useCallback(() => {
+    // Drawing state
+    const [drawing, setDrawing] = useState(false);
+    const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
+
+    const getMousePos = (e) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    };
+
+    const drawElements = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -17,177 +37,119 @@ const Sketchpad = ({ isActive, onSketchCapture }) => {
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const storedDrawing = localStorage.getItem('sketchpadDrawing');
-        if (storedDrawing) {
-            const img = new Image();
-            img.onload = () => {
-                ctx.drawImage(img, 0, 0);
-                // Draw points on top of the restored drawing
-                 points.forEach(point => {
-                    ctx.beginPath();
-                    ctx.arc(point.x, point.y, point.radius, 0, 2 * Math.PI);
-                    ctx.fillStyle = point.color;
-                    ctx.fill();
-                });
-            };
-            img.src = storedDrawing;
-        } else {
-             // Draw points even if there's no stored drawing
-            points.forEach(point => {
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, point.radius, 0, 2 * Math.PI);
-                ctx.fillStyle = point.color;
-                ctx.fill();
-            });
-        }
+        elements.forEach(el => {
+            ctx.strokeStyle = el.color;
+            ctx.fillStyle = el.color;
 
-    }, [points]);
+            if (el.type === 'line' && el.points && el.points.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(el.points[0].x, el.points[0].y);
+                for (let i = 1; i < el.points.length; i++) {
+                    ctx.lineTo(el.points[i].x, el.points[i].y);
+                }
+                ctx.lineWidth = el.color === '#ff0000' ? 3 : 2; // Thicker for attack
+                ctx.setLineDash(el.color === '#0000ff' ? [5, 5] : []); // Dashed for supply
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset
+            } else if (el.type === 'building' && el.x && el.y && el.width && el.height) {
+                ctx.lineWidth = 2;
+                ctx.strokeRect(el.x, el.y, el.width, el.height);
+                if (el.text) {
+                     ctx.font = '12px sans-serif';
+                     ctx.fillStyle = 'white';
+                     ctx.textAlign = 'center';
+                     ctx.fillText(el.text, el.x + el.width / 2, el.y + el.height / 2);
+                }
+            } else if (el.type === 'text' && el.x && el.y && el.text) {
+                ctx.font = 'bold 14px sans-serif';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'left';
+                ctx.fillText(el.text, el.x, el.y);
+            }
+        });
+    }, [elements]);
     
+    // Draw on mount and when elements change
     useEffect(() => {
+        drawElements();
+    }, [elements, drawElements]);
+    
+    // Resize handler
+     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || !isActive) return;
 
         const setCanvasSize = () => {
             const parent = canvas.parentElement;
             if(parent) {
-                // Save current drawing before resizing
-                const currentDrawing = canvas.toDataURL();
-                
                 canvas.width = parent.clientWidth;
                 canvas.height = parent.clientHeight;
-                
-                // Redraw from saved state after resizing
-                const img = new Image();
-                img.onload = () => {
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0);
-                };
-                img.src = currentDrawing;
+                drawElements();
             }
         };
-
         setCanvasSize();
-        
-        const storedPoints = localStorage.getItem('sketchpadPoints');
-        if (storedPoints) {
-            setPoints(JSON.parse(storedPoints));
-        } else {
-            draw(); // initial draw
-        }
-
-        const resizeObserver = new ResizeObserver(() => {
-            setCanvasSize();
-        });
-
+        const resizeObserver = new ResizeObserver(setCanvasSize);
         if (canvas.parentElement) {
             resizeObserver.observe(canvas.parentElement);
         }
+        return () => resizeObserver.disconnect();
+    }, [isActive, drawElements]);
 
-        return () => {
-            resizeObserver.disconnect();
-        };
-
-    }, [draw, isActive]);
-    
-    useEffect(() => {
-        localStorage.setItem('sketchpadPoints', JSON.stringify(points));
-        draw();
-    }, [points, draw]);
-
-    const getMousePos = (e) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return { x: 0, y: 0 };
-        const rect = canvas.getBoundingClientRect();
-        
-        if (window.TouchEvent && e instanceof TouchEvent && e.touches[0]) {
-             return {
-                x: e.touches[0].clientX - rect.left,
-                y: e.touches[0].clientY - rect.top
-            };
-        } else if (e instanceof MouseEvent) {
-             return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        }
-        return { x: 0, y: 0 };
+    const handleMouseDown = (e) => {
+        if (tool === 'select') return;
+        const pos = getMousePos(e);
+        setDrawing(true);
+        setStartPoint(pos);
     };
 
-    const startDrawing = (e) => {
-        e.preventDefault();
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const { x, y } = getMousePos(e.nativeEvent);
-        
-        if (tool === 'point') {
-            const newPoint = { x, y, color, radius: lineWidth + 4 };
-            setPoints(prev => [...prev, newPoint]);
-            // Draw point immediately
-            ctx.beginPath();
-            ctx.arc(newPoint.x, newPoint.y, newPoint.radius, 0, 2 * Math.PI);
-            ctx.fillStyle = newPoint.color;
-            ctx.fill();
-            localStorage.setItem('sketchpadDrawing', canvas.toDataURL());
-            return;
-        }
-
-        setIsDrawing(true);
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+    const handleMouseMove = (e) => {
+        if (!drawing) return;
+        // Logic for previewing shapes while drawing could go here
     };
 
-    const drawMove = (e) => {
-        e.preventDefault();
-        if (!isDrawing || tool === 'point') return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const { x, y } = getMousePos(e.nativeEvent);
+    const handleMouseUp = (e) => {
+        if (!drawing) return;
+        const endPos = getMousePos(e);
 
-        if (tool === 'eraser') {
-            ctx.clearRect(x - 15, y - 15, 30, 30);
-        } else {
-            ctx.lineTo(x, y);
-            ctx.stroke();
-        }
-    };
-
-    const stopDrawing = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        let newElement = null;
+        const newId = Date.now();
         
-        ctx.closePath();
-        setIsDrawing(false);
-        if (tool === 'pencil' || tool === 'eraser') {
-            localStorage.setItem('sketchpadDrawing', canvas.toDataURL());
+        switch (tool) {
+            case 'line':
+                newElement = { id: newId, type: 'line', points: [startPoint, endPos], color: lineColor };
+                break;
+            case 'building':
+                const text = prompt("Etiqueta para la estructura (ej: Vivienda):", "Vivienda");
+                newElement = { id: newId, type: 'building', x: Math.min(startPoint.x, endPos.x), y: Math.min(startPoint.y, endPos.y), width: Math.abs(startPoint.x - endPos.x), height: Math.abs(startPoint.y - endPos.y), color: 'white', text: text || undefined };
+                break;
+            case 'text':
+                const label = prompt("Ingrese el texto:", "Calle Falsa 123");
+                if (label) newElement = { id: newId, type: 'text', x: startPoint.x, y: startPoint.y, text: label, color: 'white' };
+                break;
+             case 'unit':
+                const unitLabel = prompt("Etiqueta para la unidad:", "E-1");
+                if (unitLabel) {
+                    // This is a simplification. A real implementation would use draggable icons, not canvas drawing.
+                    // For now, let's add a placeholder.
+                    newElement = { id: newId, type: 'text', x: startPoint.x, y: startPoint.y, text: `[U] ${unitLabel}`, color: 'yellow' };
+                }
+                break;
         }
+
+        if (newElement) {
+            setElements(prev => [...prev, newElement]);
+        }
+        
+        setDrawing(false);
     };
 
     const clearCanvas = () => {
         if (window.confirm("¿Está seguro de que desea borrar todo el boceto?")) {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            localStorage.removeItem('sketchpadDrawing');
-            localStorage.removeItem('sketchpadPoints');
-            setPoints([]);
+            setElements([]);
         }
     };
-    
-    const handleValidate = () => {
+
+     const handleValidate = () => {
         const canvas = canvasRef.current;
         if(canvas) {
             onSketchCapture(canvas.toDataURL('image/png'));
@@ -195,32 +157,17 @@ const Sketchpad = ({ isActive, onSketchCapture }) => {
         }
     };
 
-    const ToolButton = ({ toolName, label, icon }) => (
-        React.createElement("button", {
-            onClick: () => setTool(toolName),
-            className: `p-2 rounded-md transition-colors flex flex-col items-center text-xs w-20 ${tool === toolName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`,
-            title: label
-        },
-            icon,
-            React.createElement("span", { className: "mt-1" }, label)
-        )
-    );
-
     return (
         React.createElement("div", { className: "flex flex-col gap-4 h-[80vh]" },
-             React.createElement("div", { className: "bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-between gap-4" },
+            React.createElement("div", { className: "bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-between gap-4" },
                 React.createElement("div", { className: "flex flex-wrap items-center gap-2" },
-                    React.createElement(ToolButton, { toolName: "pencil", label: "Lápiz", icon: React.createElement(PencilSwooshIcon, { className: "w-6 h-6" }) }),
-                    React.createElement(ToolButton, { toolName: "point", label: "Punto", icon: React.createElement("div", { className: "w-6 h-6 rounded-full border-2 border-dashed border-zinc-400" }) }),
-                    React.createElement(ToolButton, { toolName: "eraser", label: "Borrador", icon: React.createElement("div", { className: "w-6 h-6 bg-zinc-400 rounded" }) }),
-                    
-                    React.createElement("div", { className: "flex items-center gap-2 ml-4" },
-                        React.createElement("label", { htmlFor: "color-picker", className: "text-sm font-medium text-zinc-300" }, "Color:"),
-                        React.createElement("input", { id: "color-picker", type: "color", value: color, onChange: e => setColor(e.target.value), className: "w-10 h-10 bg-transparent border-none rounded-md cursor-pointer" })
-                    ),
-                     React.createElement("div", { className: "flex items-center gap-2" },
-                        React.createElement("label", { htmlFor: "line-width", className: "text-sm font-medium text-zinc-300" }, "Grosor:"),
-                        React.createElement("input", { id: "line-width", type: "range", min: "1", max: "10", value: lineWidth, onChange: e => setLineWidth(Number(e.target.value)) })
+                    React.createElement("button", { onClick: () => setTool('line'), className: `px-3 py-2 rounded text-sm ${tool === 'line' ? 'bg-blue-600' : 'bg-zinc-700'}`}, "Línea"),
+                    React.createElement("button", { onClick: () => setTool('building'), className: `px-3 py-2 rounded text-sm ${tool === 'building' ? 'bg-blue-600' : 'bg-zinc-700'}`}, "Estructura"),
+                    React.createElement("button", { onClick: () => setTool('text'), className: `px-3 py-2 rounded text-sm ${tool === 'text' ? 'bg-blue-600' : 'bg-zinc-700'}`}, "Texto"),
+                    React.createElement("button", { onClick: () => setTool('unit'), className: `px-3 py-2 rounded text-sm ${tool === 'unit' ? 'bg-blue-600' : 'bg-zinc-700'}`}, "Unidad"),
+                    React.createElement("select", { value: lineColor, onChange: e => setLineColor(e.target.value), className: "bg-zinc-700 rounded p-2 text-sm"},
+                        React.createElement("option", { value: "#ff0000" }, "Línea de Ataque (Roja)"),
+                        React.createElement("option", { value: "#0000ff" }, "Línea de Abastecimiento (Azul)")
                     )
                 ),
                 React.createElement("div", { className: "flex items-center gap-2" },
@@ -228,17 +175,14 @@ const Sketchpad = ({ isActive, onSketchCapture }) => {
                      React.createElement("button", { onClick: handleValidate, className: "flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-500 rounded-md text-white font-semibold", title: "Validar Boceto" }, React.createElement(CameraIcon, { className: "w-5 h-5" }), "Validar para Reporte")
                 )
             ),
-            React.createElement("div", { className: "flex-grow w-full h-full bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-700" },
+             React.createElement("div", { className: "flex-grow w-full h-full bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-700" },
                  React.createElement("canvas", {
                     ref: canvasRef,
                     className: "w-full h-full cursor-crosshair",
-                    onMouseDown: startDrawing,
-                    onMouseMove: drawMove,
-                    onMouseUp: stopDrawing,
-                    onMouseLeave: stopDrawing,
-                    onTouchStart: startDrawing,
-                    onTouchMove: drawMove,
-                    onTouchEnd: stopDrawing
+                    onMouseDown: handleMouseDown,
+                    onMouseMove: handleMouseMove,
+                    onMouseUp: handleMouseUp,
+                    onMouseLeave: () => setDrawing(false)
                 })
             )
         )
