@@ -912,7 +912,7 @@ const App = () => {
         }
     };
     
-    const getButtonClass = (buttonView) => `flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${view === buttonView ? 'bg-blue-600 text-white shadow-lg' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`;
+    const getButtonClass = (buttonView) => `flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 outline-none transition-colors whitespace-nowrap focus-visible:bg-zinc-700/50 ${view === buttonView ? 'border-blue-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-100 hover:border-zinc-500'}`;
     
      if (!currentUser) {
         return React.createElement(Login, { onLogin: handleLogin, users: usersData });
@@ -940,78 +940,84 @@ const App = () => {
                             React.createElement("button", { onClick: handleResetData, className: "mr-2 text-zinc-400 hover:text-white transition-colors", "aria-label": "Reiniciar Datos"}, React.createElement(RefreshIcon, { className: "w-6 h-6" })),
                             React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" }))
                         ),
-                        React.createElement("div", { className: "flex flex-wrap items-center justify-end gap-2" },
-                             React.createElement("div", { className: "flex items-center text-sm text-zinc-300 mr-4" },
+                        React.createElement("div", { className: "flex w-full sm:w-auto flex-1 items-center justify-end gap-2 md:gap-4 min-w-0" },
+                             React.createElement("div", { className: "flex items-center text-sm text-zinc-300 flex-shrink-0" },
                                 React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
                                 React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión"}, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
                             ),
-                            React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
-                            React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
-                            React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
-                            React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
-                            (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
-                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
-                            React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
-                            React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
-                            React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
-                            React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
-                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
-                            currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores"),
+                            React.createElement("nav", { className: "flex-1 min-w-[10rem] overflow-hidden" },
+                                React.createElement("div", { className: "flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide" },
+                                    React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
+                                    React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
+                                    React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
+                                    React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
+                                    (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
+                                    currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
+                                    React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
+                                    React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
+                                    React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
+                                    React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
+                                    currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
+                                    currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores")
+                                )
+                            ),
                             
-                            React.createElement("div", { className: "relative", ref: importMenuRef },
-                                React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },
-                                    React.createElement(UploadIcon, { className: 'w-5 h-5' }),
-                                    React.createElement("span", null, "Importar"),
-                                    React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isImportMenuOpen ? 'rotate-180' : ''}` })
-                                ),
-                                isImportMenuOpen && (
-                                    React.createElement("div", { className: "absolute right-0 mt-2 w-72 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
-                                        React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical" },
-                                            React.createElement("button", { type: "button", onClick: () => { fileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                                React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Horario (Word/Excel)"
-                                            ),
-                                            React.createElement("button", { type: "button", onClick: () => { unitReportFileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                                React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Reporte Unidades (Excel)"
-                                            ),
-                                            React.createElement("button", { type: "button", onClick: () => { unitReportPdfFileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                                React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Reporte Unidades (PDF)"
-                                            ),
-                                            React.createElement("button", { type: "button", onClick: () => { rosterInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                                React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Rol de Guardia (JSON/Word)"
-                                            ),
-                                            React.createElement("button", { type: "button", onClick: () => { exportRosterWordTemplate(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Plantilla Rol de Guardia (Word)"
-                                            ),
-                                            React.createElement("button", { type: "button", onClick: () => { openTemplateModal({ mode: 'add', serviceType: 'common' }); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                                React.createElement(BookmarkIcon, { className: 'w-4 h-4' }), " Añadir desde Plantilla"
+                            React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0" },
+                                React.createElement("div", { className: "relative", ref: importMenuRef },
+                                    React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },
+                                        React.createElement(UploadIcon, { className: 'w-5 h-5' }),
+                                        React.createElement("span", null, "Importar"),
+                                        React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isImportMenuOpen ? 'rotate-180' : ''}` })
+                                    ),
+                                    isImportMenuOpen && (
+                                        React.createElement("div", { className: "absolute right-0 mt-2 w-72 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
+                                            React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical" },
+                                                React.createElement("button", { type: "button", onClick: () => { fileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Horario (Word/Excel)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { unitReportFileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Reporte Unidades (Excel)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { unitReportPdfFileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Reporte Unidades (PDF)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { rosterInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Rol de Guardia (JSON/Word)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { exportRosterWordTemplate(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Plantilla Rol de Guardia (Word)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { openTemplateModal({ mode: 'add', serviceType: 'common' }); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(BookmarkIcon, { className: 'w-4 h-4' }), " Añadir desde Plantilla"
+                                                )
                                             )
                                         )
                                     )
-                                )
-                            ),
-
-                            React.createElement("div", { className: "relative", ref: exportMenuRef },
-                                React.createElement("button", { onClick: () => setExportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white font-medium transition-colors' },
-                                    React.createElement(DownloadIcon, { className: 'w-5 h-5' }),
-                                    React.createElement("span", null, "Exportar"),
-                                    React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}` })
                                 ),
-                                isExportMenuOpen && React.createElement("div", { className: "absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
-                                    React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical", "aria-labelledby": "options-menu" },
-                                        React.createElement("button", { type: "button", onClick: () => { exportScheduleToWord({ ...schedule, date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() }); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                            React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar General"),
-                                        React.createElement("button", { type: "button", onClick: () => { exportScheduleByTimeToWord({ date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(), assignmentsByTime: getAssignmentsByTime }); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                            React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar por Hora"),
-                                        React.createElement("button", { type: "button", onClick: () => { setIsExportTemplateModalOpen(true); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
-                                            React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar Plantilla")
+
+                                React.createElement("div", { className: "relative", ref: exportMenuRef },
+                                    React.createElement("button", { onClick: () => setExportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white font-medium transition-colors' },
+                                        React.createElement(DownloadIcon, { className: 'w-5 h-5' }),
+                                        React.createElement("span", null, "Exportar"),
+                                        React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}` })
+                                    ),
+                                    isExportMenuOpen && React.createElement("div", { className: "absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
+                                        React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical", "aria-labelledby": "options-menu" },
+                                            React.createElement("button", { type: "button", onClick: () => { exportScheduleToWord({ ...schedule, date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() }); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar General"),
+                                            React.createElement("button", { type: "button", onClick: () => { exportScheduleByTimeToWord({ date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(), assignmentsByTime: getAssignmentsByTime }); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar por Hora"),
+                                            React.createElement("button", { type: "button", onClick: () => { setIsExportTemplateModalOpen(true); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar Plantilla")
+                                        )
                                     )
-                                )
-                            ),
-                            
-                            selectedServiceIds.size > 0 && view === 'schedule' && (
-                                React.createElement("button", { onClick: handleToggleVisibilityForSelected, className: `flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ${visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`},
-                                    visibilityAction.action === 'hide' ? React.createElement(EyeOffIcon, { className: "w-5 h-5" }) : React.createElement(EyeIcon, { className: "w-5 h-5" }),
-                                    `${visibilityAction.label} (${selectedServiceIds.size})`
+                                ),
+                                
+                                selectedServiceIds.size > 0 && view === 'schedule' && (
+                                    React.createElement("button", { onClick: handleToggleVisibilityForSelected, className: `flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ${visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`},
+                                        visibilityAction.action === 'hide' ? React.createElement(EyeOffIcon, { className: "w-5 h-5" }) : React.createElement(EyeIcon, { className: "w-5 h-5" }),
+                                        `${visibilityAction.label} (${selectedServiceIds.size})`
+                                    )
                                 )
                             )
                         )
