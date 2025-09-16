@@ -21,7 +21,7 @@ import TimeGroupedScheduleDisplay from './components/TimeGroupedScheduleDisplay.
 import Nomenclador from './components/Nomenclador.js';
 import UnitReportDisplay from './components/UnitReportDisplay.js';
 import UnitStatusView from './components/UnitStatusView.js';
-import CommandPostView from './components/CommandPostView.js';
+import CommandPostParentView from './components/CommandPostParentView.js';
 import EraReportDisplay from './components/EraReportDisplay.js';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay.js';
 import MaterialsDisplay from './components/MaterialsDisplay.js';
@@ -936,7 +936,11 @@ const App = () => {
                 });
             case 'command-post':
                 if (!unitReport) return null;
-                return React.createElement(CommandPostView, { unitReportData: unitReport });
+                return React.createElement(CommandPostParentView, { 
+                    unitReportData: unitReport, 
+                    commandPersonnel: commandPersonnel, 
+                    servicePersonnel: servicePersonnel 
+                });
             case 'forestal':
                 return React.createElement(ForestalView, {});
             case 'era-report':

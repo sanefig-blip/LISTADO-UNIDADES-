@@ -329,6 +329,18 @@ export interface RegimenData {
 }
 
 // --- Command Post Types ---
+export interface CommandPostTrackedUnit {
+  id: string;
+  unit: string;
+  aCargo: string;
+  dotacion: string;
+  hSalida: string;
+  hLugar: string;
+  hRegreso: string;
+  novedades: string;
+  despachado: boolean;
+}
+
 export interface TrackedUnit extends FireUnit {
     groupName: string;
     task: string;

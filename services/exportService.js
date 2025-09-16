@@ -19,10 +19,6 @@ const saveFile = (data, fileName, fileType) => {
 // Helper to sanitize strings for XML
 const sanitizeXmlString = (str) => {
     if (!str) return '';
-    // This regex removes most characters that are illegal in XML 1.0 documents.
-    // It keeps tab, newline, and carriage return.
-    // The range is U+0000 to U+001F, excluding U+0009, U+000A, U+000D.
-    // It also removes surrogate pairs which can be problematic.
     return str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uD800-\uDFFF\uFFFE\uFFFF]/g, '');
 };
 
@@ -761,182 +757,84 @@ const createPdfTable = (doc, title, head, body, startY) => {
     doc.setFont('helvetica', 'bold');
     doc.text(title, 14, startY);
     autoTable(doc, {
-        head: [head],
+        head: head,
         body: body,
         startY: startY + 6,
         theme: 'grid',
         headStyles: { fillColor: '#3f3f46' }, // zinc-700
         styles: { fontSize: 8 }
     });
-    return doc.lastAutoTable.finalY + 10;
+    return (doc).lastAutoTable.finalY;
 };
 
-export const exportCommandPostToPdf = (
-    incidentDetails, 
-    trackedUnits, 
-    trackedPersonnel,
-    sci201Data,
-    sci211Data,
-    sci207Data,
-    croquisSketch,
-    bocetoSketch
-) => {
+export const exportTacticalCommandPostToPdf = (interventionGroups) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 14;
     let y = 15;
 
-    // --- Page 1: General Info ---
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("Reporte de Puesto de Comando", pageWidth / 2, y, { align: 'center' });
-    y += 10;
+    doc.text("Reporte de Comando Táctico", pageWidth / 2, y, { align: 'center' });
+    y += 15;
 
-    doc.setFontSize(12);
-    doc.text("Datos del Incidente", margin, y);
-    y += 2;
-    autoTable(doc, {
-        body: [
-            ['Tipo de Siniestro', incidentDetails.type || '-'],
-            ['Dirección', incidentDetails.address || '-'],
-            ['Comuna', incidentDetails.district || '-'],
-            ['Fecha y Hora de Alarma', incidentDetails.alarmTime || '-'],
-            ['Jefe del Cuerpo en el Lugar', incidentDetails.chiefOnScene || '-'],
-            ['Jefe de la Emergencia', incidentDetails.incidentCommander || '-'],
-        ],
-        startY: y,
-        theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 1.5 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 } }
-    });
-    y = doc.lastAutoTable.finalY + 8;
+    interventionGroups.forEach(group => {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(group.name, margin, y);
+        y += 5;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`A Cargo: ${group.officerInCharge || 'N/A'}`, margin, y);
+        y+= 8;
 
-    y = createPdfTable(doc, 'Unidades en Intervención', ['Unidad', 'A Cargo', 'Dot.', 'H. Salida', 'H. Lugar', 'H. Regreso', 'Novedades'], 
-        trackedUnits.filter(u => u.dispatched).map(u => [
-            `${u.id}\n(${u.groupName})`, u.officerInCharge || '-', u.personnelCount || '-', u.departureTime, u.onSceneTime, u.returnTime, u.notes
-        ]), y);
-
-    y = createPdfTable(doc, 'Personal Clave en Intervención', ['Nombre', 'Tipo', 'Estación', 'Novedades'], 
-        trackedPersonnel.filter(p => p.onScene).map(p => [
-            p.name, p.type, p.groupName, p.notes
-        ]), y);
-        
-    // --- SCI-201 Page ---
-    doc.addPage();
-    y = 15;
-    doc.setFontSize(16);
-    doc.text("Formulario SCI-201: Resumen del Incidente", pageWidth / 2, y, { align: 'center' });
-    y += 10;
-    autoTable(doc, {
-        startY: y,
-        theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 1.5, lineColor: 200 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 } },
-        body: [
-            ['Nombre del Incidente', sci201Data.incidentName || '-'],
-            ['Fecha/Hora de Preparación', sci201Data.prepDateTime || '-'],
-            ['Lugar del Incidente', sci201Data.incidentLocation || '-'],
-            ['Naturaleza del Incidente', sci201Data.evalNature || '-'],
-            ['Amenazas', sci201Data.evalThreats || '-'],
-            ['Área Afectada', sci201Data.evalAffectedArea || '-'],
-            ['Aislamiento', sci201Data.evalIsolation || '-'],
-            ['Objetivo(s) Inicial(es)', sci201Data.initialObjectives || '-'],
-            ['Estrategias', sci201Data.strategies || '-'],
-            ['Tácticas', sci201Data.tactics || '-'],
-            ['Ubicación del PC', sci201Data.pcLocation || '-'],
-            ['Ruta Ingreso/Egreso', `${sci201Data.ingressRoute || '-'} / ${sci201Data.egressRoute || '-'}`],
-            ['Mensaje de Seguridad', sci201Data.safetyMessage || '-'],
-            ['Comandante del Incidente', sci201Data.incidentCommander || '-'],
-        ]
-    });
-    y = doc.lastAutoTable.finalY + 8;
-    y = createPdfTable(doc, 'Resumen de Acciones', ['Hora', 'Resumen'], sci201Data.actions.map(a => [a.time, a.summary]), y);
-    
-    // --- SCI-211 Page ---
-    if (sci211Data.filter(r => r.requestedBy).length > 0) {
-        doc.addPage();
-        y = 15;
-        doc.setFontSize(16);
-        doc.text("Formulario SCI-211: Registro de Recursos", pageWidth / 2, y, { align: 'center' });
-        y += 10;
-        autoTable(doc, {
-            startY: y,
-            theme: 'grid',
-            head: [['Solicitado por', 'F/H Sol.', 'Recurso', 'Institución', 'F/H Arribo', 'Asignado a', 'F/H Desmov.']],
-            body: sci211Data.filter(r => r.requestedBy).map(r => [
-                r.requestedBy, r.requestDateTime, `${r.classType} / ${r.resourceType}`, r.institution, r.arrivalDateTime, r.assignedTo, r.demobilizedDateTime
-            ]),
-            styles: { fontSize: 8 }
-        });
-    }
-
-    // --- SCI-207 Page ---
-    if (sci207Data.filter(v => v.patientName).length > 0) {
-        doc.addPage();
-        y = 15;
-        doc.setFontSize(16);
-        doc.text("Formulario SCI-207: Registro de Víctimas", pageWidth / 2, y, { align: 'center' });
-        y += 10;
-        autoTable(doc, {
-            startY: y,
-            theme: 'grid',
-            head: [['Paciente', 'Sexo/Edad', 'Clasif.', 'Lugar Traslado', 'Trasladado por', 'F/H Traslado']],
-            body: sci207Data.filter(v => v.patientName).map(v => [
-                v.patientName, `${v.sex}/${v.age}`, v.triage, v.transportLocation, v.transportedBy, v.transportDateTime
-            ])
-        });
-    }
-
-    const addImageToPage = (title, imageData) => {
-        try {
-            const imgProps = doc.getImageProperties(imageData);
-            const isLandscape = imgProps.width > imgProps.height;
-            doc.addPage(undefined, isLandscape ? 'l' : 'p');
-            
-            const pageW = doc.internal.pageSize.getWidth();
-            const pageH = doc.internal.pageSize.getHeight();
-            let localY = 15;
-
-            doc.setFontSize(16);
-            doc.text(title, pageW / 2, localY, { align: 'center' });
-            localY += 10;
-
-            const availableWidth = pageW - (margin * 2);
-            const availableHeight = pageH - localY - margin;
-
-            const imgRatio = imgProps.width / imgProps.height;
-            const pageRatio = availableWidth / availableHeight;
-
-            let finalWidth, finalHeight;
-            if (imgRatio > pageRatio) {
-                finalWidth = availableWidth;
-                finalHeight = finalWidth / imgRatio;
-            } else {
-                finalHeight = availableHeight;
-                finalWidth = finalHeight * imgRatio;
-            }
-
-            const xPos = (pageW - finalWidth) / 2;
-            doc.addImage(imageData, 'PNG', xPos, localY, finalWidth, finalHeight);
-        } catch (error) {
-            console.error(`Error adding image "${title}" to PDF:`, error);
-            doc.addPage();
-            doc.setTextColor(255, 0, 0);
-            doc.text(`No se pudo cargar la imagen: ${title}.`, margin, 15);
+        if (group.units.length > 0) {
+            y = createPdfTable(doc, 'Unidades Asignadas', 
+                [['Unidad', 'Tarea', 'Ubicación', 'T. Trabajo', 'H. Salida', 'H. Lugar', 'H. Regreso']], 
+                group.units.map(u => [u.id, u.task, u.locationInScene, u.workTime, u.departureTime, u.onSceneTime, u.returnTime]), 
+                y
+            ) + 6;
         }
-    }
 
-    // --- Croquis Táctico Page ---
-    if (croquisSketch) {
-        addImageToPage("Croquis Táctico del Incidente", croquisSketch);
-    }
-
-    // --- Croquis Boceto Page ---
-    if (bocetoSketch) {
-        addImageToPage("Croquis Boceto Inicial", bocetoSketch);
-    }
+        if (group.personnel.length > 0) {
+             y = createPdfTable(doc, 'Personal Asignado', 
+                [['Nombre', 'Jerarquía']],
+                group.personnel.map(p => [p.name, p.rank]),
+                y
+            ) + 10;
+        }
+    });
     
-    doc.save(`Reporte_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Reporte_Comando_Tactico_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
+export const exportCommandPostSummaryToPdf = (
+    availableUnits,
+    availablePersonnel,
+    interventionUnits,
+    interventionPersonnel
+) => {
+    const doc = new jsPDF();
+    let y = 15;
+    
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Resumen de Puesto de Comando", 14, y);
+    y += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${new Date().toLocaleString('es-AR')}`, 14, y);
+    y += 10;
+
+    y = createPdfTable(doc, `Unidades en Intervención (${interventionUnits.length})`, [['ID', 'Tipo']], interventionUnits.map(u => [u.id, u.type]), y) + 10;
+    y = createPdfTable(doc, `Personal en Intervención (${interventionPersonnel.length})`, [['Nombre', 'Jerarquía']], interventionPersonnel.map(p => [p.name, p.rank]), y) + 10;
+    
+    if (y > 220) { doc.addPage(); y = 15; }
+
+    y = createPdfTable(doc, `Unidades Disponibles (${availableUnits.length})`, [['ID', 'Tipo']], availableUnits.map(u => [u.id, u.type]), y) + 10;
+    y = createPdfTable(doc, `Personal Disponible (${availablePersonnel.length})`, [['Nombre', 'Jerarquía']], availablePersonnel.map(p => [p.name, p.rank]), y) + 10;
+
+    doc.save(`Resumen_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 

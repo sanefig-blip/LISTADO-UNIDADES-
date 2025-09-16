@@ -2,7 +2,7 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Headi
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Schedule, Assignment, Service, Personnel, UnitReportData, RANKS, EraData, GeneratorData, UnitGroup, FireUnit, SCI201Data, SCI211Resource, SCI207Victim, MaterialsData, InterventionGroup } from '../types';
+import { Schedule, Assignment, Service, Personnel, UnitReportData, RANKS, EraData, GeneratorData, UnitGroup, FireUnit, SCI201Data, SCI211Resource, SCI207Victim, MaterialsData, InterventionGroup, TrackedUnit } from '../types';
 
 // Helper to save files
 const saveFile = (data: BlobPart, fileName: string, fileType: string) => {
@@ -775,68 +775,33 @@ const createPdfTable = (doc: jsPDF, title: string, head: string[][], body: any[]
     return (doc as any).lastAutoTable.finalY;
 };
 
-export const exportCommandPostToPdf = (
-    incidentDetails: any, 
+export const exportTacticalCommandPostToPdf = (
     interventionGroups: InterventionGroup[],
-    sci201Data: SCI201Data,
-    sci211Data: SCI211Resource[],
-    sci207Data: SCI207Victim[],
-    croquisSketch: string | null,
-    bocetoSketch: string | null
 ) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 14;
     let y = 15;
 
-    // --- Page 1: General Info ---
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("Reporte de Puesto de Comando", pageWidth / 2, y, { align: 'center' });
-    y += 10;
-
-    autoTable(doc, {
-        body: [
-            ['Tipo de Siniestro', incidentDetails.type || '-'],
-            ['Dirección', incidentDetails.address || '-'],
-            ['Hora de Alarma', incidentDetails.alarmTime || '-'],
-        ],
-        startY: y,
-        theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 1.5 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 } }
-    });
-    y = (doc as any).lastAutoTable.finalY + 8;
-
-    const totalInterventionUnits = interventionGroups.reduce((sum, group) => sum + group.units.length, 0);
-    const totalInterventionPersonnel = interventionGroups.reduce((sum, group) => sum + group.personnel.length, 0);
-
-    autoTable(doc, {
-        body: [
-            ['Total Unidades en Intervención', totalInterventionUnits.toString()],
-            ['Total Personal en Intervención', totalInterventionPersonnel.toString()],
-        ],
-        startY: y,
-        theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 1.5 },
-        columnStyles: { 0: { fontStyle: 'bold' } }
-    });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    doc.text("Reporte de Comando Táctico", pageWidth / 2, y, { align: 'center' });
+    y += 15;
 
     interventionGroups.forEach(group => {
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${group.name}`, margin, y);
+        doc.text(group.name, margin, y);
         y += 5;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.text(`A Cargo: ${group.officerInCharge || 'N/A'}`, margin, y);
-        y+= 6;
+        y+= 8;
 
         if (group.units.length > 0) {
             y = createPdfTable(doc, 'Unidades Asignadas', 
                 [['Unidad', 'Tarea', 'Ubicación', 'T. Trabajo', 'H. Salida', 'H. Lugar', 'H. Regreso']], 
-                group.units.map(u => [u.id, u.task, u.locationInScene, u.workTime, u.departureTime, u.onSceneTime, u.returnTime]), 
+                group.units.map((u: TrackedUnit) => [u.id, u.task, u.locationInScene, u.workTime, u.departureTime, u.onSceneTime, u.returnTime]), 
                 y
             ) + 6;
         }
@@ -849,34 +814,38 @@ export const exportCommandPostToPdf = (
             ) + 10;
         }
     });
-        
-    // --- SCI-201 Page ---
-    if (sci201Data.incidentName) {
-        doc.addPage();
-        y = 15;
-        doc.setFontSize(16);
-        doc.text("Formulario SCI-201: Resumen del Incidente", pageWidth / 2, y, { align: 'center' });
-        y += 10;
-        autoTable(doc, {
-            startY: y,
-            theme: 'plain',
-            styles: { fontSize: 9, cellPadding: 1.5, lineColor: 200 },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 } },
-            body: [
-                ['Nombre del Incidente', sci201Data.incidentName || '-'],
-                ['Fecha/Hora de Preparación', sci201Data.prepDateTime || '-'],
-                ['Lugar del Incidente', sci201Data.incidentLocation || '-'],
-                ['Comandante del Incidente', sci201Data.incidentCommander || '-'],
-            ]
-        });
-        y = (doc as any).lastAutoTable.finalY + 8;
-        y = createPdfTable(doc, 'Resumen de Acciones', [['Hora', 'Resumen']], sci201Data.actions.map(a => [a.time, a.summary]), y) + 10;
-    }
     
-    // Add other SCI forms and sketches if they exist...
-    
-    doc.save(`Reporte_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Reporte_Comando_Tactico_${new Date().toISOString().split('T')[0]}.pdf`);
 };
+
+export const exportCommandPostSummaryToPdf = (
+    availableUnits: FireUnit[],
+    availablePersonnel: Personnel[],
+    interventionUnits: FireUnit[],
+    interventionPersonnel: Personnel[]
+) => {
+    const doc = new jsPDF();
+    let y = 15;
+    
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Resumen de Puesto de Comando", 14, y);
+    y += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${new Date().toLocaleString('es-AR')}`, 14, y);
+    y += 10;
+
+    y = createPdfTable(doc, `Unidades en Intervención (${interventionUnits.length})`, [['ID', 'Tipo']], interventionUnits.map(u => [u.id, u.type]), y) + 10;
+    y = createPdfTable(doc, `Personal en Intervención (${interventionPersonnel.length})`, [['Nombre', 'Jerarquía']], interventionPersonnel.map(p => [p.name, p.rank]), y) + 10;
+    
+    if (y > 220) { doc.addPage(); y = 15; }
+
+    y = createPdfTable(doc, `Unidades Disponibles (${availableUnits.length})`, [['ID', 'Tipo']], availableUnits.map(u => [u.id, u.type]), y) + 10;
+    y = createPdfTable(doc, `Personal Disponible (${availablePersonnel.length})`, [['Nombre', 'Jerarquía']], availablePersonnel.map(p => [p.name, p.rank]), y) + 10;
+
+    doc.save(`Resumen_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
+}
 
 
 export const exportPersonnelToExcel = (personnel: Personnel[], title: string) => {

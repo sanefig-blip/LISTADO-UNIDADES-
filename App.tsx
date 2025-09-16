@@ -21,7 +21,7 @@ import TimeGroupedScheduleDisplay from './components/TimeGroupedScheduleDisplay'
 import Nomenclador from './components/Nomenclador';
 import UnitReportDisplay from './components/UnitReportDisplay';
 import UnitStatusView from './components/UnitStatusView';
-import CommandPostView from './components/CommandPostView';
+import CommandPostParentView from './components/CommandPostParentView';
 import EraReportDisplay from './components/EraReportDisplay';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay';
 import MaterialsDisplay from './components/MaterialsDisplay';
@@ -921,7 +921,8 @@ const App = () => {
                 return <MaterialStatusView materialsData={materialsReport} />;
             case 'command-post':
                 if (!unitReport) return null;
-                return <CommandPostView unitReportData={unitReport} />;
+                // FIX: Use CommandPostParentView and pass all required props.
+                return <CommandPostParentView unitReportData={unitReport} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} />;
             case 'forestal':
                 return <ForestalView />;
             case 'era-report':
