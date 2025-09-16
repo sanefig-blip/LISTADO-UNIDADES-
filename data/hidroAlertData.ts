@@ -3,8 +3,8 @@ import { HidroAlertData } from '../types';
 export const hidroAlertData: HidroAlertData = {
   alertPoints: [
     // Panorama 1
-    { id: 'p1-1', panorama: 1, type: 'Recorrido', location: 'Recorrido Preventivo - Zona Saavedra', organism: 'Defensa Civil', assignedUnit: '', status: 'Pendiente', notes: '' },
-    { id: 'p1-2', panorama: 1, type: 'Recorrido', location: 'Recorrido Preventivo - Zona Villa Soldati', organism: 'Defensa Civil', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p1-1', panorama: 1, type: 'Recorrido', location: 'Recorrido Preventivo - Zona Saavedra', organism: 'BOMBEROS', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p1-2', panorama: 1, type: 'Recorrido', location: 'Recorrido Preventivo - Zona Villa Soldati', organism: 'BOMBEROS', assignedUnit: '', status: 'Pendiente', notes: '' },
     
     // Panorama 2 - Puntos Fijos
     { id: 'p2-1', panorama: 2, type: 'Punto Fijo', location: 'Barrio Mitre (Posta y Arias)', organism: 'Defensa Civil', coords: [-34.561, -58.503], assignedUnit: '', status: 'Pendiente', notes: '' },

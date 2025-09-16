@@ -82,6 +82,13 @@ const App = () => {
     const importMenuRef = useRef(null);
     const exportMenuRef = useRef(null);
 
+    const navScrollRef = useRef(null);
+    const [showScrollIndicators, setShowScrollIndicators] = useState({ left: false, right: false });
+
+    const isDown = useRef(false);
+    const startX = useRef(0);
+    const scrollLeft = useRef(0);
+
     const handleLogin = (user) => {
         setCurrentUser(user);
     };
@@ -824,6 +831,67 @@ const App = () => {
         return { action: 'hide', label: 'Ocultar Seleccionados' };
     }, [selectedServiceIds, schedule]);
 
+    const checkScrollability = useCallback(() => {
+        const el = navScrollRef.current;
+        if (el) {
+            const hasOverflow = el.scrollWidth > el.clientWidth;
+            const buffer = 2;
+            setShowScrollIndicators({
+                left: hasOverflow && el.scrollLeft > buffer,
+                right: hasOverflow && el.scrollLeft < el.scrollWidth - el.clientWidth - buffer,
+            });
+        }
+    }, []);
+
+    const handleMouseDown = (e) => {
+        const slider = navScrollRef.current;
+        if (!slider) return;
+        isDown.current = true;
+        slider.classList.add('cursor-grabbing');
+        startX.current = e.pageX - slider.offsetLeft;
+        scrollLeft.current = slider.scrollLeft;
+    };
+
+    const handleMouseLeave = () => {
+        const slider = navScrollRef.current;
+        if (!slider) return;
+        isDown.current = false;
+        slider.classList.remove('cursor-grabbing');
+    };
+
+    const handleMouseUp = () => {
+        const slider = navScrollRef.current;
+        if (!slider) return;
+        isDown.current = false;
+        slider.classList.remove('cursor-grabbing');
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDown.current) return;
+        e.preventDefault();
+        const slider = navScrollRef.current;
+        if (!slider) return;
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX.current) * 2; // The scroll speed factor
+        slider.scrollLeft = scrollLeft.current - walk;
+        checkScrollability();
+    };
+
+
+    useEffect(() => {
+        const navEl = navScrollRef.current;
+        if (navEl) {
+            checkScrollability();
+            navEl.addEventListener('scroll', checkScrollability, { passive: true });
+            window.addEventListener('resize', checkScrollability);
+
+            return () => {
+                navEl.removeEventListener('scroll', checkScrollability);
+                window.removeEventListener('resize', checkScrollability);
+            };
+        }
+    }, [checkScrollability, view, currentUser]);
+
     const renderContent = () => {
         if (!displayDate || !currentUser) return null;
         switch (view) {
@@ -945,8 +1013,15 @@ const App = () => {
                                 React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
                                 React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión"}, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
                             ),
-                            React.createElement("nav", { className: "flex-1 min-w-[10rem] overflow-hidden" },
-                                React.createElement("div", { className: "flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide" },
+                            React.createElement("nav", { className: "relative flex-1 min-w-[10rem] overflow-hidden" },
+                                React.createElement("div", {
+                                        ref: navScrollRef,
+                                        className: "flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide border-b border-zinc-700 cursor-grab",
+                                        onMouseDown: handleMouseDown,
+                                        onMouseLeave: handleMouseLeave,
+                                        onMouseUp: handleMouseUp,
+                                        onMouseMove: handleMouseMove
+                                    },
                                     React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
                                     React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
                                     React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
@@ -959,7 +1034,9 @@ const App = () => {
                                     React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
                                     currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
                                     currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores")
-                                )
+                                ),
+                                React.createElement("div", { className: `absolute top-0 left-0 bottom-0 w-8 bg-gradient-to-r from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.left ? 'opacity-100' : 'opacity-0'}`, "aria-hidden": "true" }),
+                                React.createElement("div", { className: `absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.right ? 'opacity-100' : 'opacity-0'}`, "aria-hidden": "true" })
                             ),
                             
                             React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0" },

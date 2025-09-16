@@ -155,7 +155,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
                 ),
                 React.createElement("ul", { className: "space-y-4" },
                     points.map(point => {
-                        const isBomberos = point.organism.toLowerCase().includes('estacion') || point.organism.toLowerCase().includes('destacamento');
+                        const isBomberos = point.organism.toLowerCase().includes('estacion') || point.organism.toLowerCase().includes('destacamento') || point.organism.toLowerCase().includes('bomberos');
                         return React.createElement("li", {
                             key: point.id,
                             className: `pl-4 py-2 list-disc list-inside ${isBomberos ? 'border-l-4 border-red-500/50 marker:text-red-400' : 'border-l-4 border-green-500/50 marker:text-green-400'}`
