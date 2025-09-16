@@ -34,9 +34,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
         <div className="fixed inset-0 bg-zinc-900 flex justify-center items-center p-4">
             <div className="w-full max-w-sm bg-zinc-800 p-8 rounded-2xl shadow-2xl border border-zinc-700 animate-scale-in">
                 <div className="text-center mb-8">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png" alt="Escudo Bomberos" className="h-20 mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-white">Iniciar Sesión</h1>
-                    <p className="text-zinc-400">Sistema de Gestión Operativa</p>
+                    <h1 className="text-3xl font-bold text-white tracking-wider">BOMBEROS DE LA CIUDAD</h1>
+                    <p className="text-zinc-400 mt-2">Sistema de Gestión Operativa</p>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>

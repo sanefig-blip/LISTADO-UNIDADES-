@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fire-dept-organizer-cache-v39';
+const CACHE_NAME = 'fire-dept-organizer-cache-v48';
 const urlsToCache = [
   './',
   './index.html',
@@ -26,6 +26,7 @@ const urlsToCache = [
   './components/MaterialStatusView.js',
   './components/ForestalView.js',
   './components/HidroAlertView.js',
+  './components/RegimenDeIntervencion.js',
   './services/geminiService.js',
   './services/exportService.js',
   './services/wordImportService.js',
@@ -42,6 +43,7 @@ const urlsToCache = [
   './data/materialsData.js',
   './data/streets.js',
   './data/hidroAlertData.js',
+  './data/regimenData.js',
   'https://cdn.tailwindcss.com',
   'https://esm.sh/docx@8.5.0',
   'https://esm.sh/xlsx@0.18.5',

@@ -69,7 +69,7 @@ const isGroupViewable = (groupName: string, user: User | null): boolean => {
 
     // Special rule: Estacion VIII can view DTO Velez Sarsfield.
     if (normalizedUserStation.startsWith('ESTACION VIII ') &&
-        normalizedGroupName.includes('DESTACAMENTO VELEZ SARSFIELD')) {
+        (normalizedGroupName.includes('DESTACAMENTO VELEZ SARSFIELD'))) {
         return true;
     }
 
@@ -203,18 +203,18 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
        }
    };
 
-  const handleOfficerListChange = (zoneIdx: number, groupIdx: number, listType: 'crewOfficers' | 'standbyOfficers', officerIdx: number, value: string) => {
+  const handleOfficerListChange = (zoneIdx: number, groupIdx: number, listType: 'crewOfficers' | 'standbyOfficers' | 'servicesOfficers', officerIdx: number, value: string) => {
     setEditableReport(prev => {
         if (!prev) return null;
         const newReport = JSON.parse(JSON.stringify(prev));
         const group = newReport.zones[zoneIdx].groups[groupIdx];
-        if (!group[listType]) group[listType] = [];
-        (group[listType] as string[])[officerIdx] = value;
+        if (!group[listType]) (group as any)[listType] = [];
+        (group[listType] as any)[officerIdx] = value;
         return newReport;
     });
   };
 
-  const handleRemoveFromOfficerList = (zoneIdx: number, groupIdx: number, listType: 'crewOfficers' | 'standbyOfficers', officerIdx: number) => {
+  const handleRemoveFromOfficerList = (zoneIdx: number, groupIdx: number, listType: 'crewOfficers' | 'standbyOfficers' | 'servicesOfficers', officerIdx: number) => {
     setEditableReport(prev => {
         if (!prev) return null;
         const newReport = JSON.parse(JSON.stringify(prev));
@@ -224,14 +224,14 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
     });
   };
 
-  const handleAddToOfficerList = (zoneIdx: number, groupIdx: number, listType: 'crewOfficers' | 'standbyOfficers', person: Personnel) => {
+  const handleAddToOfficerList = (zoneIdx: number, groupIdx: number, listType: 'crewOfficers' | 'standbyOfficers' | 'servicesOfficers', person: Personnel) => {
     const value = `${person.rank} ${person.name}`;
     setEditableReport(prev => {
       if (!prev) return null;
       const newReport = JSON.parse(JSON.stringify(prev));
       const group = newReport.zones[zoneIdx].groups[groupIdx];
-      if (!group[listType]) group[listType] = [];
-      (group[listType] as string[]).push(value);
+      if (!group[listType]) (group as any)[listType] = [];
+      (group[listType] as any).push(value);
       return newReport;
     });
     const key = `${zoneIdx}-${groupIdx}-${listType}`;
@@ -265,6 +265,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
           if (group.name.toLowerCase().includes(lowercasedFilter)) return true;
           if ((group.crewOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)) return true;
           if ((group.standbyOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)) return true;
+          if ((group.servicesOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)) return true;
           return group.units.some(unit =>
             unit.id.toLowerCase().includes(lowercasedFilter) ||
             unit.type.toLowerCase().includes(lowercasedFilter) ||
@@ -278,7 +279,8 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
             units: group.units.filter(unit => 
                 (group.name.toLowerCase().includes(lowercasedFilter) ||
                  (group.crewOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter) ||
-                 (group.standbyOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)
+                 (group.standbyOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter) ||
+                 (group.servicesOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)
                 ) ? true : // If group name or officers match, show all units
                 unit.id.toLowerCase().includes(lowercasedFilter) ||
                 unit.type.toLowerCase().includes(lowercasedFilter) ||
@@ -341,7 +343,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
     );
   };
 
-    const renderEditableOfficerList = (title: string, listType: 'crewOfficers' | 'standbyOfficers', officers: string[] | undefined, zoneIdx: number, groupIdx: number, groupIsEditable: boolean) => {
+    const renderEditableOfficerList = (title: string, listType: 'crewOfficers' | 'standbyOfficers' | 'servicesOfficers', officers: string[] | undefined, zoneIdx: number, groupIdx: number, groupIsEditable: boolean) => {
     const key = `${zoneIdx}-${groupIdx}-${listType}`;
     const searchTerm = addOfficerInput[key] || '';
     const filteredPersonnel = allPersonnel.filter(p => 
@@ -448,9 +450,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                     <button onClick={() => exportUnitReportToPdf(reportData)} className="px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2">
                         <DownloadIcon className="w-5 h-5" /> Exportar PDF
                     </button>
-                    <button onClick={handleEdit} className="px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2">
-                        <PencilIcon className="w-5 h-5" /> Editar
-                    </button>
+                    <button onClick={handleEdit} className="px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2"><PencilIcon className="w-5 h-5" /> Editar</button>
                   </div>
               )}
           </div>
@@ -477,9 +477,10 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
             {!collapsedZones.has(zone.name) && (
               <div className="p-4 space-y-4 animate-fade-in">
                 {zone.groups.map((group, groupIdx) => {
-                    const totalPersonnelInUnits = group.units.reduce((sum, unit) => sum + (unit.personnelCount || 0), 0);
+                    const totalCrewOfficers = (group.crewOfficers || []).length;
                     const totalStandbyOfficers = (group.standbyOfficers || []).length;
-                    const totalPersonnel = totalPersonnelInUnits + totalStandbyOfficers;
+                    const totalServicesOfficers = (group.servicesOfficers || []).length;
+                    const totalPersonnel = totalCrewOfficers + totalStandbyOfficers + totalServicesOfficers;
                     const groupIsEditable = isEditing && isGroupEditable(group.name, currentUser);
                     return (
                       <div key={group.name} className={`bg-zinc-900/40 p-4 rounded-lg ${isEditing && !groupIsEditable ? 'opacity-60' : ''}`}>
@@ -489,7 +490,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left">
-                            <thead>
+                            <thead className="sticky top-0 bg-zinc-800">
                               <tr className="text-sm text-zinc-400">
                                 <th className="p-2 w-24">Interno</th>
                                 <th className="p-2">Unidad</th>
@@ -509,7 +510,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                       <input
                                         type="text"
                                         value={unit.internalId || ''}
-                                        onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'internalId', e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'internalId', e.target.value)}
                                         className="w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800"
                                         disabled={!groupIsEditable}
                                       />
@@ -521,7 +522,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                      {isEditing ? (
                                       <input
                                         type="text" value={unit.id}
-                                        onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'id', e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'id', e.target.value)}
                                         className="w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800"
                                         list="unit-list-nomenclador"
                                         disabled={!groupIsEditable}
@@ -532,14 +533,12 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                       {isEditing ? (
                                         <select
                                           value={unit.type}
-                                          onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'type', e.target.value)}
+                                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'type', e.target.value)}
                                           className="w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800"
                                           disabled={!groupIsEditable}
-                                        >
+                                        > 
                                           {!unitTypes.includes(unit.type) && <option key={unit.type} value={unit.type}>{unit.type}</option>}
-                                          {unitTypes.map(type => (
-                                              <option key={type} value={type}>{type}</option>
-                                          ))}
+                                          {unitTypes.map(type => <option key={type} value={type}>{type}</option>)}
                                         </select>
                                     ) : unit.type}
                                   </td>
@@ -548,7 +547,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                         <div className="flex flex-col">
                                             <select
                                                 value={unit.status}
-                                                onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'status', e.target.value)}
+                                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'status', e.target.value)}
                                                 className="w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800"
                                                 disabled={!groupIsEditable}
                                             >
@@ -562,7 +561,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                                     type="text"
                                                     placeholder="Motivo..."
                                                     value={unit.outOfServiceReason || ''}
-                                                    onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'outOfServiceReason', e.target.value)}
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'outOfServiceReason', e.target.value)}
                                                     className="mt-1 w-full bg-zinc-900 border-zinc-700 rounded-md px-2 py-1 text-white text-xs disabled:bg-zinc-800"
                                                     disabled={!groupIsEditable}
                                                 />
@@ -585,8 +584,8 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                             type="text"
                                             list="personnel-list-for-units"
                                             value={unit.officerInCharge || ''}
-                                            onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'officerInCharge', e.target.value)}
-                                            onBlur={(e) => {
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'officerInCharge', e.target.value)}
+                                            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
                                                 const person = allPersonnel.find(p => p.name === e.target.value);
                                                 if (person) {
                                                     handleUnitChange(zoneIdx, groupIdx, unitIdx, 'officerInCharge', `${person.rank} ${person.name}`);
@@ -623,7 +622,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                      {isEditing ? (
                                       <input
                                         type="text" value={unit.poc || ''}
-                                        onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'poc', e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'poc', e.target.value)}
                                         className="w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white disabled:bg-zinc-800"
                                         disabled={!groupIsEditable}
                                         />
@@ -634,7 +633,7 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                                         <input
                                             type="number"
                                             value={unit.personnelCount ?? ''}
-                                            onChange={(e) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'personnelCount', e.target.value)}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitChange(zoneIdx, groupIdx, unitIdx, 'personnelCount', e.target.value)}
                                             className="w-20 bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-right disabled:bg-zinc-800"
                                             disabled={!groupIsEditable}
                                         />
@@ -678,11 +677,13 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
                             <>
                                 {renderEditableOfficerList('Oficiales de Dotación', 'crewOfficers', group.crewOfficers, zoneIdx, groupIdx, groupIsEditable)}
                                 {renderEditableOfficerList('Oficiales en Estación en Apresto', 'standbyOfficers', group.standbyOfficers, zoneIdx, groupIdx, groupIsEditable)}
+                                {renderEditableOfficerList('Oficiales en Servicios Especiales', 'servicesOfficers', group.servicesOfficers, zoneIdx, groupIdx, groupIsEditable)}
                             </>
                         ) : (
                             <>
                                 {renderOfficerList("Oficiales de Dotación", group.crewOfficers)}
                                 {renderOfficerList("Oficiales en Estación en Apresto", group.standbyOfficers)}
+                                {renderOfficerList("Oficiales en Servicios Especiales", group.servicesOfficers)}
                             </>
                         )}
                       </div>
@@ -696,4 +697,5 @@ const UnitReportDisplay: React.FC<UnitReportDisplayProps> = ({ reportData, searc
     </div>
   );
 };
+
 export default UnitReportDisplay;

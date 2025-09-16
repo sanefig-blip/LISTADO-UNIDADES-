@@ -253,6 +253,7 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
           if (group.name.toLowerCase().includes(lowercasedFilter)) return true;
           if ((group.crewOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)) return true;
           if ((group.standbyOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)) return true;
+          if ((group.servicesOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)) return true;
           return group.units.some(unit =>
             unit.id.toLowerCase().includes(lowercasedFilter) ||
             unit.type.toLowerCase().includes(lowercasedFilter) ||
@@ -266,7 +267,8 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
             units: group.units.filter(unit => 
                 (group.name.toLowerCase().includes(lowercasedFilter) ||
                  (group.crewOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter) ||
-                 (group.standbyOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)
+                 (group.standbyOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter) ||
+                 (group.servicesOfficers || []).join(' ').toLowerCase().includes(lowercasedFilter)
                 ) ? true : // If group name or officers match, show all units
                 unit.id.toLowerCase().includes(lowercasedFilter) ||
                 unit.type.toLowerCase().includes(lowercasedFilter) ||
@@ -436,9 +438,7 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                     React.createElement("button", { onClick: () => exportUnitReportToPdf(reportData), className: "px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" },
                         React.createElement(DownloadIcon, { className: "w-5 h-5" }), " Exportar PDF"
                     ),
-                    React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" },
-                        React.createElement(PencilIcon, { className: "w-5 h-5" }), " Editar"
-                    )
+                    React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5" }), " Editar")
                   )
               )
           )
@@ -465,9 +465,10 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
             !collapsedZones.has(zone.name) && (
               React.createElement("div", { className: "p-4 space-y-4 animate-fade-in" },
                 zone.groups.map((group, groupIdx) => {
-                    const totalPersonnelInUnits = group.units.reduce((sum, unit) => sum + (unit.personnelCount || 0), 0);
+                    const totalCrewOfficers = (group.crewOfficers || []).length;
                     const totalStandbyOfficers = (group.standbyOfficers || []).length;
-                    const totalPersonnel = totalPersonnelInUnits + totalStandbyOfficers;
+                    const totalServicesOfficers = (group.servicesOfficers || []).length;
+                    const totalPersonnel = totalCrewOfficers + totalStandbyOfficers + totalServicesOfficers;
                     const groupIsEditable = isEditing && isGroupEditable(group.name, currentUser);
                     return (
                       React.createElement("div", { key: group.name, className: `bg-zinc-900/40 p-4 rounded-lg ${isEditing && !groupIsEditable ? 'opacity-60' : ''}` },
@@ -663,12 +664,14 @@ const UnitReportDisplay = ({ reportData, searchTerm, onSearchChange, onUpdateRep
                         isEditing ? (
                             React.createElement(React.Fragment, null,
                                 renderEditableOfficerList('Oficiales de Dotación', 'crewOfficers', group.crewOfficers, zoneIdx, groupIdx, groupIsEditable),
-                                renderEditableOfficerList('Oficiales en Estación en Apresto', 'standbyOfficers', group.standbyOfficers, zoneIdx, groupIdx, groupIsEditable)
+                                renderEditableOfficerList('Oficiales en Estación en Apresto', 'standbyOfficers', group.standbyOfficers, zoneIdx, groupIdx, groupIsEditable),
+                                renderEditableOfficerList('Oficiales en Servicios Especiales', 'servicesOfficers', group.servicesOfficers, zoneIdx, groupIdx, groupIsEditable)
                             )
                         ) : (
                             React.createElement(React.Fragment, null,
                                 renderOfficerList("Oficiales de Dotación", group.crewOfficers),
-                                renderOfficerList("Oficiales en Estación en Apresto", group.standbyOfficers)
+                                renderOfficerList("Oficiales en Estación en Apresto", group.standbyOfficers),
+                                renderOfficerList("Oficiales en Servicios Especiales", group.servicesOfficers)
                             )
                         )
                       )

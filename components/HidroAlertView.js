@@ -305,7 +305,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
                 ),
                 
                 activeTab === 'operativo' && React.createElement(OperativoContent, null),
-                activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[65vh] rounded-lg animate-fade-in" }),
+                activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[65vh] rounded-lg animate-fade-in bg-zinc-900" }),
                 activeTab === 'puentes' && React.createElement(PuentesContent, null),
                 activeTab === 'telegram' && React.createElement(TelegramContent, null)
             )

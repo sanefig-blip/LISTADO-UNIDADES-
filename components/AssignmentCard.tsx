@@ -84,7 +84,7 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onStatusCha
                     <label className="flex items-center gap-2 cursor-pointer text-green-300">
                         <input
                             type="checkbox"
-                            className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-green-500 focus:ring-green-500"
+                            className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-green-600 focus:ring-green-500"
                             checked={assignment.inService || false}
                             onChange={(e) => onStatusChange({ inService: e.target.checked })}
                         />
@@ -93,7 +93,7 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onStatusCha
                     <label className="flex items-center gap-2 cursor-pointer text-red-300">
                         <input
                             type="checkbox"
-                            className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-red-500 focus:ring-red-500"
+                            className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-red-600 focus:ring-red-500"
                             checked={assignment.serviceEnded || false}
                             onChange={(e) => onStatusChange({ serviceEnded: e.target.checked })}
                         />

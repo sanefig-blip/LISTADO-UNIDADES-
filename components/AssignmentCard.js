@@ -60,8 +60,8 @@ const AssignmentCard = ({ assignment, onStatusChange }) => {
                 ),
                 assignment.unit && (
                     React.createElement("div", { className: "flex items-center" },
-                        React.createElement(LocationMarkerIcon, { className: "w-5 h-5 mr-2 text-zinc-400 flex-shrink-0" }),
-                        React.createElement("span", { className: textStrikeThroughClass }, "Unidad: ", assignment.unit)
+                    React.createElement(LocationMarkerIcon, { className: "w-5 h-5 mr-2 text-zinc-400 flex-shrink-0" }),
+                    React.createElement("span", { className: textStrikeThroughClass }, "Unidad: ", assignment.unit)
                     )
                 )
             ),
@@ -78,7 +78,7 @@ const AssignmentCard = ({ assignment, onStatusChange }) => {
                     React.createElement("label", { className: "flex items-center gap-2 cursor-pointer text-green-300" },
                         React.createElement("input", {
                             type: "checkbox",
-                            className: "h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-green-500 focus:ring-green-500",
+                            className: "h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-green-600 focus:ring-green-500",
                             checked: assignment.inService || false,
                             onChange: (e) => onStatusChange({ inService: e.target.checked })
                         }),
@@ -87,7 +87,7 @@ const AssignmentCard = ({ assignment, onStatusChange }) => {
                     React.createElement("label", { className: "flex items-center gap-2 cursor-pointer text-red-300" },
                         React.createElement("input", {
                             type: "checkbox",
-                            className: "h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-red-500 focus:ring-red-500",
+                            className: "h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-red-600 focus:ring-red-500",
                             checked: assignment.serviceEnded || false,
                             onChange: (e) => onStatusChange({ serviceEnded: e.target.checked })
                         }),

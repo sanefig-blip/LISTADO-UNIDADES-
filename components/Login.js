@@ -28,9 +28,8 @@ const Login = ({ onLogin, users }) => {
         React.createElement("div", { className: "fixed inset-0 bg-zinc-900 flex justify-center items-center p-4" },
             React.createElement("div", { className: "w-full max-w-sm bg-zinc-800 p-8 rounded-2xl shadow-2xl border border-zinc-700 animate-scale-in" },
                 React.createElement("div", { className: "text-center mb-8" },
-                    React.createElement("img", { src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Escudo_de_Bomberos_de_la_Ciudad_de_Buenos_Aires.png", alt: "Escudo Bomberos", className: "h-20 mx-auto mb-4" }),
-                    React.createElement("h1", { className: "text-2xl font-bold text-white" }, "Iniciar Sesión"),
-                    React.createElement("p", { className: "text-zinc-400" }, "Sistema de Gestión Operativa")
+                    React.createElement("h1", { className: "text-3xl font-bold text-white tracking-wider" }, "BOMBEROS DE LA CIUDAD"),
+                    React.createElement("p", { className: "text-zinc-400 mt-2" }, "Sistema de Gestión Operativa")
                 ),
                 React.createElement("form", { onSubmit: handleSubmit, className: "space-y-6" },
                     React.createElement("div", null,

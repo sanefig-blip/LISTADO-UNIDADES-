@@ -61,7 +61,7 @@ const isStationViewable = (stationName, user) => {
         (normalizedStationName.includes('DEVOTO'))) {
         return true;
     }
-
+    
     return false;
 };
 

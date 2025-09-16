@@ -20,7 +20,8 @@ export const unitReportData: UnitReportData = {
             { "id": "POLARIS-3236", "type": "Cuatriciclo", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
           ],
           "crewOfficers": ["Capitan Gomez", "Teniente Rodriguez"],
-          "standbyOfficers": ["Subtte. Perez"]
+          "standbyOfficers": ["Subtte. Perez"],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN II PATRICIOS",
@@ -36,13 +37,15 @@ export const unitReportData: UnitReportData = {
             { "id": "CAT-DISEL", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
           ],
            "crewOfficers": ["Teniente Martinez"],
-           "standbyOfficers": []
+           "standbyOfficers": [],
+           "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO POMPEYA",
           "units": [
             { "id": "MB-9173", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Fernandez", "personnelCount": 4 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN III BARRACAS",
@@ -53,7 +56,8 @@ export const unitReportData: UnitReportData = {
             { "id": "ZONDA-2665", "type": "Unidad Liviana", "status": "Para Servicio", "officerInCharge": "Bro. Sup Blanco", "personnelCount": 2 },
             { "id": "MB-2662", "type": "Autobomba", "status": "A Préstamo", "officerInCharge": undefined, "personnelCount": null },
             { "id": "YAM-3982", "type": "Cuatriciclo", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO BOCA",
@@ -61,7 +65,8 @@ export const unitReportData: UnitReportData = {
             { "id": "AGRALE-8371", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Subtte Rocha", "personnelCount": 5 },
             { "id": "MB-2660", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "ALLIGHT-4608", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN X LUGANO",
@@ -78,7 +83,8 @@ export const unitReportData: UnitReportData = {
             { "id": "ALLIGHT", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "MB-9174", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "F.R.-2826", "type": "Unidad Liviana", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         }
       ]
     },
@@ -97,19 +103,22 @@ export const unitReportData: UnitReportData = {
             { "id": "CATERPILLAR", "type": "Iluminación", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "YAM-3983", "type": "Cuatriciclo", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "AGRALE-8371", "type": "Autobomba", "status": "A Préstamo", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO MISERERE",
           "units": [
             { "id": "MB-2673", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Correa", "personnelCount": 9 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO RETIRO",
           "units": [
             { "id": "ZFD-2658", "type": "Sexticiclo", "status": "Para Servicio", "officerInCharge": "Subteniente Solari", "personnelCount": 3 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN V CTE. GRAL. A. VAZQUEZ",
@@ -124,7 +133,8 @@ export const unitReportData: UnitReportData = {
             { "id": "YAMAHA-4749", "type": "Gomon", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "YAMAHA-3987", "type": "Cuatriciclo", "status": "A Préstamo", "officerInCharge": undefined, "personnelCount": null },
             { "id": "ALLIGHT-96", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO URQUIZA",
@@ -132,13 +142,15 @@ export const unitReportData: UnitReportData = {
             { "id": "MB-2660", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente San Pedro", "personnelCount": 6 },
             { "id": "IV-2636", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "BIM - 3067", "type": "Gomon", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO SAAVEDRA",
           "units": [
             { "id": "MB-2672", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Cardama", "personnelCount": 5 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN VI CRÍO. MAYOR M. FIRMA PAZ",
@@ -158,19 +170,22 @@ export const unitReportData: UnitReportData = {
             { "id": "MB-2677", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "FZ-2657", "type": "Unidad Liviana", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "POLARIS-3237", "type": "Sexticiclo", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO PALERMO",
           "units": [
             { "id": "IV-2637", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Farias", "personnelCount": 7 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO CHACARITA",
           "units": [
             { "id": "ZONDA-2668", "type": "Cisterna", "status": "Para Servicio", "officerInCharge": "Teniente Reynoso", "personnelCount": 3 }
-          ]
+          ],
+          "servicesOfficers": []
         }
       ]
     },
@@ -188,7 +203,8 @@ export const unitReportData: UnitReportData = {
             { "id": "CAT-S/N°", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "IV-2639", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "40 HP 4595", "type": "Semirrígido", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN VIII NUEVA CHICAGO",
@@ -202,13 +218,15 @@ export const unitReportData: UnitReportData = {
             { "id": "F. TRANSIT-8354", "type": "Unidad Médica", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "MB-347", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "ALLIGHT", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO VELEZ SARSFIELD",
           "units": [
             { "id": "FC-2671", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Sanchez", "personnelCount": 3 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN IX VERSAILLES",
@@ -221,13 +239,15 @@ export const unitReportData: UnitReportData = {
             { "id": "NIGHTSHIFTER", "type": "Iluminación", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "FC-2671", "type": "Cisterna", "status": "A Préstamo", "officerInCharge": undefined, "personnelCount": null },
             { "id": "MB-2676", "type": "Autobomba", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO DEVOTO",
           "units": [
             { "id": "MB-2674", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Acevedo", "personnelCount": 8 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN XI ALBARIÑO",
@@ -237,7 +257,8 @@ export const unitReportData: UnitReportData = {
             { "id": "MB 9173", "type": "Autobomba", "status": "A Préstamo", "officerInCharge": undefined, "personnelCount": null },
             { "id": "ZONDA-2665", "type": "Unidad Liviana", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "IV-9051", "type": "Hidroelevador", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         }
       ]
     },
@@ -250,7 +271,8 @@ export const unitReportData: UnitReportData = {
             { "id": "C.JUMP-2152", "type": "Camioneta", "status": "Para Servicio", "officerInCharge": "Teniente Day Vivas", "personnelCount": 1 },
             { "id": "FR-2109", "type": "Camioneta", "status": "Para Servicio", "officerInCharge": "Bro Sup. Rivero", "personnelCount": 1 },
             { "id": "C.JUMP. 1170", "type": "Camioneta", "status": "Para Servicio", "officerInCharge": "Subtte Ramirez", "personnelCount": 3 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DTO. G.E.R. 1 CABALLITO",
@@ -266,7 +288,8 @@ export const unitReportData: UnitReportData = {
             { "id": "ALLIGHT", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "MARINER 4725", "type": "Motor S/Emb", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "JOHNSON 4479", "type": "Motor S/Emb", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DTO. G.E.R. 2 SAAVEDRA",
@@ -277,7 +300,8 @@ export const unitReportData: UnitReportData = {
             { "id": "BIM S/N°", "type": "Semirrígido", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "HI-FEI S/N°", "type": "Balsa Inflable", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "ALLIGHT", "type": "Iluminación", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "ESTACIÓN BUSQUEDA Y RESCATE K9",
@@ -285,7 +309,8 @@ export const unitReportData: UnitReportData = {
             { "id": "K9", "type": "Búsqueda y Rescate", "status": "Para Servicio", "officerInCharge": "Capitan Meaolo", "personnelCount": 2 },
             { "id": "F.R.-8356", "type": "Unidad Liviana", "status": "Para Servicio", "officerInCharge": "Subtte. Castelli", "personnelCount": 1 },
             { "id": "K.D.H.", "type": "Unidad Liviana", "status": "A Préstamo", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "TRANSPORTE FORENSE",
@@ -296,7 +321,8 @@ export const unitReportData: UnitReportData = {
             { "id": "FHY-285-/1321 (F5)", "type": "Unidad Liviana", "status": "Reserva", "officerInCharge": undefined, "personnelCount": null },
             { "id": "OSZ-875/930 (F8)", "type": "Camioneta", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "AA-639-AM / 1188 (CB)", "type": "Camioneta", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         }
       ]
     },
@@ -307,14 +333,16 @@ export const unitReportData: UnitReportData = {
           "name": "O.C.O.B.",
           "units": [
             { "id": "IV-2646 P.C.M", "type": "Autobomba", "status": "Para Servicio", "officerInCharge": "Teniente Muzzicato", "personnelCount": 2 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DESTACAMENTO SISTEMA DE ASISTENCIA CRITICA",
           "units": [
             { "id": "JUMPER-2149", "type": "Unidad Médica", "status": "Para Servicio", "officerInCharge": "Subtte Garcia", "personnelCount": 1 },
             { "id": "F.R. 2114", "type": "Prensa", "status": "Para Servicio", "officerInCharge": "Teniente Freire", "personnelCount": 2 }
-          ]
+          ],
+          "servicesOfficers": []
         }
       ]
     },
@@ -326,19 +354,22 @@ export const unitReportData: UnitReportData = {
           "units": [
             { "id": "FR-2139 (UPM)", "type": "Unidad Liviana", "status": "Para Servicio", "officerInCharge": "Subteniente Brandan", "personnelCount": 3 },
             { "id": "FR-2117", "type": "Unidad Liviana", "status": "Para Servicio", "officerInCharge": "Teniente Douat", "personnelCount": 1 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "URIP CENTRO",
           "units": [
             { "id": "C.BER - 2104", "type": "Unidad Liviana", "status": "Para Servicio", "officerInCharge": "Teniente Rios", "personnelCount": 1 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "URIP NORTE",
           "units": [
             { "id": "FR-2131", "type": "Unidad Liviana", "status": "Para Servicio", "officerInCharge": "Subteniente Pistoia", "personnelCount": 1 }
-          ]
+          ],
+          "servicesOfficers": []
         },
         {
           "name": "DIVISIÓN B.E.FE.R.",
@@ -357,7 +388,8 @@ export const unitReportData: UnitReportData = {
             { "id": "FD-7796", "type": "Cuatriciclo", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "YAMAHA-3975", "type": "Ranger", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null },
             { "id": "F.R.-8356", "type": "Unidad Liviana", "status": "Fuera de Servicio", "officerInCharge": undefined, "personnelCount": null }
-          ]
+          ],
+          "servicesOfficers": []
         }
       ]
     }

@@ -302,12 +302,13 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
             </div>
         );
     };
-
+    
+    // FIX: Add a return statement to the component to make it a valid React functional component.
     return (
         <div className="space-y-6">
             <div className="bg-zinc-800/60 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-white flex items-center gap-3"><ShieldExclamationIcon className="w-8 h-8 text-yellow-300"/> Alerta Hidrometeorológico</h2>
+                    <h2 className="text-3xl font-bold text-white flex items-center gap-3"><ShieldExclamationIcon className="w-8 h-8 text-yellow-300" /> Alerta Hidrometeorológico</h2>
                     <p className="text-zinc-400">Información y puntos de despliegue según Disposición 3291/2024 DGDCIW.</p>
                 </div>
             </div>
@@ -321,7 +322,7 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
                 </div>
                 
                 {activeTab === 'operativo' && <OperativoContent />}
-                {activeTab === 'mapa' && <div ref={mapContainerRef} className="w-full h-[65vh] rounded-lg animate-fade-in" />}
+                {activeTab === 'mapa' && <div ref={mapContainerRef} className="w-full h-[65vh] rounded-lg animate-fade-in bg-zinc-900"></div>}
                 {activeTab === 'puentes' && <PuentesContent />}
                 {activeTab === 'telegram' && <TelegramContent />}
             </div>

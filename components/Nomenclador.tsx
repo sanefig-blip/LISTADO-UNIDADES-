@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from './icons';
+import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from './icons';
 import { Personnel, Rank, RANKS, Roster, User } from '../types';
 
 interface NomencladorProps {
@@ -27,6 +27,35 @@ interface NomencladorProps {
 }
 
 type ExtraField = 'station' | 'detachment' | 'poc' | 'part';
+
+const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; }> = ({ title, children, defaultOpen = true }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    const contentId = `collapsible-${title.replace(/\s/g, '-')}`;
+
+    return (
+        <div className="bg-zinc-800/60 rounded-xl shadow-lg overflow-hidden">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex justify-between items-center p-6 text-left"
+                aria-controls={contentId}
+                aria-expanded={isOpen}
+            >
+                <h3 className="text-2xl font-bold text-white">{title}</h3>
+                <ChevronDownIcon className={`w-6 h-6 text-zinc-300 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <div
+                id={contentId}
+                className={`grid transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+            >
+                <div className="overflow-hidden">
+                    <div className="p-6 pt-0">
+                        {children}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const UserManagement: React.FC<{
     users: User[];
@@ -63,8 +92,7 @@ const UserManagement: React.FC<{
     };
 
     return (
-        <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold text-white mb-4">Gestión de Usuarios y Contraseñas</h3>
+        <>
             <div className="space-y-3">
                 {editableUsers.map(user => (
                     <div key={user.id} className="grid grid-cols-[1fr,1fr,auto] gap-4 items-center p-2 bg-zinc-700/50 rounded-md">
@@ -93,7 +121,7 @@ const UserManagement: React.FC<{
                     Guardar Cambios de Contraseñas
                 </button>
             </div>
-        </div>
+        </>
     );
 };
 
@@ -236,13 +264,12 @@ const PersonnelListItem: React.FC<{
 
 
 const EditablePersonnelList: React.FC<{
-  title: string;
   items: Personnel[];
   onAddItem: (item: Personnel) => void;
   onUpdateItem: (item: Personnel) => void;
   onRemoveItem: (item: Personnel) => void;
   extraFieldsToShow: ExtraField[];
-}> = ({ title, items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow }) => {
+}> = ({ items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow }) => {
   const [newLp, setNewLp] = useState('');
   const [newName, setNewName] = useState('');
   const [newRank, setNewRank] = useState<Rank>('OTRO');
@@ -279,8 +306,7 @@ const EditablePersonnelList: React.FC<{
       : 'sm:grid-cols-4';
 
   return (
-    <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]">
-      <h3 className="text-2xl font-bold text-white mb-4">{title}</h3>
+    <div className="flex flex-col h-[32rem]">
       <div className={`grid grid-cols-1 ${gridColsClass} gap-2 mb-2`}>
         <input
           type="text"
@@ -417,8 +443,7 @@ const UnitList: React.FC<{
     };
 
     return (
-      <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]">
-        <h3 className="text-2xl font-bold text-white mb-4">Unidades</h3>
+      <div className="flex flex-col h-[32rem]">
         <div className="flex space-x-2 mb-4">
           <input
             type="text"
@@ -489,8 +514,7 @@ const UnitTypeList: React.FC<{
     };
 
     return (
-      <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]">
-        <h3 className="text-2xl font-bold text-white mb-4">Tipos de Unidades</h3>
+      <div className="flex flex-col h-[32rem]">
         <div className="flex space-x-2 mb-4">
           <input
             type="text"
@@ -658,8 +682,7 @@ const RosterEditor: React.FC<{
   };
 
   return (
-    <div className="bg-zinc-800/60 rounded-xl shadow-lg p-6 mb-8">
-      <h3 className="text-2xl font-bold text-white mb-4">Editor de Rol de Guardia</h3>
+    <>
       <datalist id="command-personnel-suggestions">
         {personnelList.map(p => <option key={p.id} value={p.name} />)}
       </datalist>
@@ -691,7 +714,7 @@ const RosterEditor: React.FC<{
                 Guardar Cambios del Mes
             </button>
         </div>
-    </div>
+    </>
   );
 };
 
@@ -699,33 +722,45 @@ const RosterEditor: React.FC<{
 const Nomenclador: React.FC<NomencladorProps> = (props) => {
   return (
     <div className="animate-fade-in space-y-8">
-        <UserManagement users={props.users} onUpdateUsers={props.onUpdateUsers} />
-        <RosterEditor 
-          roster={props.roster}
-          onUpdateRoster={props.onUpdateRoster}
-          personnelList={props.commandPersonnel}
-        />
+        <CollapsibleSection title="Gestión de Usuarios y Contraseñas" defaultOpen={false}>
+            <UserManagement users={props.users} onUpdateUsers={props.onUpdateUsers} />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Editor de Rol de Guardia" defaultOpen={false}>
+            <RosterEditor 
+              roster={props.roster}
+              onUpdateRoster={props.onUpdateRoster}
+              personnelList={props.commandPersonnel}
+            />
+        </CollapsibleSection>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <EditablePersonnelList
-                title="Personal de Línea de Guardia"
-                items={props.commandPersonnel}
-                onAddItem={props.onAddCommandPersonnel}
-                onUpdateItem={props.onUpdateCommandPersonnel}
-                onRemoveItem={props.onRemoveCommandPersonnel}
-                extraFieldsToShow={['poc']}
-            />
-             <EditablePersonnelList
-                title="Personal de Servicios"
-                items={props.servicePersonnel}
-                onAddItem={props.onAddServicePersonnel}
-                onUpdateItem={props.onUpdateServicePersonnel}
-                onRemoveItem={props.onRemoveServicePersonnel}
-                extraFieldsToShow={['station', 'detachment', 'poc', 'part']}
-            />
+            <CollapsibleSection title="Personal de Línea de Guardia" defaultOpen={false}>
+                <EditablePersonnelList
+                    items={props.commandPersonnel}
+                    onAddItem={props.onAddCommandPersonnel}
+                    onUpdateItem={props.onUpdateCommandPersonnel}
+                    onRemoveItem={props.onRemoveCommandPersonnel}
+                    extraFieldsToShow={['poc']}
+                />
+            </CollapsibleSection>
+            <CollapsibleSection title="Personal de Servicios" defaultOpen={false}>
+                <EditablePersonnelList
+                    items={props.servicePersonnel}
+                    onAddItem={props.onAddServicePersonnel}
+                    onUpdateItem={props.onUpdateServicePersonnel}
+                    onRemoveItem={props.onRemoveServicePersonnel}
+                    extraFieldsToShow={['station', 'detachment', 'poc', 'part']}
+                />
+            </CollapsibleSection>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-             <UnitList items={props.units} onUpdateItems={props.onUpdateUnits} />
-             <UnitTypeList items={props.unitTypes} onUpdateItems={props.onUpdateUnitTypes} />
+             <CollapsibleSection title="Unidades" defaultOpen={false}>
+                <UnitList items={props.units} onUpdateItems={props.onUpdateUnits} />
+             </CollapsibleSection>
+             <CollapsibleSection title="Tipos de Unidades" defaultOpen={false}>
+                <UnitTypeList items={props.unitTypes} onUpdateItems={props.onUpdateUnitTypes} />
+             </CollapsibleSection>
         </div>
     </div>
   );

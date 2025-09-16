@@ -1,6 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from './icons.js';
+import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from './icons.js';
 import { RANKS } from '../types.js';
+
+const CollapsibleSection = ({ title, children, defaultOpen = true }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    const contentId = `collapsible-${title.replace(/\s/g, '-')}`;
+
+    return (
+        React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg overflow-hidden" },
+            React.createElement("button", {
+                onClick: () => setIsOpen(!isOpen),
+                className: "w-full flex justify-between items-center p-6 text-left",
+                "aria-controls": contentId,
+                "aria-expanded": isOpen
+            },
+                React.createElement("h3", { className: "text-2xl font-bold text-white" }, title),
+                React.createElement(ChevronDownIcon, { className: `w-6 h-6 text-zinc-300 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}` })
+            ),
+            React.createElement("div", {
+                id: contentId,
+                className: `grid transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`
+            },
+                React.createElement("div", { className: "overflow-hidden" },
+                    React.createElement("div", { className: "p-6 pt-0" },
+                        children
+                    )
+                )
+            )
+        )
+    );
+};
 
 const UserManagement = ({ users, onUpdateUsers }) => {
     const [editableUsers, setEditableUsers] = useState(() => JSON.parse(JSON.stringify(users)));
@@ -34,8 +63,7 @@ const UserManagement = ({ users, onUpdateUsers }) => {
     };
 
     return (
-        React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6" },
-            React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, "Gestión de Usuarios y Contraseñas"),
+        React.createElement(React.Fragment, null,
             React.createElement("div", { className: "space-y-3" },
                 editableUsers.map(user => (
                     React.createElement("div", { key: user.id, className: "grid grid-cols-[1fr,1fr,auto] gap-4 items-center p-2 bg-zinc-700/50 rounded-md" },
@@ -201,7 +229,7 @@ const PersonnelListItem = ({ item, onUpdate, onRemove, extraFieldsToShow }) => {
 };
 
 
-const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow }) => {
+const EditablePersonnelList = ({ items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow }) => {
   const [newLp, setNewLp] = useState('');
   const [newName, setNewName] = useState('');
   const [newRank, setNewRank] = useState('OTRO');
@@ -238,8 +266,7 @@ const EditablePersonnelList = ({ title, items, onAddItem, onUpdateItem, onRemove
       : 'sm:grid-cols-4';
 
   return (
-    React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]" },
-      React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, title),
+    React.createElement("div", { className: "flex flex-col h-[32rem]" },
       React.createElement("div", { className: `grid grid-cols-1 ${gridColsClass} gap-2 mb-2` },
         React.createElement("input", {
           type: "text",
@@ -373,8 +400,7 @@ const UnitList = ({ items, onUpdateItems }) => {
     };
 
     return (
-      React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]" },
-        React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, "Unidades"),
+      React.createElement("div", { className: "flex flex-col h-[32rem]" },
         React.createElement("div", { className: "flex space-x-2 mb-4" },
           React.createElement("input", {
             type: "text",
@@ -442,8 +468,7 @@ const UnitTypeList = ({ items, onUpdateItems }) => {
     };
 
     return (
-      React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6 flex flex-col h-[32rem]" },
-        React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, "Tipos de Unidades"),
+      React.createElement("div", { className: "flex flex-col h-[32rem]" },
         React.createElement("div", { className: "flex space-x-2 mb-4" },
           React.createElement("input", {
             type: "text",
@@ -525,12 +550,10 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
   const handleInputChange = (dateKey, roleKey, value) => {
     setEditableMonthRoster(prev => {
       const updatedDay = { ...(prev[dateKey] || {}), [roleKey]: value };
-      // Remove role if value is empty
       if (value.trim() === '') {
         delete updatedDay[roleKey];
       }
       const updatedRoster = { ...prev, [dateKey]: updatedDay };
-      // Remove day if it has no roles
       if (Object.keys(updatedDay).length === 0) {
         delete updatedRoster[dateKey];
       }
@@ -607,8 +630,7 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
   };
 
   return (
-    React.createElement("div", { className: "bg-zinc-800/60 rounded-xl shadow-lg p-6 mb-8" },
-      React.createElement("h3", { className: "text-2xl font-bold text-white mb-4" }, "Editor de Rol de Guardia"),
+    React.createElement(React.Fragment, null,
       React.createElement("datalist", { id: "command-personnel-suggestions" },
         personnelList.map(p => React.createElement("option", { key: p.id, value: p.name }))
       ),
@@ -648,33 +670,43 @@ const RosterEditor = ({ roster, onUpdateRoster, personnelList }) => {
 const Nomenclador = (props) => {
   return (
     React.createElement("div", { className: "animate-fade-in space-y-8" },
-        React.createElement(UserManagement, { users: props.users, onUpdateUsers: props.onUpdateUsers }),
-        React.createElement(RosterEditor, { 
-          roster: props.roster,
-          onUpdateRoster: props.onUpdateRoster,
-          personnelList: props.commandPersonnel
-        }),
-        React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
-            React.createElement(EditablePersonnelList, {
-                title: "Personal de Línea de Guardia",
-                items: props.commandPersonnel,
-                onAddItem: props.onAddCommandPersonnel,
-                onUpdateItem: props.onUpdateCommandPersonnel,
-                onRemoveItem: props.onRemoveCommandPersonnel,
-                extraFieldsToShow: ['poc']
-            }),
-             React.createElement(EditablePersonnelList, {
-                title: "Personal de Servicios",
-                items: props.servicePersonnel,
-                onAddItem: props.onAddServicePersonnel,
-                onUpdateItem: props.onUpdateServicePersonnel,
-                onRemoveItem: props.onRemoveServicePersonnel,
-                extraFieldsToShow: ['station', 'detachment', 'poc', 'part']
+        React.createElement(CollapsibleSection, { title: "Gestión de Usuarios y Contraseñas", defaultOpen: false },
+            React.createElement(UserManagement, { users: props.users, onUpdateUsers: props.onUpdateUsers })
+        ),
+        React.createElement(CollapsibleSection, { title: "Editor de Rol de Guardia", defaultOpen: false },
+            React.createElement(RosterEditor, { 
+              roster: props.roster,
+              onUpdateRoster: props.onUpdateRoster,
+              personnelList: props.commandPersonnel
             })
         ),
         React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
-             React.createElement(UnitList, { items: props.units, onUpdateItems: props.onUpdateUnits }),
-             React.createElement(UnitTypeList, { items: props.unitTypes, onUpdateItems: props.onUpdateUnitTypes })
+            React.createElement(CollapsibleSection, { title: "Personal de Línea de Guardia", defaultOpen: false },
+                React.createElement(EditablePersonnelList, {
+                    items: props.commandPersonnel,
+                    onAddItem: props.onAddCommandPersonnel,
+                    onUpdateItem: props.onUpdateCommandPersonnel,
+                    onRemoveItem: props.onRemoveCommandPersonnel,
+                    extraFieldsToShow: ['poc']
+                })
+            ),
+            React.createElement(CollapsibleSection, { title: "Personal de Servicios", defaultOpen: false },
+                React.createElement(EditablePersonnelList, {
+                    items: props.servicePersonnel,
+                    onAddItem: props.onAddServicePersonnel,
+                    onUpdateItem: props.onUpdateServicePersonnel,
+                    onRemoveItem: props.onRemoveServicePersonnel,
+                    extraFieldsToShow: ['station', 'detachment', 'poc', 'part']
+                })
+            )
+        ),
+        React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
+             React.createElement(CollapsibleSection, { title: "Unidades", defaultOpen: false },
+                React.createElement(UnitList, { items: props.units, onUpdateItems: props.onUpdateUnits })
+             ),
+             React.createElement(CollapsibleSection, { title: "Tipos de Unidades", defaultOpen: false },
+                React.createElement(UnitTypeList, { items: props.unitTypes, onUpdateItems: props.onUpdateUnitTypes })
+             )
         )
     )
   );

@@ -126,6 +126,7 @@ export interface UnitGroup {
   units: FireUnit[];
   crewOfficers?: string[];
   standbyOfficers?: string[];
+  servicesOfficers?: string[];
   totalPersonnel?: number;
 }
 
@@ -282,4 +283,70 @@ export interface Underpass {
 export interface HidroAlertData {
   alertPoints: AlertPoint[];
   underpasses: Underpass[];
+}
+
+// New types for Regimen de Intervencion
+export interface RegimenTableRow {
+  id: string;
+  [key: string]: any;
+}
+
+export interface RegimenTable {
+  type: 'table';
+  headers: string[];
+  rows: RegimenTableRow[];
+  notes?: string[];
+}
+
+export interface RegimenText {
+  type: 'text';
+  content: string;
+  style?: 'normal' | 'bold' | 'italic';
+}
+
+export interface RegimenList {
+    type: 'list';
+    items: string[];
+}
+
+export interface RegimenSubtitle {
+    type: 'subtitle';
+    content: string;
+}
+
+export type RegimenContent = RegimenText | RegimenTable | RegimenList | RegimenSubtitle;
+
+export interface RegimenSection {
+  id: string;
+  title: string;
+  content: RegimenContent[];
+}
+
+export interface RegimenData {
+  title: string;
+  lastUpdated: string;
+  sections: RegimenSection[];
+}
+
+// --- Command Post Types ---
+export interface TrackedUnit extends FireUnit {
+    groupName: string;
+    task: string;
+    locationInScene: string;
+    workTime: string;
+    departureTime: string;
+    onSceneTime: string;
+    returnTime: string;
+}
+
+export interface TrackedPersonnel extends Personnel {
+    groupName: string;
+}
+
+export interface InterventionGroup {
+    id: string;
+    name: string;
+    officerInCharge: string;
+    units: TrackedUnit[];
+    personnel: TrackedPersonnel[];
 }

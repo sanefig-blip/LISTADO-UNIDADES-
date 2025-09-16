@@ -26,7 +26,6 @@ const predefinedUnits = [
     { type: 'person', label: 'Personal', icon: <PersonIcon className="w-5 h-5" />, color: 'bg-purple-600 hover:bg-purple-500', defaultLabel: 'P-1' }
 ];
 
-// FIX: Add a return statement to the component to make it a valid React functional component.
 const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSketch, initialLayer = 'street' }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -623,9 +622,9 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
     );
 
     return (
-        <div ref={containerRef} className={`flex flex-col gap-4 transition-all duration-300 ${isMaximized ? 'fixed inset-0 bg-zinc-900 z-50 p-4' : 'h-[85vh]'}`}>
+        <div ref={containerRef} className={`flex flex-col gap-4 transition-all duration-300 ${isMaximized ? 'fixed inset-0 bg-gray-50 dark:bg-zinc-900 z-50 p-4' : 'h-[85vh]'}`}>
             {mode === 'drawing' ? (
-                 <div className="bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-between gap-2">
+                 <div className="bg-white dark:bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
                      <div className="flex flex-wrap items-center gap-2">
                         <ToolButton toolName="point" label="Marcar Punto" icon={<CrosshairsIcon className="w-6 h-6"/>} />
                         <ToolButton toolName="line" label="Dibujar Línea" icon={<PencilAltIcon className="w-6 h-6"/>} />
@@ -647,9 +646,9 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
                 </div>
             ) : null}
              {mode === 'adjusting' && (
-                <div className="bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-center gap-4">
-                    <p className="text-lg font-semibold text-yellow-300">Modo de Ajuste Final</p>
-                    <p className="text-sm text-zinc-300">Arrastre los elementos para ajustar su posición. Luego, actualice la captura.</p>
+                <div className="bg-white dark:bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-center gap-4 shadow-sm">
+                    <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-300">Modo de Ajuste Final</p>
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300">Arrastre los elementos para ajustar su posición. Luego, actualice la captura.</p>
                     <button onClick={handleUpdateSketch} className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold"><RefreshIcon className="w-5 h-5" />Actualizar Captura</button>
                     <button onClick={handleReturnToDrawing} className="flex items-center gap-2 px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold"><PencilIcon className="w-5 h-5" />Volver a Edición</button>
                 </div>
@@ -658,11 +657,11 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
             <div className="relative w-full h-full">
                 <div ref={mapContainerRef} className="w-full h-full rounded-xl" style={{ backgroundColor: '#18181b' }}></div>
                 <div className="absolute top-2 right-2 z-[1000] flex flex-col gap-2">
-                     <button onClick={() => setIsMaximized(!isMaximized)} className="p-2 bg-zinc-800/80 hover:bg-zinc-700/80 rounded-md text-white">
+                     <button onClick={() => setIsMaximized(!isMaximized)} className="p-2 bg-white/80 dark:bg-zinc-800/80 hover:bg-gray-200 dark:hover:bg-zinc-700/80 rounded-md text-zinc-800 dark:text-white">
                         {isMaximized ? <MinimizeIcon className="w-5 h-5" /> : <MaximizeIcon className="w-5 h-5" />}
                     </button>
                     <input ref={fileInputRef} type="file" accept=".kml" onChange={handleFileUpload} style={{ display: 'none' }} />
-                    <button onClick={() => fileInputRef.current?.click()} title="Importar KML" className="p-2 bg-zinc-800/80 hover:bg-zinc-700/80 rounded-md text-white">
+                    <button onClick={() => fileInputRef.current?.click()} title="Importar KML" className="p-2 bg-white/80 dark:bg-zinc-800/80 hover:bg-gray-200 dark:hover:bg-zinc-700/80 rounded-md text-zinc-800 dark:text-white">
                         <FolderPlusIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -674,20 +673,20 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
                 {mode === 'drawing' && (
                     <div className="absolute top-16 left-2 z-[1000] flex flex-col gap-2 w-72">
                         {(tool === 'impact' || tool === 'adjacency' || tool === 'influence') && (
-                             <div className="bg-zinc-900/50 p-3 rounded-lg flex flex-col gap-2 animate-fade-in">
-                                <label className="text-sm text-white font-medium" htmlFor="radius-impact">Radio Zona Impacto (m)</label>
+                             <div className="bg-white/90 dark:bg-zinc-900/80 p-3 rounded-lg flex flex-col gap-2 animate-fade-in backdrop-blur-sm">
+                                <label className="text-sm text-zinc-800 dark:text-white font-medium" htmlFor="radius-impact">Radio Zona Impacto (m)</label>
                                 <input type="range" id="radius-impact" min="10" max="500" value={impactRadius} onChange={e => setImpactRadius(Number(e.target.value))} className="w-full" />
-                                <label className="text-sm text-white font-medium" htmlFor="radius-adjacency">Radio Zona Adyacencia (m)</label>
+                                <label className="text-sm text-zinc-800 dark:text-white font-medium" htmlFor="radius-adjacency">Radio Zona Adyacencia (m)</label>
                                 <input type="range" id="radius-adjacency" min="10" max="1000" value={adjacencyRadius} onChange={e => setAdjacencyRadius(Number(e.target.value))} className="w-full" />
-                                 <label className="text-sm text-white font-medium" htmlFor="radius-influence">Radio Zona Influencia (m)</label>
+                                 <label className="text-sm text-zinc-800 dark:text-white font-medium" htmlFor="radius-influence">Radio Zona Influencia (m)</label>
                                 <input type="range" id="radius-influence" min="10" max="2000" value={influenceRadius} onChange={e => setInfluenceRadius(Number(e.target.value))} className="w-full" />
                             </div>
                         )}
 
                         {tool === 'unit' && (
-                            <div className="bg-zinc-900/50 p-3 rounded-lg flex flex-col gap-3 animate-fade-in">
-                                <h4 className="text-sm font-semibold text-white">Añadir Unidades</h4>
-                                <p className="text-xs text-zinc-400 -mt-2">Seleccione una unidad y luego haga clic en el mapa.</p>
+                            <div className="bg-white/90 dark:bg-zinc-900/80 p-3 rounded-lg flex flex-col gap-3 animate-fade-in backdrop-blur-sm">
+                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Añadir Unidades</h4>
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 -mt-2">Seleccione una unidad y luego haga clic en el mapa.</p>
                                 
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {predefinedUnits.map((unit) => (
@@ -706,10 +705,10 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
                                     ))}
                                 </div>
 
-                                <div className="border-t border-zinc-700 pt-3 mt-1">
-                                    <h5 className="text-xs font-semibold text-zinc-300 mb-1">Unidad Personalizada</h5>
+                                <div className="border-t border-gray-200 dark:border-zinc-700 pt-3 mt-1">
+                                    <h5 className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 mb-1">Unidad Personalizada</h5>
                                     <div className="flex gap-2">
-                                        <select value={unitType} onChange={(e) => setUnitType(e.target.value)} className="bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-sm">
+                                        <select value={unitType} onChange={(e) => setUnitType(e.target.value)} className="bg-gray-200 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 rounded-md px-2 py-1 text-zinc-900 dark:text-white text-sm">
                                             <option value="engine">Autobomba</option>
                                             <option value="ladder">Hidroelevador</option>
                                             <option value="ambulance">Ambulancia</option>
@@ -721,37 +720,37 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
                                             value={unitLabel}
                                             onChange={(e) => setUnitLabel(e.target.value)}
                                             placeholder="Etiqueta (Ej: E-1)"
-                                            className="flex-grow bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-sm"
+                                            className="flex-grow bg-gray-200 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 rounded-md px-2 py-1 text-zinc-900 dark:text-white text-sm"
                                         />
                                     </div>
                                 </div>
                             </div>
                         )}
                         {tool === 'text' && (
-                            <div className="bg-zinc-900/50 p-3 rounded-lg flex flex-col gap-2 animate-fade-in">
-                                <label className="text-sm text-white font-medium" htmlFor="text-label">Texto a Añadir</label>
+                            <div className="bg-white/90 dark:bg-zinc-900/80 p-3 rounded-lg flex flex-col gap-2 animate-fade-in backdrop-blur-sm">
+                                <label className="text-sm text-zinc-800 dark:text-white font-medium" htmlFor="text-label">Texto a Añadir</label>
                                  <input
                                     type="text"
                                     id="text-label"
                                     value={textLabel}
                                     onChange={(e) => setTextLabel(e.target.value)}
                                     placeholder="Nombre de calle, etc."
-                                    className="w-full bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-sm"
+                                    className="w-full bg-gray-200 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 rounded-md px-2 py-1 text-zinc-900 dark:text-white text-sm"
                                     list="street-names"
                                 />
                                 <datalist id="street-names">
                                     {streets.map(street => <option key={street}>{street}</option>)}
                                 </datalist>
-                                <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
-                                    <input type="checkbox" checked={isTextVertical} onChange={e => setIsTextVertical(e.target.checked)} className="h-4 w-4 bg-zinc-600 border-zinc-500 rounded text-blue-500 focus:ring-blue-500"/>
+                                <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                                    <input type="checkbox" checked={isTextVertical} onChange={e => setIsTextVertical(e.target.checked)} className="h-4 w-4 bg-gray-200 dark:bg-zinc-600 border-gray-300 dark:border-zinc-500 rounded text-blue-500 focus:ring-blue-500"/>
                                     Texto Vertical
                                 </label>
                             </div>
                         )}
                         
                          {selectedZone && (
-                           <div id="radius-editor" className="bg-zinc-900/50 p-3 rounded-lg flex flex-col gap-2 animate-fade-in">
-                             <label htmlFor="radius-slider" className="text-sm text-white font-medium">{`Editar Radio: ${selectedZone.layer.getRadius()}m`}</label>
+                           <div id="radius-editor" className="bg-white/90 dark:bg-zinc-900/80 p-3 rounded-lg flex flex-col gap-2 animate-fade-in backdrop-blur-sm">
+                             <label htmlFor="radius-slider" className="text-sm text-zinc-800 dark:text-white font-medium">{`Editar Radio: ${selectedZone.layer.getRadius()}m`}</label>
                              <input
                                type="range"
                                id="radius-slider"
@@ -776,19 +775,19 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Buscar dirección y centrar mapa..."
-                            className="w-full bg-zinc-800/80 backdrop-blur-sm border border-zinc-600 rounded-md pl-4 pr-10 py-2 text-white placeholder-zinc-400 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-gray-300 dark:border-zinc-600 rounded-md pl-4 pr-10 py-2 text-zinc-900 dark:text-white placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white">
+                        <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white">
                            <SearchIcon className="w-5 h-5"/>
                         </button>
                     </form>
                 </div>
                  {mode === 'adjusting' && (
                     <div className="croquis-lock-overlay absolute inset-0 z-[1001] bg-black/50 flex justify-center items-center backdrop-blur-sm">
-                         <div className="text-center p-8 bg-zinc-800 rounded-lg shadow-lg flex flex-col items-center gap-4">
-                            <LockClosedIcon className="w-12 h-12 text-yellow-400"/>
-                            <h3 className="text-2xl font-bold text-white">Modo de Ajuste Final</h3>
-                            <p className="text-zinc-300 max-w-md">El croquis está validado. Mueva los elementos para el ajuste final y actualice la captura para el reporte PDF. O vuelva al modo de edición para añadir/quitar elementos.</p>
+                         <div className="text-center p-8 bg-white dark:bg-zinc-800 rounded-lg shadow-lg flex flex-col items-center gap-4">
+                            <LockClosedIcon className="w-12 h-12 text-yellow-500 dark:text-yellow-400"/>
+                            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white">Modo de Ajuste Final</h3>
+                            <p className="text-zinc-600 dark:text-zinc-300 max-w-md">El croquis está validado. Mueva los elementos para el ajuste final y actualice la captura para el reporte PDF. O vuelva al modo de edición para añadir/quitar elementos.</p>
                         </div>
                     </div>
                 )}

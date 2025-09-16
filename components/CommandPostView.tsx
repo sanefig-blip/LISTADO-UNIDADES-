@@ -1,507 +1,242 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { UnitReportData, SCI201Data, SCI211Resource, SCI207Victim, TriageCategory } from '../types';
-import { DownloadIcon, PlusCircleIcon, TrashIcon } from './icons';
+import { UnitReportData, InterventionGroup, TrackedUnit, TrackedPersonnel, Personnel, FireUnit } from '../types';
+import { DownloadIcon, PlusCircleIcon, TrashIcon, PencilIcon, ArrowRightIcon } from './icons';
 import { exportCommandPostToPdf } from '../services/exportService';
-import Croquis from './Croquis';
-import Sketchpad from './Sketchpad';
-
-interface TrackedUnit {
-  id: string;
-  type: string;
-  officerInCharge?: string;
-  personnelCount?: number | null;
-  groupName: string;
-  dispatched: boolean;
-  departureTime: string;
-  onSceneTime: string;
-  returnTime: string;
-  notes: string;
-}
-
-interface TrackedPersonnel {
-    id: string;
-    type: 'Dotación' | 'Apresto';
-    name: string;
-    groupName: string;
-    onScene: boolean;
-    notes: string;
-}
-
-const FormInput = ({ label, name, value, onChange }: { label: string, name: string, value: string, onChange: (e: any) => void }) => (
-    <div>
-        <label htmlFor={name} className="block text-sm font-medium text-zinc-400">{label}</label>
-        <input type="text" id={name} name={name} value={value} onChange={onChange} className="mt-1 w-full bg-zinc-700 border-zinc-600 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500"/>
-    </div>
-);
-
-const FormTextarea = ({ label, name, value, onChange, rows=2 }: { label: string, name: string, value: string, onChange: (e: any) => void, rows?: number }) => (
-     <div>
-        <label htmlFor={name} className="block text-sm font-medium text-zinc-400">{label}</label>
-        <textarea id={name} name={name} value={value} onChange={onChange} rows={rows} className="mt-1 w-full bg-zinc-700 border-zinc-600 rounded-md px-3 py-2 text-white focus:ring-blue-500 focus:border-blue-500"/>
-    </div>
-);
-
-const TabButton = ({ activeTab, tabName, label, onClick }: { activeTab: string, tabName: string, label: string, onClick: (tabName: string) => void }) => (
-    <button
-        onClick={() => onClick(tabName)}
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`}
-    >
-        {label}
-    </button>
-);
 
 interface CommandPostViewProps {
     unitReportData: UnitReportData;
+    // Props for SCI forms and sketches would be added here if they were managed in App.tsx
 }
 
 const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => {
-    const [activeTab, setActiveTab] = useState('control');
-    const [croquisSketch, setCroquisSketch] = useState<string | null>(null);
-    const [bocetoSketch, setBocetoSketch] = useState<string | null>(null);
+    const [interventionGroups, setInterventionGroups] = useState<InterventionGroup[]>([]);
+    const [incidentDetails, setIncidentDetails] = useState({ type: '', address: '', alarmTime: '' });
 
-    const allUnitsForTracking = useMemo(() => {
-        if (!unitReportData) return [];
+    const allUnits = useMemo<FireUnit[]>(() => {
         return unitReportData.zones.flatMap(zone => 
-            zone.groups.flatMap(group => 
-                group.units.map(unit => ({
-                    ...unit,
-                    groupName: group.name,
-                    dispatched: false,
-                    departureTime: '',
-                    onSceneTime: '',
-                    returnTime: '',
-                    notes: ''
-                }))
-            )
+            zone.groups.flatMap(group => group.units)
         );
     }, [unitReportData]);
-    const [trackedUnits, setTrackedUnits] = useState<TrackedUnit[]>(allUnitsForTracking);
 
-    useEffect(() => {
-        setTrackedUnits(allUnitsForTracking);
-    }, [allUnitsForTracking]);
-
-    const allPersonnelForTracking = useMemo(() => {
-        if (!unitReportData) return [];
-        const personnelMap = new Map<string, any>();
-        
+    const allPersonnel = useMemo<Personnel[]>(() => {
+        const personnelMap = new Map<string, Personnel>();
         unitReportData.zones.forEach(zone => {
             zone.groups.forEach(group => {
-                (group.crewOfficers || []).forEach(officerName => {
-                    if (!personnelMap.has(officerName)) {
-                        personnelMap.set(officerName, { id: officerName, name: officerName, type: 'Dotación', groupName: group.name, onScene: false, notes: '' });
-                    }
-                });
-                (group.standbyOfficers || []).forEach(officerName => {
-                    if (!personnelMap.has(officerName)) {
-                        personnelMap.set(officerName, { id: officerName, name: officerName, type: 'Apresto', groupName: group.name, onScene: false, notes: '' });
+                [...(group.crewOfficers || []), ...(group.standbyOfficers || [])].forEach(officerString => {
+                    // A simple parser for "RANK Name"
+                    const parts = officerString.split(' ');
+                    const rank = parts.length > 1 ? parts.slice(0, -1).join(' ') : 'OTRO';
+                    const name = parts.length > 1 ? parts[parts.length - 1] : officerString;
+                    if (!personnelMap.has(name)) {
+                        personnelMap.set(name, {
+                            id: `personnel-${name}`,
+                            name: name,
+                            rank: rank as any, // This is a simplification
+                            // FIX: The 'Personnel' type does not have a 'groupName' property. Use 'station' instead as it is available and fits the data.
+                            station: group.name,
+                        });
                     }
                 });
             });
         });
         return Array.from(personnelMap.values());
     }, [unitReportData]);
-    const [trackedPersonnel, setTrackedPersonnel] = useState<TrackedPersonnel[]>(allPersonnelForTracking);
-    useEffect(() => {
-        setTrackedPersonnel(allPersonnelForTracking);
-    }, [allPersonnelForTracking]);
 
-    const [incidentDetails, setIncidentDetails] = useState({ type: '', address: '', district: '', alarmTime: '', chiefOnScene: '', incidentCommander: '' });
-    const [sci201Data, setSci201Data] = useState<SCI201Data>({
-        incidentName: '', prepDateTime: '', incidentLocation: '', evalNature: '', evalThreats: '',
-        evalAffectedArea: '', evalIsolation: '', initialObjectives: '', strategies: '', tactics: '',
-        pcLocation: '', eLocation: '', ingressRoute: '', egressRoute: '', safetyMessage: '',
-        incidentCommander: '', mapOrSketch: '', orgChart: '', actions: [{id: 1, time: '', summary: ''}]
-    });
-    const [sci211Resources, setSci211Resources] = useState<SCI211Resource[]>([{
-        id: 1, requestedBy: '', requestDateTime: '', classType: '', resourceType: '', arrivalDateTime: '',
-        institution: '', matricula: '', personnelCount: '', status: 'Disponible', assignedTo: '',
-        demobilizedBy: '', demobilizedDateTime: '', observations: ''
-    }]);
-    const [sci207Victims, setSci207Victims] = useState<SCI207Victim[]>([{
-        id: 1, patientName: '', sex: '', age: '', triage: '', transportLocation: '',
-        transportedBy: '', transportDateTime: ''
-    }]);
+    const { availableUnits, availablePersonnel, totalInterventionUnits, totalInterventionPersonnel } = useMemo(() => {
+        const assignedUnitIds = new Set(interventionGroups.flatMap(g => g.units.map(u => u.id)));
+        const assignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
+        
+        const availableUnits = allUnits.filter(u => !assignedUnitIds.has(u.id));
+        const availablePersonnel = allPersonnel.filter(p => !assignedPersonnelIds.has(p.id));
+        
+        const totalInterventionUnits = interventionGroups.reduce((sum, group) => sum + group.units.length, 0);
+        const totalInterventionPersonnel = interventionGroups.reduce((sum, group) => sum + group.personnel.length, 0);
 
-    const handleIncidentDetailChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setIncidentDetails(prev => ({ ...prev, [name]: value }));
+        return { availableUnits, availablePersonnel, totalInterventionUnits, totalInterventionPersonnel };
+    }, [interventionGroups, allUnits, allPersonnel]);
+
+    const handleCreateGroup = () => {
+        const newGroup: InterventionGroup = {
+            id: `group-${Date.now()}`,
+            name: `Nuevo Grupo ${interventionGroups.length + 1}`,
+            officerInCharge: '',
+            units: [],
+            personnel: [],
+        };
+        setInterventionGroups(prev => [...prev, newGroup]);
     };
 
-    const handleUnitTrackChange = (unitId: string, field: keyof TrackedUnit, value: any) => {
-        setTrackedUnits(prev => prev.map(u => u.id === unitId ? { ...u, [field]: value } : u));
+    const handleDeleteGroup = (groupId: string) => {
+        setInterventionGroups(prev => prev.filter(g => g.id !== groupId));
+    };
+
+    const handleGroupChange = (groupId: string, field: 'name' | 'officerInCharge', value: string) => {
+        setInterventionGroups(prev => prev.map(g => g.id === groupId ? { ...g, [field]: value } : g));
     };
     
-    const handlePersonnelTrackChange = (personnelId: string, field: keyof TrackedPersonnel, value: any) => {
-        setTrackedPersonnel(prev => prev.map(p => p.id === personnelId ? { ...p, [field]: value } : p));
+    const handleAssignUnit = (unit: FireUnit, groupId: string) => {
+        const newTrackedUnit: TrackedUnit = {
+            ...unit,
+            groupName: interventionGroups.find(g => g.id === groupId)?.name || '',
+            task: '',
+            locationInScene: '',
+            workTime: '',
+            departureTime: '',
+            onSceneTime: '',
+            returnTime: ''
+        };
+        setInterventionGroups(prev => prev.map(g => 
+            g.id === groupId ? { ...g, units: [...g.units, newTrackedUnit] } : g
+        ));
+    };
+    
+    const handleAssignPersonnel = (person: Personnel, groupId: string) => {
+        const newTrackedPersonnel: TrackedPersonnel = {
+            ...person,
+            groupName: interventionGroups.find(g => g.id === groupId)?.name || ''
+        };
+        setInterventionGroups(prev => prev.map(g => 
+            g.id === groupId ? { ...g, personnel: [...g.personnel, newTrackedPersonnel] } : g
+        ));
     };
 
-    const handleSci201Change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setSci201Data(prev => ({...prev, [name]: value}));
+    const handleUnassignUnit = (unitId: string, groupId: string) => {
+        setInterventionGroups(prev => prev.map(g => 
+            g.id === groupId ? { ...g, units: g.units.filter(u => u.id !== unitId) } : g
+        ));
     };
 
-    const handleSci201ActionChange = (id: number, field: 'time' | 'summary', value: string) => {
-        setSci201Data(prev => ({
-            ...prev,
-            actions: prev.actions.map(a => a.id === id ? {...a, [field]: value} : a)
+    const handleUnassignPersonnel = (personnelId: string, groupId: string) => {
+        setInterventionGroups(prev => prev.map(g => 
+            g.id === groupId ? { ...g, personnel: g.personnel.filter(p => p.id !== personnelId) } : g
+        ));
+    };
+
+    const handleUnitDetailChange = (groupId: string, unitId: string, field: keyof TrackedUnit, value: string) => {
+        setInterventionGroups(prev => prev.map(group => {
+            if (group.id === groupId) {
+                return {
+                    ...group,
+                    units: group.units.map(unit => unit.id === unitId ? { ...unit, [field]: value } : unit)
+                };
+            }
+            return group;
         }));
     };
-
-    const addSci201Action = () => {
-        setSci201Data(prev => ({
-            ...prev,
-            actions: [...prev.actions, {id: Date.now(), time: '', summary: ''}]
-        }));
-    };
-
-    const removeSci201Action = (id: number) => {
-        setSci201Data(prev => ({
-            ...prev,
-            actions: prev.actions.filter(a => a.id !== id)
-        }));
-    };
     
-    const handleSci211Change = (id: number, field: keyof SCI211Resource, value: any) => {
-        setSci211Resources(prev => prev.map(r => r.id === id ? {...r, [field]: value} : r));
-    };
-
-    const addSci211Resource = () => {
-        setSci211Resources(prev => [...prev, {
-            id: Date.now(), requestedBy: '', requestDateTime: '', classType: '', resourceType: '', arrivalDateTime: '',
-            institution: '', matricula: '', personnelCount: '', status: 'Disponible', assignedTo: '',
-            demobilizedBy: '', demobilizedDateTime: '', observations: ''
-        }]);
-    };
-
-    const removeSci211Resource = (id: number) => {
-        setSci211Resources(prev => prev.filter(r => r.id !== id));
-    };
-    
-    const handleSci207Change = (id: number, field: keyof SCI207Victim, value: any) => {
-        setSci207Victims(prev => prev.map(v => v.id === id ? {...v, [field]: value} : v));
-    };
-
-    const addSci207Victim = () => {
-        setSci207Victims(prev => [...prev, {
-            id: Date.now(), patientName: '', sex: '', age: '', triage: '', transportLocation: '',
-            transportedBy: '', transportDateTime: ''
-        }]);
-    };
-
-    const removeSci207Victim = (id: number) => {
-        setSci207Victims(prev => prev.filter(v => v.id !== id));
-    };
-    
-    const triageColors: {[key in TriageCategory]: string} = {
-        'Rojo': 'bg-red-600 text-white',
-        'Amarillo': 'bg-yellow-500 text-black',
-        'Verde': 'bg-green-600 text-white',
-        'Negro': 'bg-black text-white',
-        '': 'bg-zinc-600 text-white'
-    };
-
     const handleExport = () => {
-        if (!croquisSketch) {
-            alert("Por favor, primero valide el croquis táctico antes de exportar el reporte.");
-            setActiveTab('croquis');
-            return;
-        }
-         if (!bocetoSketch) {
-            alert("Por favor, primero valide el croquis boceto antes de exportar el reporte.");
-            setActiveTab('boceto');
-            return;
-        }
-        exportCommandPostToPdf(
-            incidentDetails,
-            trackedUnits,
-            trackedPersonnel,
-            sci201Data,
-            sci211Resources,
-            sci207Victims,
-            croquisSketch,
-            bocetoSketch
-        );
-    };
-
-    const handleSketchCapture = (imageDataUrl: string) => {
-        setCroquisSketch(imageDataUrl);
-        setActiveTab('control'); // Go back to main tab after capture for preview
-    };
-
-    const handleBocetoCapture = (imageDataUrl: string) => {
-        setBocetoSketch(imageDataUrl);
-        setActiveTab('control');
-    };
-
-    const handleUnlockSketch = () => {
-        setCroquisSketch(null);
+        // Placeholder data for SCI forms and sketches as they are not managed here yet.
+        const emptySci201: any = { actions: [] };
+        const emptySci211: any[] = [];
+        const emptySci207: any[] = [];
+        exportCommandPostToPdf(incidentDetails, interventionGroups, emptySci201, emptySci211, emptySci207, null, null);
     };
 
     return (
-        <div className="space-y-6">
-            <div className="bg-zinc-800/60 p-2 rounded-xl flex items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                    <TabButton activeTab={activeTab} tabName="control" label="Control General" onClick={setActiveTab} />
-                    <TabButton activeTab={activeTab} tabName="croquis" label="Croquis Táctico" onClick={setActiveTab} />
-                    <TabButton activeTab={activeTab} tabName="boceto" label="Croquis Boceto" onClick={setActiveTab} />
-                    <TabButton activeTab={activeTab} tabName="sci201" label="Formulario SCI-201 (Resumen)" onClick={setActiveTab} />
-                    <TabButton activeTab={activeTab} tabName="sci211" label="Formulario SCI-211 (Recursos)" onClick={setActiveTab} />
-                    <TabButton activeTab={activeTab} tabName="sci207" label="Formulario SCI-207 (Víctimas)" onClick={setActiveTab} />
-                </div>
-                 <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold">
+        <div className="space-y-6 animate-fade-in">
+            <div className="bg-zinc-800/60 p-4 rounded-xl flex justify-between items-center">
+                <h2 className="text-3xl font-bold text-white">Puesto de Comando Táctico</h2>
+                <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold">
                     <DownloadIcon className="w-5 h-5" />
                     Exportar Reporte PDF
                 </button>
             </div>
 
-            {activeTab === 'control' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
-                    {croquisSketch && (
-                        <div className="bg-zinc-800/60 p-4 rounded-xl">
-                            <h3 className="text-lg font-semibold text-green-400 mb-2">Vista Previa: Croquis Táctico</h3>
-                            <img src={croquisSketch} alt="Vista previa del croquis" className="max-w-full h-auto rounded-md border-2 border-zinc-600" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column: Available Resources */}
+                <div className="lg:col-span-1 bg-zinc-800/60 p-4 rounded-xl space-y-4 h-min">
+                    <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-2">
+                        Recursos Disponibles ({availableUnits.length} U / {availablePersonnel.length} P)
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="text-lg font-semibold text-white mb-2">Unidades ({availableUnits.length})</h4>
+                            <ul className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                                {availableUnits.map(unit => (
+                                    <li key={unit.id} className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm">
+                                        <span className="font-mono text-zinc-200">{unit.id} <span className="text-zinc-400">({unit.type})</span></span>
+                                        <div className="flex gap-1">
+                                            {interventionGroups.map(g => (
+                                                <button key={g.id} onClick={() => handleAssignUnit(unit, g.id)} className="p-1 rounded-full bg-blue-600 hover:bg-blue-500 text-white" title={`Asignar a ${g.name}`}><ArrowRightIcon className="w-4 h-4" /></button>
+                                            ))}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                    )}
-                    {bocetoSketch && (
-                        <div className="bg-zinc-800/60 p-4 rounded-xl">
-                            <h3 className="text-lg font-semibold text-green-400 mb-2">Vista Previa: Croquis Boceto</h3>
-                            <img src={bocetoSketch} alt="Vista previa del boceto" className="max-w-full h-auto rounded-md border-2 border-zinc-600" />
-                        </div>
-                    )}
-                </div>
-             )}
-
-            {activeTab === 'control' && (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="bg-zinc-800/60 p-6 rounded-xl space-y-4">
-                        <h3 className="text-xl font-semibold text-yellow-300">Datos Generales del Siniestro</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <FormInput label="Tipo de Siniestro" name="type" value={incidentDetails.type} onChange={handleIncidentDetailChange} />
-                            <FormInput label="Dirección" name="address" value={incidentDetails.address} onChange={handleIncidentDetailChange} />
-                            <FormInput label="Comuna" name="district" value={incidentDetails.district} onChange={handleIncidentDetailChange} />
-                            <FormInput label="Fecha y Hora de Alarma" name="alarmTime" value={incidentDetails.alarmTime} onChange={handleIncidentDetailChange} />
-                        </div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormInput label="Jefe del Cuerpo en el Lugar" name="chiefOnScene" value={incidentDetails.chiefOnScene} onChange={handleIncidentDetailChange} />
-                            <FormInput label="Jefe de la Emergencia" name="incidentCommander" value={incidentDetails.incidentCommander} onChange={handleIncidentDetailChange} />
+                        <div>
+                            <h4 className="text-lg font-semibold text-white mb-2">Personal ({availablePersonnel.length})</h4>
+                            <ul className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                                {availablePersonnel.map(person => (
+                                    <li key={person.id} className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm">
+                                        <span className="text-zinc-200">{person.name}</span>
+                                        <div className="flex gap-1">
+                                             {interventionGroups.map(g => (
+                                                <button key={g.id} onClick={() => handleAssignPersonnel(person, g.id)} className="p-1 rounded-full bg-blue-600 hover:bg-blue-500 text-white" title={`Asignar a ${g.name}`}><ArrowRightIcon className="w-4 h-4" /></button>
+                                            ))}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
-                    <div className="bg-zinc-800/60 p-6 rounded-xl">
-                         <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-4">Unidades en la Intervención</h3>
-                         <div className="overflow-x-auto">
-                            <table className="w-full text-left min-w-[1000px]">
-                                <thead>
-                                    <tr className="text-sm text-zinc-400">
-                                        <th className="p-2 w-12">Desp.</th>
-                                        <th className="p-2">Unidad</th>
-                                        <th className="p-2">A Cargo</th>
-                                        <th className="p-2">Dotación</th>
-                                        <th className="p-2 w-28">H. Salida</th>
-                                        <th className="p-2 w-28">H. Lugar</th>
-                                        <th className="p-2 w-28">H. Regreso</th>
-                                        <th className="p-2">Novedades</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {trackedUnits.map(unit => (
-                                        <tr key={unit.id} className="border-t border-zinc-700/50 hover:bg-zinc-700/30">
-                                            <td className="p-2 align-middle text-center"><input type="checkbox" checked={unit.dispatched} onChange={e => handleUnitTrackChange(unit.id, 'dispatched', e.target.checked)} className="h-5 w-5 bg-zinc-700 border-zinc-600 rounded text-blue-500 focus:ring-blue-500" /></td>
-                                            <td className="p-2 align-middle"><div className="font-mono text-zinc-200">{unit.id}</div><div className="text-xs text-zinc-500">{unit.groupName}</div></td>
-                                            <td className="p-2 align-middle text-zinc-300 text-sm">{unit.officerInCharge || '-'}</td>
-                                            <td className="p-2 align-middle text-center font-semibold text-white">{unit.personnelCount}</td>
-                                            <td><input type="text" value={unit.departureTime} onChange={e => handleUnitTrackChange(unit.id, 'departureTime', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/></td>
-                                            <td><input type="text" value={unit.onSceneTime} onChange={e => handleUnitTrackChange(unit.id, 'onSceneTime', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/></td>
-                                            <td><input type="text" value={unit.returnTime} onChange={e => handleUnitTrackChange(unit.id, 'returnTime', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/></td>
-                                            <td><input type="text" value={unit.notes} onChange={e => handleUnitTrackChange(unit.id, 'notes', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/></td>
-                                        </tr>
+                </div>
+
+                {/* Right Column: Intervention Organization */}
+                <div className="lg:col-span-2 bg-zinc-800/60 p-4 rounded-xl space-y-4">
+                     <div className="flex justify-between items-center border-b border-zinc-700 pb-2 mb-2">
+                        <h3 className="text-xl font-semibold text-yellow-300">
+                            Organización de la Intervención ({totalInterventionUnits} U / {totalInterventionPersonnel} P)
+                        </h3>
+                        <button onClick={handleCreateGroup} className="flex items-center gap-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-medium rounded-md text-sm"><PlusCircleIcon className="w-4 h-4" /> Crear Grupo</button>
+                    </div>
+                    <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+                        {interventionGroups.map(group => (
+                            <div key={group.id} className="bg-zinc-900/50 p-4 rounded-lg">
+                                <div className="flex justify-between items-center mb-3">
+                                    <input value={group.name} onChange={e => handleGroupChange(group.id, 'name', e.target.value)} className="text-lg font-bold bg-transparent text-white border-b-2 border-zinc-700 focus:border-blue-500 outline-none w-1/2"/>
+                                    <button onClick={() => handleDeleteGroup(group.id)} className="p-1 text-red-400 hover:text-red-300"><TrashIcon className="w-5 h-5"/></button>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="text-sm text-zinc-400">Oficial a Cargo:</label>
+                                    <input value={group.officerInCharge} onChange={e => handleGroupChange(group.id, 'officerInCharge', e.target.value)} className="w-full bg-zinc-700 rounded p-1 mt-1 text-white" list="personnel-list"/>
+                                    <datalist id="personnel-list">
+                                        {allPersonnel.map(p => <option key={p.id} value={p.name} />)}
+                                    </datalist>
+                                </div>
+                                
+                                <h5 className="font-semibold text-white mt-4 mb-2">Unidades Asignadas ({group.units.length})</h5>
+                                {group.units.map(unit => (
+                                    <div key={unit.id} className="bg-zinc-800 p-3 rounded-md mb-2 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <p className="font-mono font-bold text-zinc-200">{unit.id}</p>
+                                            <button onClick={() => handleUnassignUnit(unit.id, group.id)} className="text-zinc-400 hover:text-yellow-400"><TrashIcon className="w-4 h-4"/></button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <input value={unit.task} onChange={e => handleUnitDetailChange(group.id, unit.id, 'task', e.target.value)} placeholder="Tarea asignada" className="bg-zinc-700 rounded p-1 text-white"/>
+                                            <input value={unit.locationInScene} onChange={e => handleUnitDetailChange(group.id, unit.id, 'locationInScene', e.target.value)} placeholder="Ubicación" className="bg-zinc-700 rounded p-1 text-white"/>
+                                            <input value={unit.workTime} onChange={e => handleUnitDetailChange(group.id, unit.id, 'workTime', e.target.value)} placeholder="Tiempo de Trabajo" className="bg-zinc-700 rounded p-1 text-white"/>
+                                            <input value={unit.departureTime} onChange={e => handleUnitDetailChange(group.id, unit.id, 'departureTime', e.target.value)} placeholder="H. Salida" className="bg-zinc-700 rounded p-1 text-white"/>
+                                            <input value={unit.onSceneTime} onChange={e => handleUnitDetailChange(group.id, unit.id, 'onSceneTime', e.target.value)} placeholder="H. Lugar" className="bg-zinc-700 rounded p-1 text-white"/>
+                                            <input value={unit.returnTime} onChange={e => handleUnitDetailChange(group.id, unit.id, 'returnTime', e.target.value)} placeholder="H. Regreso" className="bg-zinc-700 rounded p-1 text-white"/>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <h5 className="font-semibold text-white mt-4 mb-2">Personal Asignado ({group.personnel.length})</h5>
+                                <ul className="space-y-1 text-sm">
+                                    {group.personnel.map(person => (
+                                        <li key={person.id} className="flex justify-between items-center bg-zinc-800 p-2 rounded-md">
+                                            <span className="text-zinc-300">{person.name}</span>
+                                            <button onClick={() => handleUnassignPersonnel(person.id, group.id)} className="text-zinc-400 hover:text-yellow-400"><TrashIcon className="w-4 h-4"/></button>
+                                        </li>
                                     ))}
-                                </tbody>
-                            </table>
-                         </div>
-                    </div>
-                    <div className="bg-zinc-800/60 p-6 rounded-xl">
-                         <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-4">Personal Clave en la Intervención</h3>
-                         <div className="overflow-x-auto">
-                            <table className="w-full text-left min-w-[800px]">
-                                <thead>
-                                    <tr className="text-sm text-zinc-400">
-                                        <th className="p-2 w-12">Lugar</th>
-                                        <th className="p-2">Nombre</th>
-                                        <th className="p-2">Tipo</th>
-                                        <th className="p-2">Estación</th>
-                                        <th className="p-2">Novedades</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {trackedPersonnel.map(person => (
-                                        <tr key={person.id} className="border-t border-zinc-700/50 hover:bg-zinc-700/30">
-                                            <td className="p-2 align-middle text-center"><input type="checkbox" checked={person.onScene} onChange={e => handlePersonnelTrackChange(person.id, 'onScene', e.target.checked)} className="h-5 w-5 bg-zinc-700 border-zinc-600 rounded text-blue-500 focus:ring-blue-500" /></td>
-                                            <td className="p-2 align-middle text-zinc-200">{person.name}</td>
-                                            <td className="p-2 align-middle text-zinc-300">{person.type}</td>
-                                            <td className="p-2 align-middle text-zinc-400 text-sm">{person.groupName}</td>
-                                            <td><input type="text" value={person.notes} onChange={e => handlePersonnelTrackChange(person.id, 'notes', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                         </div>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'croquis' && (
-                <div className="animate-fade-in">
-                    <Croquis isActive={activeTab === 'croquis'} onSketchCapture={handleSketchCapture} onUnlockSketch={handleUnlockSketch} />
-                </div>
-            )}
-            
-            {activeTab === 'boceto' && (
-                <div className="animate-fade-in">
-                    <Sketchpad isActive={activeTab === 'boceto'} onSketchCapture={handleBocetoCapture} />
-                </div>
-            )}
-
-            {activeTab === 'sci201' && (
-                <div className="bg-zinc-800/60 p-6 rounded-xl space-y-4 animate-fade-in">
-                    <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2">Formulario SCI-201: Resumen del Incidente</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormInput label="1. Nombre del Incidente" name="incidentName" value={sci201Data.incidentName} onChange={handleSci201Change} />
-                        <FormInput label="2. Fecha y hora de preparación" name="prepDateTime" value={sci201Data.prepDateTime} onChange={handleSci201Change} />
-                    </div>
-                    <FormInput label="3. Lugar del Incidente" name="incidentLocation" value={sci201Data.incidentLocation} onChange={handleSci201Change} />
-                    <div className="p-4 border border-zinc-700 rounded-md">
-                        <h4 className="font-semibold text-zinc-200 mb-2">4. Evaluación Inicial</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormTextarea label="- Naturaleza del Incidente" name="evalNature" value={sci201Data.evalNature} onChange={handleSci201Change} />
-                            <FormTextarea label="- Amenazas" name="evalThreats" value={sci201Data.evalThreats} onChange={handleSci201Change} />
-                            <FormTextarea label="- Área afectada" name="evalAffectedArea" value={sci201Data.evalAffectedArea} onChange={handleSci201Change} />
-                            <FormTextarea label="- Aislamiento" name="evalIsolation" value={sci201Data.evalIsolation} onChange={handleSci201Change} />
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormTextarea label="5. Objetivo(s) Inicial(es)" name="initialObjectives" value={sci201Data.initialObjectives} onChange={handleSci201Change} rows={4} />
-                        <FormTextarea label="6. Estrategias" name="strategies" value={sci201Data.strategies} onChange={handleSci201Change} rows={4} />
-                        <FormTextarea label="7. Tácticas" name="tactics" value={sci201Data.tactics} onChange={handleSci201Change} rows={4} />
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormInput label="8. Ubicación del PC" name="pcLocation" value={sci201Data.pcLocation} onChange={handleSci201Change} />
-                        <FormInput label="9. Ubicación del E" name="eLocation" value={sci201Data.eLocation} onChange={handleSci201Change} />
-                        <FormInput label="10. Ruta Ingreso" name="ingressRoute" value={sci201Data.ingressRoute} onChange={handleSci201Change} />
-                        <FormInput label="11. Ruta Egreso" name="egressRoute" value={sci201Data.egressRoute} onChange={handleSci201Change} />
-                    </div>
-                    <FormInput label="12. Mensaje General de Seguridad" name="safetyMessage" value={sci201Data.safetyMessage} onChange={handleSci201Change} />
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormTextarea label="14. Mapa Situacional o Croquis (URL o Descripción)" name="mapOrSketch" value={sci201Data.mapOrSketch} onChange={handleSci201Change} rows={3} />
-                        <FormTextarea label="17. Organigrama Actual (URL o Descripción)" name="orgChart" value={sci201Data.orgChart} onChange={handleSci201Change} rows={3} />
-                     </div>
-                    <FormInput label="13. Comandante del Incidente" name="incidentCommander" value={sci201Data.incidentCommander} onChange={handleSci201Change} />
-                     <div>
-                        <h4 className="font-semibold text-zinc-200 mb-2">16. Resumen de las Acciones</h4>
-                        {sci201Data.actions.map((action, index) => (
-                            <div key={action.id} className="flex gap-2 mb-2 items-center">
-                                <input type="text" placeholder="Hora" value={action.time} onChange={e => handleSci201ActionChange(action.id, 'time', e.target.value)} className="w-28 bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/>
-                                <input type="text" placeholder="Resumen de la acción" value={action.summary} onChange={e => handleSci201ActionChange(action.id, 'summary', e.target.value)} className="w-full bg-zinc-700 border-zinc-600 rounded px-2 py-1 text-white"/>
-                                <button onClick={() => removeSci201Action(action.id)} className="p-1 text-red-400 hover:bg-zinc-700 rounded-full"><TrashIcon className="w-5 h-5" /></button>
+                                </ul>
                             </div>
                         ))}
-                        <button onClick={addSci201Action} className="flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5" /> Añadir Acción</button>
                     </div>
                 </div>
-            )}
-            
-            {activeTab === 'sci211' && (
-                 <div className="bg-zinc-800/60 p-6 rounded-xl space-y-4 animate-fade-in">
-                    <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-4">Formulario SCI-211: Registro y Control de Recursos</h3>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[1200px] text-sm">
-                            <thead>
-                                <tr className="text-zinc-400">
-                                    <th className="p-2">Solicitado por</th>
-                                    <th className="p-2">F/H Solicitud</th>
-                                    <th className="p-2">Clase/Tipo</th>
-                                    <th className="p-2">F/H Arribo</th>
-                                    <th className="p-2">Institución/Matrícula</th>
-                                    <th className="p-2"># Pers.</th>
-                                    <th className="p-2">Asignado a</th>
-                                    <th className="p-2">F/H Desmov.</th>
-                                    <th className="p-2">Observaciones</th>
-                                    <th className="p-2 w-10"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sci211Resources.map(res => (
-                                    <tr key={res.id} className="border-t border-zinc-700/50">
-                                        <td><input value={res.requestedBy} onChange={e => handleSci211Change(res.id, 'requestedBy', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={res.requestDateTime} onChange={e => handleSci211Change(res.id, 'requestDateTime', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td>
-                                            <input value={res.classType} onChange={e => handleSci211Change(res.id, 'classType', e.target.value)} placeholder="Clase" className="w-full bg-zinc-700 rounded p-1 mb-1"/>
-                                            <input value={res.resourceType} onChange={e => handleSci211Change(res.id, 'resourceType', e.target.value)} placeholder="Tipo" className="w-full bg-zinc-700 rounded p-1"/>
-                                        </td>
-                                        <td><input value={res.arrivalDateTime} onChange={e => handleSci211Change(res.id, 'arrivalDateTime', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td>
-                                            <input value={res.institution} onChange={e => handleSci211Change(res.id, 'institution', e.target.value)} placeholder="Institución" className="w-full bg-zinc-700 rounded p-1 mb-1"/>
-                                            <input value={res.matricula} onChange={e => handleSci211Change(res.id, 'matricula', e.target.value)} placeholder="Matrícula" className="w-full bg-zinc-700 rounded p-1"/>
-                                        </td>
-                                        <td><input value={res.personnelCount} onChange={e => handleSci211Change(res.id, 'personnelCount', e.target.value)} className="w-16 bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={res.assignedTo} onChange={e => handleSci211Change(res.id, 'assignedTo', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={res.demobilizedDateTime} onChange={e => handleSci211Change(res.id, 'demobilizedDateTime', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={res.observations} onChange={e => handleSci211Change(res.id, 'observations', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><button onClick={() => removeSci211Resource(res.id)} className="p-1 text-red-400 hover:bg-zinc-700 rounded-full"><TrashIcon className="w-5 h-5"/></button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <button onClick={addSci211Resource} className="mt-4 flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5" /> Añadir Recurso</button>
-                </div>
-            )}
-            
-            {activeTab === 'sci207' && (
-                <div className="bg-zinc-800/60 p-6 rounded-xl space-y-4 animate-fade-in">
-                    <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-4">Formulario SCI-207: Registro de Víctimas</h3>
-                     <div className="overflow-x-auto">
-                        <table className="w-full text-left min-w-[1000px] text-sm">
-                             <thead>
-                                <tr className="text-zinc-400">
-                                    <th className="p-2">Nombre Paciente</th>
-                                    <th className="p-2">Sexo/Edad</th>
-                                    <th className="p-2">Clasificación</th>
-                                    <th className="p-2">Lugar de Traslado</th>
-                                    <th className="p-2">Trasladado por</th>
-                                    <th className="p-2">F/H Traslado</th>
-                                    <th className="p-2 w-10"></th>
-                                </tr>
-                            </thead>
-                             <tbody>
-                                {sci207Victims.map(vic => (
-                                    <tr key={vic.id} className="border-t border-zinc-700/50">
-                                        <td><input value={vic.patientName} onChange={e => handleSci207Change(vic.id, 'patientName', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td>
-                                            <input value={vic.sex} onChange={e => handleSci207Change(vic.id, 'sex', e.target.value)} placeholder="Sexo" className="w-20 bg-zinc-700 rounded p-1 mr-1"/>
-                                            <input value={vic.age} onChange={e => handleSci207Change(vic.id, 'age', e.target.value)} placeholder="Edad" className="w-16 bg-zinc-700 rounded p-1"/>
-                                        </td>
-                                        <td>
-                                            <select value={vic.triage} onChange={e => handleSci207Change(vic.id, 'triage', e.target.value)} className={`w-full border-zinc-600 rounded p-1 font-semibold ${triageColors[vic.triage]}`}>
-                                                <option value="">Seleccionar</option>
-                                                <option value="Verde">Verde</option>
-                                                <option value="Amarillo">Amarillo</option>
-                                                <option value="Rojo">Rojo</option>
-                                                <option value="Negro">Negro</option>
-                                            </select>
-                                        </td>
-                                        <td><input value={vic.transportLocation} onChange={e => handleSci207Change(vic.id, 'transportLocation', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={vic.transportedBy} onChange={e => handleSci207Change(vic.id, 'transportedBy', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><input value={vic.transportDateTime} onChange={e => handleSci207Change(vic.id, 'transportDateTime', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
-                                        <td><button onClick={() => removeSci207Victim(vic.id)} className="p-1 text-red-400 hover:bg-zinc-700 rounded-full"><TrashIcon className="w-5 h-5"/></button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                     <button onClick={addSci207Victim} className="mt-4 flex items-center gap-2 text-sm px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-md text-white"><PlusCircleIcon className="w-5 h-5" /> Añadir Víctima</button>
-                </div>
-            )}
+            </div>
         </div>
     );
 };
