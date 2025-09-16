@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { UnitReportData, Personnel, FireUnit, InterventionGroup, TrackedUnit, TrackedPersonnel } from '../types';
 import CommandPostSummaryView from './CommandPostSummaryView';
-import TacticalCommandPostView from './TacticalCommandPostView';
+// Fix: Corrected import path for TacticalCommandPostView
+import TacticalCommandPostView from './CommandPostView';
 
 interface CommandPostParentViewProps {
     unitReportData: UnitReportData;
@@ -100,7 +101,6 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = ({ unitRepor
 
         setInterventionGroups(prev => prev.map(g => {
             if (g.id === groupId) {
-                // FIX: Convert Personnel[] to TrackedPersonnel[] by adding groupName.
                 const newTrackedPersonnel: TrackedPersonnel[] = uniquePersonnel.map(p => ({
                     ...p,
                     groupName: g.name

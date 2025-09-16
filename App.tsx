@@ -21,6 +21,7 @@ import TimeGroupedScheduleDisplay from './components/TimeGroupedScheduleDisplay'
 import Nomenclador from './components/Nomenclador';
 import UnitReportDisplay from './components/UnitReportDisplay';
 import UnitStatusView from './components/UnitStatusView';
+// Fix: Use CommandPostParentView which is designed to handle the initial data props.
 import CommandPostParentView from './components/CommandPostParentView';
 import EraReportDisplay from './components/EraReportDisplay';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay';
@@ -921,8 +922,7 @@ const App = () => {
                 return <MaterialStatusView materialsData={materialsReport} />;
             case 'command-post':
                 if (!unitReport) return null;
-                // FIX: Use CommandPostParentView and pass all required props.
-                return <CommandPostParentView unitReportData={unitReport} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} />;
+                return <CommandPostParentView unitReportData={unitReport} servicePersonnel={servicePersonnel} commandPersonnel={commandPersonnel} />;
             case 'forestal':
                 return <ForestalView />;
             case 'era-report':
@@ -936,7 +936,7 @@ const App = () => {
                 return <MaterialsDisplay reportData={materialsReport} onUpdateReport={handleUpdateMaterialsReport} currentUser={currentUser} />;
             case 'schedule':
                 if (!filteredSchedule) return null;
-                return <ScheduleDisplay schedule={filteredSchedule} displayDate={displayDate} selectedServiceIds={selectedServiceIds} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} unitList={unitList} onDateChange={handleDateChange} onUpdateService={handleUpdateService} onUpdateCommandStaff={handleUpdateCommandStaff} onAddNewService={handleAddNewService} onMoveService={handleMoveService} onToggleServiceSelection={handleToggleServiceSelection} onSelectAllServices={handleSelectAllServices} onSaveAsTemplate={handleSaveAsTemplate} onReplaceFromTemplate={(serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId })} onImportGuardLine={() => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule!.commandStaff, commandPersonnel), true)} onDeleteService={handleDeleteService} searchTerm={searchTerm} onSearchChange={setSearchTerm} currentUser={currentUser} />;
+                return <ScheduleDisplay schedule={filteredSchedule} displayDate={displayDate} selectedServiceIds={selectedServiceIds} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} unitList={unitList} onDateChange={handleDateChange} onUpdateService={handleUpdateService} onUpdateCommandStaff={handleUpdateCommandStaff} onAddNewService={handleAddNewService} onMoveService={handleMoveService} onToggleServiceSelection={handleToggleServiceSelection} onSelectAllServices={handleSelectAllServices} onSaveAsTemplate={handleSaveAsTemplate} onReplaceFromTemplate={(serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId })} onImportGuardLine={() => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true)} onDeleteService={handleDeleteService} searchTerm={searchTerm} onSearchChange={setSearchTerm} currentUser={currentUser} />;
             case 'time-grouped':
                 if (!filteredSchedule) return null;
                 return <TimeGroupedScheduleDisplay assignmentsByTime={getAssignmentsByTime} onAssignmentStatusChange={handleAssignmentStatusChange} />;
@@ -1027,7 +1027,7 @@ const App = () => {
                                     </button>
                                     {isExportMenuOpen && <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in">
                                         <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                            <button type="button" onClick={() => { exportScheduleToWord({ ...schedule!, date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() }); setExportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
+                                            <button type="button" onClick={() => { exportScheduleToWord({ ...schedule, date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() }); setExportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
                                                 <DownloadIcon className='w-4 h-4' /> Exportar General</button>
                                             <button type="button" onClick={() => { exportScheduleByTimeToWord({ date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(), assignmentsByTime: getAssignmentsByTime }); setExportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
                                                 <DownloadIcon className='w-4 h-4' /> Exportar por Hora</button>
