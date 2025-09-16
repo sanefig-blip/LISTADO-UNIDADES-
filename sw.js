@@ -26,7 +26,6 @@ const urlsToCache = [
   './components/MaterialStatusView.js',
   './components/ForestalView.js',
   './components/HidroAlertView.js',
-  './components/ChangeHistory.js',
   './services/geminiService.js',
   './services/exportService.js',
   './services/wordImportService.js',

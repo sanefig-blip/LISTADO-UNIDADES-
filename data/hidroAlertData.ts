@@ -1,40 +1,34 @@
 import { HidroAlertData } from '../types';
 
 export const hidroAlertData: HidroAlertData = {
-  panorama2Updates: [
-    // FIX: Added assignedUnits property to satisfy DisplacementPoint interface
-    { location: "Cramer y Avenida ELCANO", station: "ESTACION IV \"C.M.M.C.F.P.\"", assignedUnits: [] },
-    { location: "Garcia del Río y Avenida Cabildo", station: "ESTACION V \"C.G.A.G.V.\"", assignedUnits: [] },
-    { location: "Blanco Encalada y Av. Dr. R. BALBIN", station: "ESTACION V \"C.G.A.G.V.\"", assignedUnits: [] },
-    { location: "La Pampa y Burela", station: "DESTACAMENTO \"DEVOTO\"", assignedUnits: [] },
-    { location: "Av. Dr. R. BALBIN y Estomba", station: "ESTACION V \"C.G.A.G.V.\"", assignedUnits: [] },
-    { location: "Barrio Mitre (Arias 3700) y MELIAN", station: "ESTACION IV \"RECOLETA\"", assignedUnits: [] },
-    { location: "V SOLDATI (Int. Rabanal y Pergamino)", station: "ESTACION X \"LUGANO\"", assignedUnits: [] },
-    { location: "Recorrido por A. Vieytes, Osvaldo Cruz, Av. Velez Sarfield e Av. Iriarte", station: "ESTACION III \"BARRACAS\"", assignedUnits: [] }
-  ],
-  panorama3Stations: [
-    "ESTACION VIII \"Nva CHICAGO\"",
-    "DESTACAMENTO G.E.R. \"CABALLITO\""
-  ],
-  panorama2Points: [
-    { id: 1, location: "Barrio Mitre (Posta y Arias)", organism: "Defensa Civil", coords: [-34.561, -58.503], isRoute: false },
-    { id: 2, location: "Bajo Nivel Salguero (J. Salguero y Chonino)", organism: "Defensa Civil", coords: [-34.582, -58.423], isRoute: false },
-    { id: 3, location: "Recorrido por Av. De los Constituyentes, La Pampa, Av. Cabildo y Av. Monroe", organism: "Defensa Civil", coords: null, isRoute: true },
-    { id: 4, location: "Crámer y Av. Elcano (Puente)", organism: "Cuerpo de Bomberos CABA", coords: [-34.571, -58.463], isRoute: false },
-    { id: 5, location: "García del Río y Av. Cabildo", organism: "Cuerpo de Bomberos CABA", coords: [-34.549, -58.481], isRoute: false },
-    { id: 6, location: "Blanco Encalada y Av. Dr. R. Balbín", organism: "Cuerpo de Bomberos CABA", coords: [-34.564, -58.490], isRoute: false },
-    { id: 7, location: "La Pampa y Burela", organism: "Cuerpo de Bomberos CABA", coords: [-34.584, -58.501], isRoute: false },
-    { id: 8, location: "Av. Dr. R. Balbín y Estomba", organism: "Cuerpo de Bomberos CABA", coords: [-34.569, -58.484], isRoute: false },
-    { id: 9, location: "Barrio Mitre (Arias 3700 y Melián)", organism: "Cuerpo de Bomberos CABA", coords: [-34.557, -58.492], isRoute: false },
-    { id: 10, location: "Villa Soldati (Intendente F. Rabanal y Pergamino)", organism: "Cuerpo de Bomberos CABA", coords: [-34.660, -58.435], isRoute: false },
-    { id: 11, location: "Recorrido por Av. Vieytes, Osvaldo Cruz, Av. Velez Sarsfield e Av. Iriarte", organism: "Cuerpo de Bomberos CABA", coords: null, isRoute: true },
-    { id: 12, location: "Recorrido Hernandarias - Regimiento de Patricios", organism: "B. V. Vuelta de Rocha", coords: null, isRoute: true },
-    { id: 13, location: "Villa 21-24 Av. Iriarte 3520 (Av. Iriarte y Mostesquieu)", organism: "B. V. Nueva Pompeya-Barracas", coords: [-34.646, -58.384], isRoute: false },
-    { id: 14, location: "Asent. Rodrigo Bueno (Av. España y E. Rawson de Dellepiane)", organism: "B. V. San Telmo", coords: [-34.617, -58.361], isRoute: false },
-    { id: 15, location: "Recorrido Necochea - Av. Alte. Brown", organism: "B. V. La Boca", coords: null, isRoute: true },
-    { id: 16, location: "Villa Soldati (Pergamino y Tabaré)", organism: "B. V. Villa Soldati", coords: [-34.662, -58.432], isRoute: false },
-    { id: 17, location: "Barrio Padre Ricciardelli (ex Villa 1-11-14, Av. Perito Moreno 1750)", organism: "B. V. Flores", coords: [-34.639, -58.441], isRoute: false },
-    { id: 18, location: "Barrio Mitre (Posta y Arias) c/ Camión", organism: "Logística", coords: [-34.561, -58.503], isRoute: false },
+  alertPoints: [
+    // Panorama 1
+    { id: 'p1-1', panorama: 1, type: 'Recorrido', location: 'Recorrido Preventivo - Zona Saavedra', organism: 'Defensa Civil', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p1-2', panorama: 1, type: 'Recorrido', location: 'Recorrido Preventivo - Zona Villa Soldati', organism: 'Defensa Civil', assignedUnit: '', status: 'Pendiente', notes: '' },
+    
+    // Panorama 2 - Puntos Fijos
+    { id: 'p2-1', panorama: 2, type: 'Punto Fijo', location: 'Barrio Mitre (Posta y Arias)', organism: 'Defensa Civil', coords: [-34.561, -58.503], assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-2', panorama: 2, type: 'Punto Fijo', location: 'Bajo Nivel Salguero (J. Salguero y Chonino)', organism: 'Defensa Civil', coords: [-34.582, -58.423], assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-3', panorama: 2, type: 'Recorrido', location: 'Recorrido por Av. De los Constituyentes, La Pampa, Av. Cabildo y Av. Monroe', organism: 'Defensa Civil', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-4', panorama: 2, type: 'Punto Fijo', location: 'Crámer y Av. Elcano (Puente)', organism: 'ESTACION VI "C.M.M.C.F.P."', coords: [-34.571, -58.463], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-5', panorama: 2, type: 'Punto Fijo', location: 'García del Río y Av. Cabildo', organism: 'ESTACION V "C.G.A.G.V."', coords: [-34.549, -58.481], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-6', panorama: 2, type: 'Punto Fijo', location: 'Blanco Encalada y Av. Dr. R. Balbín', organism: 'ESTACION V "C.G.A.G.V."', coords: [-34.564, -58.490], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-7', panorama: 2, type: 'Punto Fijo', location: 'La Pampa y Burela', organism: 'DESTACAMENTO "DEVOTO"', coords: [-34.584, -58.501], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-8', panorama: 2, type: 'Punto Fijo', location: 'Av. Dr. R. Balbín y Estomba', organism: 'ESTACION V "C.G.A.G.V."', coords: [-34.569, -58.484], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-9', panorama: 2, type: 'Punto Fijo', location: 'Barrio Mitre (Arias 3700 y Melián)', organism: 'ESTACION IV "RECOLETA"', coords: [-34.557, -58.492], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-10', panorama: 2, type: 'Punto Fijo', location: 'Villa Soldati (Intendente F. Rabanal y Pergamino)', organism: 'ESTACION X "LUGANO"', coords: [-34.660, -58.435], assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición' },
+    { id: 'p2-11', panorama: 2, type: 'Recorrido', location: 'Recorrido por Av. Vieytes, Osvaldo Cruz, Av. Velez Sarsfield e Av. Iriarte', organism: 'ESTACION III "BARRACAS"', assignedUnit: '', status: 'Pendiente', notes: 'Asignado desde Disposición (BOTE)' },
+    { id: 'p2-12', panorama: 2, type: 'Recorrido', location: 'Recorrido Hernandarias - Regimiento de Patricios', organism: 'B. V. Vuelta de Rocha', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-13', panorama: 2, type: 'Punto Fijo', location: 'Villa 21-24 Av. Iriarte 3520 (Av. Iriarte y Mostesquieu)', organism: 'B. V. Nueva Pompeya-Barracas', coords: [-34.646, -58.384], assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-14', panorama: 2, type: 'Punto Fijo', location: 'Asent. Rodrigo Bueno (Av. España y E. Rawson de Dellepiane)', organism: 'B. V. San Telmo', coords: [-34.617, -58.361], assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-15', panorama: 2, type: 'Recorrido', location: 'Recorrido Necochea - Av. Alte. Brown', organism: 'B. V. La Boca', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-16', panorama: 2, type: 'Punto Fijo', location: 'Villa Soldati (Pergamino y Tabaré)', organism: 'B. V. Villa Soldati', coords: [-34.662, -58.432], assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-17', panorama: 2, type: 'Punto Fijo', location: 'Barrio Padre Ricciardelli (ex Villa 1-11-14, Av. Perito Moreno 1750)', organism: 'B. V. Flores', coords: [-34.639, -58.441], assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p2-18', panorama: 2, type: 'Punto Fijo', location: 'Barrio Mitre (Posta y Arias) c/ Camión', organism: 'Logística', coords: [-34.561, -58.503], assignedUnit: '', status: 'Pendiente', notes: '' },
+    
+    // Panorama 3
+    { id: 'p3-1', panorama: 3, type: 'Unidad Adicional', location: 'A designar por D.G.DF', organism: 'ESTACION VIII "Nva CHICAGO"', assignedUnit: '', status: 'Pendiente', notes: '' },
+    { id: 'p3-2', panorama: 3, type: 'Unidad Adicional', location: 'A designar por D.G.DF', organism: 'DESTACAMENTO G.E.R. "CABALLITO"', assignedUnit: '', status: 'Pendiente', notes: '' },
   ],
   underpasses: [
     { id: 1, name: "Puente Yatay", commune: "Comuna 5", location: "Yatay entre Lezica y Querandíes", coords: [-34.606, -58.423] },
@@ -63,7 +57,7 @@ export const hidroAlertData: HidroAlertData = {
     { id: 24, name: "Bajo Nivel Ceretti", commune: "Comuna 12", location: "Ceretti entre Franklin D. Roosevelt y Monroe", coords: [-34.565, -58.505] },
     { id: 25, name: "Bajo Nivel Holmberg", commune: "Comuna 12", location: "Holmberg entre Dr. Pedro Ignacio Rivera y Monroe", coords: [-34.566, -58.487] },
     { id: 26, name: "Bajo Nivel Donado", commune: "Comuna 12", location: "Donado entre Dr. Pedro Ignacio Rivera y Monroe", coords: [-34.567, -58.489] },
-    { id: 27, name: "Bajo Nivel Altolaguirre", commune: "Comuna 12", location: "Altolaguirre entre Franklin D. Roosevelt y Blanco Encalada", coords: [-34.569, -58.502] },
+    { id: 27, name: "Bajo Niv Altolaguirre", commune: "Comuna 12", location: "Altolaguirre entre Franklin D. Roosevelt y Blanco Encalada", coords: [-34.569, -58.502] },
     { id: 28, name: "Bajo Nivel Lacroze", commune: "Comuna 13", location: "Av. Federico Lacroze entre Conesa Amenabár", coords: [-34.575, -58.459] },
     { id: 29, name: "Bajo Nivel Pacheco", commune: "Comuna 12", location: "Pacheco entre Monroe y Cullen", coords: [-34.561, -58.499] },
     { id: 30, name: "Bajo Nivel Zamudio", commune: "Comuna 12", location: "Zamudio entre José León Cabezón y Griveo", coords: [-34.577, -58.504] },

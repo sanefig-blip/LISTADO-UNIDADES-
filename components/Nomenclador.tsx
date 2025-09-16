@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TrashIcon, PlusCircleIcon, PencilIcon, XCircleIcon, GripVerticalIcon, ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from './icons';
-import { Personnel, Rank, RANKS, Roster, User, LogEntry } from '../types';
+import { Personnel, Rank, RANKS, Roster, User } from '../types';
 
 interface NomencladorProps {
   commandPersonnel: Personnel[];
@@ -24,7 +24,6 @@ interface NomencladorProps {
 
   users: User[];
   onUpdateUsers: (users: User[]) => void;
-  addLogEntry: (action: string) => void;
 }
 
 type ExtraField = 'station' | 'detachment' | 'poc' | 'part';
@@ -32,8 +31,7 @@ type ExtraField = 'station' | 'detachment' | 'poc' | 'part';
 const UserManagement: React.FC<{
     users: User[];
     onUpdateUsers: (users: User[]) => void;
-    addLogEntry: (action: string) => void;
-}> = ({ users, onUpdateUsers, addLogEntry }) => {
+}> = ({ users, onUpdateUsers }) => {
     const [editableUsers, setEditableUsers] = useState<User[]>(() => JSON.parse(JSON.stringify(users)));
     const [passwordVisibility, setPasswordVisibility] = useState<{ [key: string]: boolean }>({});
 
@@ -61,7 +59,6 @@ const UserManagement: React.FC<{
             return;
         }
         onUpdateUsers(editableUsers);
-        addLogEntry('Actualizó las contraseñas de los usuarios.');
         alert('Contraseñas actualizadas con éxito.');
     };
 
@@ -245,8 +242,7 @@ const EditablePersonnelList: React.FC<{
   onUpdateItem: (item: Personnel) => void;
   onRemoveItem: (item: Personnel) => void;
   extraFieldsToShow: ExtraField[];
-  addLogEntry: (action: string) => void;
-}> = ({ title, items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow, addLogEntry }) => {
+}> = ({ title, items, onAddItem, onUpdateItem, onRemoveItem, extraFieldsToShow }) => {
   const [newLp, setNewLp] = useState('');
   const [newName, setNewName] = useState('');
   const [newRank, setNewRank] = useState<Rank>('OTRO');
@@ -268,8 +264,6 @@ const EditablePersonnelList: React.FC<{
       if (extraFieldsToShow.includes('part')) newItem.part = newPart.trim() || undefined;
       
       onAddItem(newItem);
-      addLogEntry(`Añadió a ${newItem.name} a "${title}".`);
-
       setNewLp('');
       setNewName('');
       setNewRank('OTRO');
@@ -277,18 +271,6 @@ const EditablePersonnelList: React.FC<{
       setNewDetachment('');
       setNewPoc('');
       setNewPart('');
-    }
-  };
-
-  const handleUpdate = (item: Personnel) => {
-    onUpdateItem(item);
-    addLogEntry(`Actualizó a ${item.name} en "${title}".`);
-  };
-
-  const handleRemove = (item: Personnel) => {
-    if (window.confirm(`¿Seguro que quieres eliminar a ${item.name}?`)) {
-      onRemoveItem(item);
-      addLogEntry(`Eliminó a ${item.name} de "${title}".`);
     }
   };
 
@@ -378,8 +360,8 @@ const EditablePersonnelList: React.FC<{
            <PersonnelListItem
               key={item.id}
               item={item}
-              onUpdate={handleUpdate}
-              onRemove={handleRemove}
+              onUpdate={onUpdateItem}
+              onRemove={onRemoveItem}
               extraFieldsToShow={extraFieldsToShow}
             />
         ))}
@@ -397,8 +379,7 @@ const EditablePersonnelList: React.FC<{
 const UnitList: React.FC<{
   items: string[];
   onUpdateItems: (items: string[]) => void;
-  addLogEntry: (action: string) => void;
-}> = ({ items, onUpdateItems, addLogEntry }) => {
+}> = ({ items, onUpdateItems }) => {
     const [newItem, setNewItem] = useState('');
     const draggedItemIndex = useRef<number | null>(null);
     const dragOverItemIndex = useRef<number | null>(null);
@@ -406,16 +387,22 @@ const UnitList: React.FC<{
     const handleAdd = () => {
       if (newItem.trim() && !items.includes(newItem.trim())) {
         onUpdateItems([...items, newItem.trim()]);
-        addLogEntry(`Añadió la unidad "${newItem.trim()}" al nomenclador.`);
         setNewItem('');
       }
     };
 
     const handleRemove = (itemToRemove: string) => {
         onUpdateItems(items.filter(item => item !== itemToRemove));
-        addLogEntry(`Eliminó la unidad "${itemToRemove}" del nomenclador.`);
     };
 
+    const handleDragStart = (index: number) => {
+        draggedItemIndex.current = index;
+    };
+    
+    const handleDragEnter = (index: number) => {
+        dragOverItemIndex.current = index;
+    };
+    
     const handleDragEnd = () => {
         if (draggedItemIndex.current === null || dragOverItemIndex.current === null) return;
         
@@ -427,7 +414,6 @@ const UnitList: React.FC<{
         dragOverItemIndex.current = null;
       
         onUpdateItems(newItems);
-        addLogEntry('Reordenó la lista de unidades.');
     };
 
     return (
@@ -456,8 +442,8 @@ const UnitList: React.FC<{
               key={item}
               className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md animate-fade-in group"
               draggable
-              onDragStart={() => (draggedItemIndex.current = index)}
-              onDragEnter={() => (dragOverItemIndex.current = index)}
+              onDragStart={() => handleDragStart(index)}
+              onDragEnter={() => handleDragEnter(index)}
               onDragEnd={handleDragEnd}
               onDragOver={(e) => e.preventDefault()}
             >
@@ -487,22 +473,19 @@ const UnitList: React.FC<{
 const UnitTypeList: React.FC<{
   items: string[];
   onUpdateItems: (items: string[]) => void;
-  addLogEntry: (action: string) => void;
-}> = ({ items, onUpdateItems, addLogEntry }) => {
+}> = ({ items, onUpdateItems }) => {
     const [newItem, setNewItem] = useState('');
 
     const handleAdd = () => {
       if (newItem.trim() && !items.find(i => i.toLowerCase() === newItem.trim().toLowerCase())) {
         const sorted = [...items, newItem.trim()].sort((a, b) => a.localeCompare(b));
         onUpdateItems(sorted);
-        addLogEntry(`Añadió el tipo de unidad "${newItem.trim()}".`);
         setNewItem('');
       }
     };
 
     const handleRemove = (itemToRemove: string) => {
         onUpdateItems(items.filter(item => item !== itemToRemove));
-        addLogEntry(`Eliminó el tipo de unidad "${itemToRemove}".`);
     };
 
     return (
@@ -555,8 +538,7 @@ const RosterEditor: React.FC<{
   roster: Roster;
   onUpdateRoster: (roster: Roster) => void;
   personnelList: Personnel[];
-  addLogEntry: (action: string) => void;
-}> = ({ roster, onUpdateRoster, personnelList, addLogEntry }) => {
+}> = ({ roster, onUpdateRoster, personnelList }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editableMonthRoster, setEditableMonthRoster] = useState<Roster>({});
   
@@ -622,7 +604,6 @@ const RosterEditor: React.FC<{
     const newRoster = { ...filteredRoster, ...editableMonthRoster };
     
     onUpdateRoster(newRoster);
-    addLogEntry(`Actualizó el Rol de Guardia para ${monthNames[monthIndex]} ${year}.`);
     alert('Rol de guardia guardado con éxito.');
   };
 
@@ -643,7 +624,6 @@ const RosterEditor: React.FC<{
     }, {} as Roster);
 
     onUpdateRoster(newRoster);
-    addLogEntry(`Borro el Rol de Guardia para ${monthNames[currentDate.getMonth()]} ${year}.`);
     alert(`Asignaciones para ${monthName} borradas.`);
   };
 
@@ -719,12 +699,11 @@ const RosterEditor: React.FC<{
 const Nomenclador: React.FC<NomencladorProps> = (props) => {
   return (
     <div className="animate-fade-in space-y-8">
-        <UserManagement users={props.users} onUpdateUsers={props.onUpdateUsers} addLogEntry={props.addLogEntry} />
+        <UserManagement users={props.users} onUpdateUsers={props.onUpdateUsers} />
         <RosterEditor 
           roster={props.roster}
           onUpdateRoster={props.onUpdateRoster}
           personnelList={props.commandPersonnel}
-          addLogEntry={props.addLogEntry}
         />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <EditablePersonnelList
@@ -734,7 +713,6 @@ const Nomenclador: React.FC<NomencladorProps> = (props) => {
                 onUpdateItem={props.onUpdateCommandPersonnel}
                 onRemoveItem={props.onRemoveCommandPersonnel}
                 extraFieldsToShow={['poc']}
-                addLogEntry={props.addLogEntry}
             />
              <EditablePersonnelList
                 title="Personal de Servicios"
@@ -743,12 +721,11 @@ const Nomenclador: React.FC<NomencladorProps> = (props) => {
                 onUpdateItem={props.onUpdateServicePersonnel}
                 onRemoveItem={props.onRemoveServicePersonnel}
                 extraFieldsToShow={['station', 'detachment', 'poc', 'part']}
-                addLogEntry={props.addLogEntry}
             />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-             <UnitList items={props.units} onUpdateItems={props.onUpdateUnits} addLogEntry={props.addLogEntry} />
-             <UnitTypeList items={props.unitTypes} onUpdateItems={props.onUpdateUnitTypes} addLogEntry={props.addLogEntry} />
+             <UnitList items={props.units} onUpdateItems={props.onUpdateUnits} />
+             <UnitTypeList items={props.unitTypes} onUpdateItems={props.onUpdateUnitTypes} />
         </div>
     </div>
   );

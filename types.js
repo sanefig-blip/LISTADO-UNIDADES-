@@ -63,10 +63,6 @@ export const MaterialLocation = {};
 export const MaterialsData = {};
 
 // Hidro Alert Types
-export const PanoramaPoint = {};
+export const AlertPoint = {};
 export const Underpass = {};
-export const DisplacementPoint = {};
 export const HidroAlertData = {};
-
-// New type for Change History
-export const LogEntry = {};

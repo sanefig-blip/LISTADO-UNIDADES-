@@ -1,211 +1,298 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldExclamationIcon, PencilIcon, XCircleIcon, PlusCircleIcon, TrashIcon, SearchIcon, ChevronDownIcon } from './icons.js';
+import { ShieldExclamationIcon, ClipboardCopyIcon, ClipboardCheckIcon } from './icons.js';
 
-const HidroAlertView = ({ hidroAlertData, onUpdateHidroAlertData, unitList, currentUser }) => {
+const getStatusColor = (status) => {
+    switch(status) {
+        case 'Pendiente': return 'bg-zinc-500 text-white';
+        case 'Desplazado': return 'bg-blue-500 text-white';
+        case 'En QTH': return 'bg-yellow-500 text-black';
+        case 'Normalizado': return 'bg-green-600 text-white';
+        default: return 'bg-zinc-500 text-white';
+    }
+}
+
+const getPanoramaColor = (panorama) => {
+    switch(panorama) {
+        case 1: return 'bg-yellow-600 text-white';
+        case 2: return 'bg-orange-600 text-white';
+        case 3: return 'bg-red-600 text-white';
+        default: return 'bg-zinc-500 text-white';
+    }
+}
+
+const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
+    const [editableData, setEditableData] = useState(() => JSON.parse(JSON.stringify(hidroAlertData)));
     const [activeTab, setActiveTab] = useState('operativo');
-    const [isEditing, setIsEditing] = useState(false);
-    const [editableData, setEditableData] = useState(null);
     const mapRef = useRef(null);
     const mapContainerRef = useRef(null);
 
-    const [dropdownState, setDropdownState] = useState({});
-    const [searchTerm, setSearchTerm] = useState('');
+    useEffect(() => {
+        setEditableData(JSON.parse(JSON.stringify(hidroAlertData)));
+    }, [hidroAlertData]);
     
     useEffect(() => {
-        if (!isEditing) {
-            setEditableData(JSON.parse(JSON.stringify(hidroAlertData)));
-        }
-    }, [hidroAlertData, isEditing]);
+        if (activeTab !== 'mapa') return;
+        const mapContainer = mapContainerRef.current;
+        if (!mapContainer) return;
 
-    const handleEdit = () => setIsEditing(true);
-    const handleCancel = () => {
-        setIsEditing(false);
-        setEditableData(null);
-    };
-    const handleSave = () => {
-        if (editableData) {
-            onUpdateHidroAlertData(editableData);
-        }
-        setIsEditing(false);
-    };
-
-    const handleAddUnit = (pointIndex, unitToAdd) => {
-        if (!unitToAdd) return;
-        setEditableData(prev => {
-            if (!prev) return null;
-            const newUpdates = [...prev.panorama2Updates];
-            const pointToUpdate = { ...newUpdates[pointIndex] };
-            if (!pointToUpdate.assignedUnits.includes(unitToAdd)) {
-                pointToUpdate.assignedUnits = [...pointToUpdate.assignedUnits, unitToAdd];
-            }
-            newUpdates[pointIndex] = pointToUpdate;
-            return { ...prev, panorama2Updates: newUpdates };
-        });
-        setSearchTerm('');
-        setDropdownState({});
-    };
-
-    const handleRemoveUnit = (pointIndex, unitIndex) => {
-        setEditableData(prev => {
-            if (!prev) return null;
-            const newUpdates = [...prev.panorama2Updates];
-            const pointToUpdate = { ...newUpdates[pointIndex] };
-            pointToUpdate.assignedUnits.splice(unitIndex, 1);
-            newUpdates[pointIndex] = pointToUpdate;
-            return { ...prev, panorama2Updates: newUpdates };
-        });
-    };
-
-
-    useEffect(() => {
-        if (activeTab !== 'mapa' || !mapContainerRef.current) return;
-        
-        const initializeMap = () => {
-            if (mapRef.current) return; // Already initialized
-            
-            const map = L.map(mapContainerRef.current).setView([-34.6037, -58.4516], 12);
+        if (!mapRef.current) {
+            const map = L.map(mapContainer).setView([-34.6037, -58.4516], 12);
             mapRef.current = map;
+
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             }).addTo(map);
+        }
 
-            const points = [...(hidroAlertData?.panorama2Points || [])];
-            points.forEach(point => {
-                if (point.coords && !point.isRoute) {
-                    const customIcon = L.divIcon({ className: 'custom-div-icon', html: `<div class="p-1 bg-red-600 rounded-full border-2 border-white shadow-lg"></div><div class="text-xs font-bold text-white whitespace-nowrap -translate-x-1/2 left-1/2 relative mt-1 bg-black/50 px-1 rounded">${point.id}</div>`, iconSize: [12, 12], iconAnchor: [6, 6] });
-                    L.marker(point.coords, { icon: customIcon }).addTo(map).bindTooltip(`<b>${point.id}: ${point.location}</b><br>${point.organism}`);
+        // Clear existing markers to redraw
+        mapRef.current.eachLayer((layer) => {
+            if (!!layer.toGeoJSON) { // A way to identify vector layers
+                mapRef.current.removeLayer(layer);
+            }
+        });
+
+        const statusColors = { 'Pendiente': '#71717a', 'Desplazado': '#3b82f6', 'En QTH': '#f59e0b', 'Normalizado': '#22c55e' };
+
+        if (editableData && editableData.alertPoints) {
+            editableData.alertPoints.forEach(point => {
+                if (point.coords && point.type === 'Punto Fijo') {
+                    const color = statusColors[point.status] || '#71717a';
+                    const customIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color:${color};" class="p-1.5 rounded-full border-2 border-white shadow-lg"></div><div class="text-xs font-bold text-white whitespace-nowrap -translate-x-1/2 left-1/2 relative mt-1 bg-black/50 px-1 rounded">${point.id.split('-')[1]}</div>`,
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    });
+
+                    L.marker(point.coords, { icon: customIcon }).addTo(mapRef.current)
+                        .bindTooltip(`<b>${point.id}: ${point.location}</b><br>Organismo: ${point.organism}<br>Unidad: ${point.assignedUnit || 'N/A'}<br>Estado: ${point.status}`);
                 }
             });
-
-            (hidroAlertData?.underpasses || []).forEach(up => {
+        }
+         
+        if (editableData && editableData.underpasses) {
+            editableData.underpasses.forEach(up => {
                 if (up.coords) {
-                    L.circleMarker(up.coords, { radius: 4, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 1 }).addTo(map).bindTooltip(`${up.name}<br><small>${up.location}</small>`);
+                    L.circleMarker(up.coords, {
+                        radius: 4, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 1
+                    }).addTo(mapRef.current).bindTooltip(`Paso Bajo Nivel: ${up.name}<br><small>${up.location}</small>`);
                 }
             });
-        };
+        }
 
-        initializeMap();
-        setTimeout(() => mapRef.current?.invalidateSize(), 100);
+        setTimeout(() => mapRef.current?.invalidateSize(), 250);
 
-    }, [activeTab, hidroAlertData]);
+    }, [activeTab, editableData]);
 
+    const handlePointChange = (pointId, field, value) => {
+        const newData = JSON.parse(JSON.stringify(editableData));
+        const point = newData.alertPoints.find((p) => p.id === pointId);
+        if(point) {
+            point[field] = value;
+            setEditableData(newData);
+            onUpdateReport(newData);
+        }
+    };
+    
     const TabButton = ({ tabName, label }) => (
-        React.createElement("button", { onClick: () => setActiveTab(tabName), className: `px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`}, label)
+        React.createElement("button", {
+            onClick: () => setActiveTab(tabName),
+            className: `px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`
+        },
+        label)
     );
 
-    const dataForView = isEditing ? editableData : hidroAlertData;
-    if (!dataForView) return null;
+    const OperativoContent = () => {
+        const panoramas = [
+            { number: 1, title: 'I' }, 
+            { number: 2, title: 'II' },
+            { number: 3, title: 'III' }
+        ];
     
-    const toggleDropdown = (index) => {
-        setDropdownState(prev => ({ ...Object.keys(prev).reduce((acc, key) => ({...acc, [key]: false}), {}), [index]: !prev[index] }));
-        setSearchTerm('');
-    };
+        const anegamientoContent = React.createElement("div", { className: "bg-blue-900/40 p-4 rounded-lg my-8 animate-fade-in" },
+            React.createElement("h4", { className: "text-white font-bold text-lg mb-2" }, "En caso de anegamiento"),
+            React.createElement("p", { className: "text-blue-200 mb-3" }, "Comunicar la altura alcanzada por el agua, tomando puntos de referencia:"),
+            React.createElement("ul", { className: "list-disc list-inside space-y-1 text-blue-300" },
+                React.createElement("li", null, "Anegamientos de agua hasta la altura del cordón."),
+                React.createElement("li", null, "Anegamientos de agua hasta la altura de la línea de edificación."),
+                React.createElement("li", null, "Anegamientos de agua de cordón a cordón."),
+                React.createElement("li", null, "Anegamientos de agua cubre el eje de la calle."),
+                React.createElement("li", null, "Anegamientos de agua cubre un carril.")
+            )
+        );
 
-    const filteredUnits = unitList.filter(unit => unit.toLowerCase().includes(searchTerm.toLowerCase()));
-
-
-    const OperativoContent = () => (
-        React.createElement("div", { className: "space-y-8 text-zinc-300 animate-fade-in" },
-            React.createElement("section", null,
-                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "PANORAMA I"),
-                React.createElement("p", { className: "p-3 bg-zinc-900/50 rounded-md" }, "A DESIGNAR POR DIRECTOR DEF CIVIL.")
-            ),
-            React.createElement("section", null,
-                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "DESPLAZAMIENTOS A QTH DE PANORAMA II"),
+        const directivasContent = React.createElement("div", { className: "bg-zinc-900/50 p-4 rounded-lg mb-8 border border-yellow-600/50" },
+            React.createElement("h3", { className: "text-xl font-bold text-yellow-300 mb-3" }, "DIRECTIVAS DE ALERTA METEOROLOGICO"),
+            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6 text-sm" },
+                React.createElement("div", null,
+                    React.createElement("h4", { className: "font-semibold text-white mb-2" }, "PARA JEFES DE ESTACIÓN:"),
+                    React.createElement("ul", { className: "list-disc list-inside space-y-1 text-zinc-300" },
+                        React.createElement("li", null, "Verificar el funcionamiento de los equipos de bombeo."),
+                        React.createElement("li", null, "Chequear estado de grupos electrógenos."),
+                        React.createElement("li", null, "Alistar equipamiento para inundaciones (bombas, motobombas)."),
+                        React.createElement("li", null, "Verificar estado y equipamiento de las unidades fluviales.")
+                    )
+                ),
+                React.createElement("div", null,
+                    React.createElement("h4", { className: "font-semibold text-white mb-2" }, "PARA TODO EL PERSONAL:"),
+                    React.createElement("ul", { className: "list-disc list-inside space-y-1 text-zinc-300" },
+                        React.createElement("li", null, "Prestar atención a los informes meteorológicos."),
+                        React.createElement("li", null, "Mantener el equipo de protección personal en óptimas condiciones."),
+                        React.createElement("li", null, "Asegurar la disponibilidad de los equipos de comunicación."),
+                        React.createElement("li", null, "Estar alerta a las directivas del Comando Operativo.")
+                    )
+                )
+            )
+        );
+    
+        const panoramaElements = panoramas.map((panorama) => {
+            const points = editableData.alertPoints.filter(p => p.panorama === panorama.number);
+            if (points.length === 0) return null;
+    
+            const content = React.createElement("div", { key: `panorama-${panorama.number}` },
+                React.createElement("h3", { className: "text-2xl font-bold text-white mb-4 tracking-wider uppercase" },
+                    `DESPLAZAMIENTOS A QTH DE PANORAMA ${panorama.title}`
+                ),
                 React.createElement("ul", { className: "space-y-4" },
-                    dataForView.panorama2Updates.map((item, index) => (
-                        React.createElement("li", { key: index, className: "flex flex-col gap-2 p-3 bg-zinc-900/50 rounded-md" },
-                           React.createElement("p", null, "ESTACION IV \"", React.createElement("code", { className: "text-teal-300" }, item.station), "\" se desplaza a QTH: ", React.createElement("strong", { className: "text-white" }, item.location)),
-                            
-                            isEditing ? (
-                                React.createElement("div", { className: "flex flex-wrap items-start gap-2" },
-                                    item.assignedUnits.map((unit, unitIdx) => (
-                                        React.createElement("div", { key: unitIdx, className: "flex items-center gap-1 bg-blue-600/50 text-white px-2 py-1 rounded-md text-sm" },
-                                            React.createElement("span", null, unit),
-                                            React.createElement("button", { onClick: () => handleRemoveUnit(index, unitIdx), className: "text-blue-200 hover:text-white"}, React.createElement(XCircleIcon, { className: "w-4 h-4"}))
-                                        )
-                                    )),
-                                    React.createElement("div", { className: "relative" },
-                                        React.createElement("button", { onClick: () => toggleDropdown(index), className: "flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-500 rounded-md text-white font-medium transition-colors" },
-                                            React.createElement(PlusCircleIcon, { className: "w-4 h-4"}), " Asignar Unidad ", React.createElement(ChevronDownIcon, { className: `w-3 h-3 transition-transform ${dropdownState[index] ? 'rotate-180' : ''}`})
-                                        ),
-                                        dropdownState[index] && (
-                                            React.createElement("div", { className: "absolute z-10 top-full mt-1 w-64 bg-zinc-800 border border-zinc-600 rounded-md shadow-lg" },
-                                                React.createElement("div", { className: "p-2" },
-                                                    React.createElement("input", { 
-                                                        type: "text",
-                                                        placeholder: "Buscar unidad...",
-                                                        value: searchTerm,
-                                                        onChange: e => setSearchTerm(e.target.value),
-                                                        className: "w-full bg-zinc-900 border-zinc-700 rounded-md px-2 py-1 text-white text-sm"
-                                                    })
-                                                ),
-                                                React.createElement("ul", { className: "max-h-48 overflow-y-auto" },
-                                                    filteredUnits.map(unit => (
-                                                        React.createElement("li", { key: unit, onClick: () => handleAddUnit(index, unit), className: "px-3 py-1.5 hover:bg-zinc-700 cursor-pointer text-sm" },
-                                                            unit
-                                                        )
-                                                    ))
-                                                )
-                                            )
-                                        )
+                    points.map(point => {
+                        const isBomberos = point.organism.toLowerCase().includes('estacion') || point.organism.toLowerCase().includes('destacamento');
+                        return React.createElement("li", {
+                            key: point.id,
+                            className: `pl-4 py-2 list-disc list-inside ${isBomberos ? 'border-l-4 border-red-500/50 marker:text-red-400' : 'border-l-4 border-green-500/50 marker:text-green-400'}`
+                        },
+                            React.createElement("div", null,
+                                React.createElement("span", null,
+                                    React.createElement("strong", { className: isBomberos ? 'text-red-400 font-semibold' : 'text-green-400 font-semibold' }, point.organism),
+                                    " se desplaza a QTH: ",
+                                    React.createElement("span", { className: isBomberos ? 'text-red-500 font-bold' : 'text-zinc-100' }, point.location)
+                                ),
+                                point.assignedUnit && !isBomberos && (
+                                    React.createElement("div", { className: "text-blue-400 text-sm mt-1 pl-6" },
+                                        "Unidad Asignada: ",
+                                        React.createElement("strong", { className: "font-mono" }, point.assignedUnit)
                                     )
-                                )
-                            ) : (
-                                item.assignedUnits.length > 0 && (
-                                    React.createElement("div", { className: "flex flex-wrap gap-2" },
-                                        item.assignedUnits.map((unit, unitIdx) => (
-                                            React.createElement("span", { key: unitIdx, className: "font-semibold text-white bg-blue-600/50 px-2 py-0.5 rounded-md text-sm" }, unit)
-                                        ))
+                                ),
+                                isBomberos && (
+                                    React.createElement("div", { className: "mt-2 pl-6 flex items-center gap-2" },
+                                        React.createElement("label", { htmlFor: `unit-select-${point.id}`, className: "text-sm text-zinc-400" }, "Asignar:"),
+                                        React.createElement("select", {
+                                            id: `unit-select-${point.id}`,
+                                            value: point.assignedUnit,
+                                            onChange: (e) => handlePointChange(point.id, 'assignedUnit', e.target.value),
+                                            className: "w-full max-w-xs bg-zinc-700 border-zinc-600 rounded-md px-2 py-1 text-white text-sm",
+                                            onClick: (e) => e.stopPropagation()
+                                        },
+                                            React.createElement("option", { value: "" }, "-- Seleccionar Unidad --"),
+                                            unitList.map(unit => React.createElement("option", { key: unit, value: unit }, unit))
+                                        )
                                     )
                                 )
                             )
+                        );
+                    })
+                )
+            );
+            
+            if (panorama.number === 2) {
+                return React.createElement(React.Fragment, { key: `panorama-frag-${panorama.number}` }, content, anegamientoContent);
+            }
+            return content;
+        });
+
+        return React.createElement("div", { className: "space-y-8 animate-fade-in text-zinc-200" },
+            directivasContent,
+            ...panoramaElements
+        );
+    };
+
+    const PuentesContent = () => (
+        React.createElement("div", { className: "overflow-x-auto animate-fade-in" },
+            React.createElement("table", { className: "w-full min-w-[600px] text-left" },
+                React.createElement("thead", { className: "border-b-2 border-zinc-600" },
+                    React.createElement("tr", { className: "text-left text-sm font-semibold text-zinc-300" },
+                        React.createElement("th", { className: "p-3" }, "Nombre"),
+                        React.createElement("th", { className: "p-3" }, "Comuna"),
+                        React.createElement("th", { className: "p-3" }, "Ubicación")
+                    )
+                ),
+                React.createElement("tbody", null,
+                    editableData.underpasses.map(up => (
+                        React.createElement("tr", { key: up.id, className: "border-t border-zinc-700 hover:bg-zinc-700/50" },
+                            React.createElement("td", { className: "p-2 text-zinc-200 font-semibold" }, up.name),
+                            React.createElement("td", { className: "p-2 text-zinc-300" }, up.commune),
+                            React.createElement("td", { className: "p-2 text-zinc-400 text-sm" }, up.location)
                         )
                     ))
-                )
-            ),
-             React.createElement("section", null,
-                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "PANORAMA III"),
-                React.createElement("ul", { className: "list-disc list-inside space-y-2 p-3 bg-zinc-900/50 rounded-md" },
-                    React.createElement("li", null, "ESTACION VIII \"NUEVA CHICAGO\""),
-                    React.createElement("li", null, "DETALLE GER \"CABALLO\"")
-                )
-            ),
-            React.createElement("section", null,
-                React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3 border-b border-zinc-700 pb-2" }, "En caso de ANEGAMIENTO"),
-                React.createElement("div", { className: "p-3 bg-zinc-900/50 rounded-md space-y-2" },
-                    React.createElement("p", null, "Comunicar la altura alcanzada por el agua, tomando puntos de referencia:"),
-                    React.createElement("ul", { className: "list-disc list-inside pl-4 space-y-1" },
-                        React.createElement("li", null, "Anegamientos de agua hasta la altura del cordón."),
-                        React.createElement("li", null, "Anegamientos de agua hasta la altura de la línea de edificación."),
-                        React.createElement("li", null, "Anegamientos de agua de cordón a cordón."),
-                        React.createElement("li", null, "Anegamientos de agua cubre el eje de la calle."),
-                        React.createElement("li", null, "Anegamientos de agua cubre un carril.")
-                    )
                 )
             )
         )
     );
-    
+
+    const TelegramContent = () => {
+        const [copied, setCopied] = useState(null);
+
+        const organismToUnitMap = {
+            'ESTACION VI "C.M.M.C.F.P."': 'Ranger-6',
+            'ESTACION V "C.G.A.G.V."': 'Ranger-5',
+            'DESTACAMENTO "DEVOTO"': 'Ranger 945',
+            'ESTACION IV "RECOLETA"': 'Ranger 4',
+            'ESTACION X "LUGANO"': 'Ranger-10',
+            'ESTACION III "BARRACAS"': 'Ranger-3'
+        };
+
+        const panorama2Points = editableData.alertPoints
+            .filter(p => p.panorama === 2 && (p.organism.includes('ESTACION') || p.organism.includes('DESTACAMENTO')))
+            .sort((a, b) => parseInt(a.id.split('-')[1]) - parseInt(b.id.split('-')[1]));
+        
+        const getPointNumber = (id) => `P.${id.split('-')[1]}`;
+
+        const desplazamientosText = panorama2Points.map(point => {
+            const unitName = organismToUnitMap[point.organism] || point.assignedUnit || 'Unidad';
+            const pointNumber = getPointNumber(point.id);
+            return `${unitName} ${pointNumber} se desplaza a QTH: ${point.location}`;
+        }).join('\n');
+
+        const presentesText = panorama2Points.map(point => {
+            const unitName = organismToUnitMap[point.organism] || point.assignedUnit || 'Unidad';
+            const pointNumber = getPointNumber(point.id);
+            return `${unitName} ${pointNumber} presente a QTH: ${point.location}. panorama normal.`;
+        }).join('\n');
+
+        const handleCopy = (text, id) => {
+            navigator.clipboard.writeText(text).then(() => {
+                setCopied(id);
+                setTimeout(() => setCopied(null), 2000);
+            });
+        };
+
+        const CopyButton = ({ text, id }) => React.createElement("button", {
+            onClick: () => handleCopy(text, id),
+            className: "absolute top-2 right-2 flex items-center gap-2 px-3 py-1 bg-zinc-600 hover:bg-zinc-500 text-white font-medium rounded-md transition-colors text-sm"
+        },
+            copied === id ? React.createElement(ClipboardCheckIcon, { className: "w-4 h-4 text-green-400" }) : React.createElement(ClipboardCopyIcon, { className: "w-4 h-4" }),
+            copied === id ? 'Copiado!' : 'Copiar'
+        );
+
+        return React.createElement("div", { className: "space-y-6 animate-fade-in" },
+            React.createElement("div", { className: "bg-zinc-900/50 p-4 rounded-lg relative" },
+                React.createElement("h3", { className: "text-lg font-bold text-white mb-2" }, "DESPLAZAMIENTOS a QTH DE PANORAMA II"),
+                React.createElement(CopyButton, { text: desplazamientosText, id: "desplazamientos" }),
+                React.createElement("pre", { className: "text-zinc-300 text-sm whitespace-pre-wrap font-mono bg-zinc-800 p-3 rounded-md" }, desplazamientosText)
+            ),
+            React.createElement("div", { className: "bg-zinc-900/50 p-4 rounded-lg relative" },
+                React.createElement("h3", { className: "text-lg font-bold text-white mb-2" }, "PRESENTE EN QTH Y PANORAMA"),
+                React.createElement(CopyButton, { text: presentesText, id: "presentes" }),
+                React.createElement("pre", { className: "text-zinc-300 text-sm whitespace-pre-wrap font-mono bg-zinc-800 p-3 rounded-md" }, presentesText)
+            )
+        );
+    };
 
     return (
         React.createElement("div", { className: "space-y-6" },
             React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start gap-4" },
                 React.createElement("div", null,
-                    React.createElement("h2", { className: "text-3xl font-bold text-white flex items-center gap-3" }, React.createElement(ShieldExclamationIcon, { className: "w-8 h-8 text-yellow-300"}), " Alerta Hidrometeorológico"),
-                    React.createElement("p", { className: "text-zinc-400" }, "Información y puntos de despliegue según Disposición 5291/2024/DGDCIV.")
-                ),
-                currentUser?.role === 'admin' && (
-                    React.createElement("div", { className: "flex items-center gap-2 self-start sm:self-center" },
-                        isEditing ? (
-                            React.createElement(React.Fragment, null,
-                                React.createElement("button", { onClick: handleSave, className: "px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5"}), " Guardar"),
-                                React.createElement("button", { onClick: handleCancel, className: "p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white" }, React.createElement(XCircleIcon, { className: "w-6 h-6"}))
-                            )
-                        ) : (
-                            React.createElement("button", { onClick: handleEdit, className: "px-3 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold flex items-center gap-2" }, React.createElement(PencilIcon, { className: "w-5 h-5"}), " Editar")
-                        )
-                    )
+                    React.createElement("h2", { className: "text-3xl font-bold text-white flex items-center gap-3" }, React.createElement(ShieldExclamationIcon, { className: "w-8 h-8 text-yellow-300" }), " Alerta Hidrometeorológico"),
+                    React.createElement("p", { className: "text-zinc-400" }, "Información y puntos de despliegue según Disposición 3291/2024 DGDCIW.")
                 )
             ),
 
@@ -213,36 +300,14 @@ const HidroAlertView = ({ hidroAlertData, onUpdateHidroAlertData, unitList, curr
                  React.createElement("div", { className: "flex flex-wrap gap-2 border-b border-zinc-700 pb-4 mb-4" },
                     React.createElement(TabButton, { tabName: "operativo", label: "Operativo" }),
                     React.createElement(TabButton, { tabName: "mapa", label: "Mapa Interactivo" }),
-                    React.createElement(TabButton, { tabName: "puentes", label: "Puentes y Bajo Nivel" })
+                    React.createElement(TabButton, { tabName: "puentes", label: "Puentes y Bajo Nivel" }),
+                    React.createElement(TabButton, { tabName: "telegram", label: "Mensaje Telegram" })
                 ),
                 
-                React.createElement("div", null,
-                    activeTab === 'operativo' && React.createElement(OperativoContent, null),
-                    activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[60vh] rounded-lg bg-zinc-900 animate-fade-in"}),
-                    activeTab === 'puentes' && (
-                        React.createElement("div", { className: "max-h-[60vh] overflow-y-auto pr-2 animate-fade-in" },
-                            React.createElement("h3", { className: "text-xl font-semibold text-yellow-300 mb-3" }, "Monitoreo Preventivo de Puentes y Bajo Nivel"),
-                            React.createElement("table", { className: "w-full text-left" },
-                                React.createElement("thead", { className: "sticky top-0 bg-zinc-800/80 backdrop-blur-sm" },
-                                    React.createElement("tr", { className: "text-sm text-zinc-400 border-b border-zinc-700" },
-                                        React.createElement("th", { className: "p-2 w-2/5" }, "Nombre"),
-                                        React.createElement("th", { className: "p-2 w-1/5" }, "Comuna"),
-                                        React.createElement("th", { className: "p-2" }, "Ubicación")
-                                    )
-                                ),
-                                React.createElement("tbody", { className: "divide-y divide-zinc-700/50" },
-                                    (dataForView.underpasses || []).map(up => (
-                                        React.createElement("tr", { key: up.id, className: "hover:bg-zinc-700/50" },
-                                            React.createElement("td", { className: "p-2 font-semibold text-zinc-200" }, `${up.id}. ${up.name}`),
-                                            React.createElement("td", { className: "p-2 text-zinc-300" }, up.commune),
-                                            React.createElement("td", { className: "p-2 text-zinc-300" }, up.location)
-                                        )
-                                    ))
-                                )
-                            )
-                        )
-                    )
-                )
+                activeTab === 'operativo' && React.createElement(OperativoContent, null),
+                activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[65vh] rounded-lg animate-fade-in" }),
+                activeTab === 'puentes' && React.createElement(PuentesContent, null),
+                activeTab === 'telegram' && React.createElement(TelegramContent, null)
             )
         )
     );

@@ -443,7 +443,7 @@ const CommandPostView: React.FC<CommandPostViewProps> = ({ unitReportData }) => 
                                             <input value={res.institution} onChange={e => handleSci211Change(res.id, 'institution', e.target.value)} placeholder="Institución" className="w-full bg-zinc-700 rounded p-1 mb-1"/>
                                             <input value={res.matricula} onChange={e => handleSci211Change(res.id, 'matricula', e.target.value)} placeholder="Matrícula" className="w-full bg-zinc-700 rounded p-1"/>
                                         </td>
-                                        <td><input value={res.personnelCount as string} onChange={e => handleSci211Change(res.id, 'personnelCount', e.target.value)} className="w-16 bg-zinc-700 rounded p-1"/></td>
+                                        <td><input value={res.personnelCount} onChange={e => handleSci211Change(res.id, 'personnelCount', e.target.value)} className="w-16 bg-zinc-700 rounded p-1"/></td>
                                         <td><input value={res.assignedTo} onChange={e => handleSci211Change(res.id, 'assignedTo', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
                                         <td><input value={res.demobilizedDateTime} onChange={e => handleSci211Change(res.id, 'demobilizedDateTime', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>
                                         <td><input value={res.observations} onChange={e => handleSci211Change(res.id, 'observations', e.target.value)} className="w-full bg-zinc-700 rounded p-1"/></td>

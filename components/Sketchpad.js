@@ -1,122 +1,47 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { PencilSwooshIcon, TrashIcon, CameraIcon, EngineIcon, LadderIcon, AmbulanceIcon, CommandPostIcon, PersonIcon, CubeIcon, ArrowUturnLeftIcon } from './icons.js';
-
-const unitConfig = {
-    autobomba: { icon: React.createElement(EngineIcon, { className: "w-5 h-5" }), color: '#dc2626', defaultLabel: 'E-1' },
-    hidroelevador: { icon: React.createElement(LadderIcon, { className: "w-5 h-5" }), color: '#2563eb', defaultLabel: 'H-1' },
-    ambulancia: { icon: React.createElement(AmbulanceIcon, { className: "w-5 h-5" }), color: '#16a34a', defaultLabel: 'A-1' },
-    comando: { icon: React.createElement(CommandPostIcon, { className: "w-5 h-5" }), color: '#ea580c', defaultLabel: 'PC-1' },
-    personal: { icon: React.createElement(PersonIcon, { className: "w-5 h-5" }), color: '#9333ea', defaultLabel: 'P-1' },
-};
+import { PencilSwooshIcon, TrashIcon, CameraIcon } from './icons.js';
 
 const Sketchpad = ({ isActive, onSketchCapture }) => {
     const canvasRef = useRef(null);
-    const [elements, setElements] = useState([]);
-    const [history, setHistory] = useState([]);
-    const [activeTool, setActiveTool] = useState('draw');
-
     const [isDrawing, setIsDrawing] = useState(false);
-    const [currentPath, setCurrentPath] = useState(null);
-
-    const getMousePos = (e) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return { x: 0, y: 0 };
-        const rect = canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    };
+    const [tool, setTool] = useState('pencil');
+    const [color, setColor] = useState('#ffde03'); // Yellow
+    const [lineWidth, setLineWidth] = useState(3);
+    const [points, setPoints] = useState([]);
     
-    const drawGrid = (ctx, width, height) => {
-        ctx.strokeStyle = '#e5e7eb'; // zinc-200
-        ctx.lineWidth = 0.5;
-        const gridSize = 20;
-
-        for (let x = 0; x < width; x += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.stroke();
-        }
-        for (let y = 0; y < height; y += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-        }
-    };
-
-    const drawElements = useCallback(() => {
+    const draw = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        drawGrid(ctx, canvas.width, canvas.height);
-
-        elements.forEach(el => {
-            ctx.strokeStyle = el.color;
-            ctx.fillStyle = el.color;
-            ctx.lineWidth = el.lineWidth;
-            ctx.setLineDash(el.lineDash || []);
-
-            if (el.type === 'path' && el.points && el.points.length > 1) {
+        const storedDrawing = localStorage.getItem('sketchpadDrawing');
+        if (storedDrawing) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                // Draw points on top of the restored drawing
+                 points.forEach(point => {
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, point.radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = point.color;
+                    ctx.fill();
+                });
+            };
+            img.src = storedDrawing;
+        } else {
+             // Draw points even if there's no stored drawing
+            points.forEach(point => {
                 ctx.beginPath();
-                ctx.moveTo(el.points[0].x, el.points[0].y);
-                el.points.forEach(p => ctx.lineTo(p.x, p.y));
-                ctx.stroke();
-            } else if (el.type === 'building' && el.width && el.height) {
-                ctx.strokeRect(el.x, el.y, el.width, el.height);
-                if (el.text) {
-                     ctx.font = '12px sans-serif';
-                     ctx.fillStyle = '#18181b'; // zinc-900
-                     ctx.textAlign = 'center';
-                     ctx.textBaseline = 'middle';
-                     ctx.fillText(el.text, el.x + el.width / 2, el.y + el.height / 2);
-                }
-            } else if (el.type === 'text' && el.text) {
-                ctx.font = 'bold 14px sans-serif';
-                ctx.fillStyle = '#18181b';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'top';
-                ctx.fillText(el.text, el.x, el.y);
-            } else if (el.type === 'block') {
-                 const blockWidth = 80;
-                 const blockHeight = 80;
-                 const streetWidth = 20;
-                 ctx.fillStyle = '#e4e4e7'; // zinc-200 for blocks
-                 ctx.strokeStyle = '#a1a1aa'; // zinc-500 for stroke
-                 ctx.lineWidth = 1;
-                 
-                 const blocks = [
-                    { x: el.x - streetWidth / 2 - blockWidth, y: el.y - streetWidth / 2 - blockHeight },
-                    { x: el.x + streetWidth / 2, y: el.y - streetWidth / 2 - blockHeight },
-                    { x: el.x - streetWidth / 2 - blockWidth, y: el.y + streetWidth / 2 },
-                    { x: el.x + streetWidth / 2, y: el.y + streetWidth / 2 },
-                 ];
-
-                 blocks.forEach(block => {
-                    ctx.fillRect(block.x, block.y, blockWidth, blockHeight);
-                    ctx.strokeRect(block.x, block.y, blockWidth, blockHeight);
-                 });
-            }
-        });
-        
-        if (currentPath) {
-             ctx.strokeStyle = currentPath.color;
-             ctx.lineWidth = currentPath.lineWidth;
-             ctx.setLineDash(currentPath.lineDash || []);
-             ctx.beginPath();
-             ctx.moveTo(currentPath.points[0].x, currentPath.points[0].y);
-             currentPath.points.forEach(p => ctx.lineTo(p.x, p.y));
-             ctx.stroke();
+                ctx.arc(point.x, point.y, point.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = point.color;
+                ctx.fill();
+            });
         }
-        ctx.setLineDash([]);
-    }, [elements, currentPath]);
+
+    }, [points]);
     
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -125,116 +50,140 @@ const Sketchpad = ({ isActive, onSketchCapture }) => {
         const setCanvasSize = () => {
             const parent = canvas.parentElement;
             if(parent) {
+                // Save current drawing before resizing
+                const currentDrawing = canvas.toDataURL();
+                
                 canvas.width = parent.clientWidth;
                 canvas.height = parent.clientHeight;
-                drawElements();
+                
+                // Redraw from saved state after resizing
+                const img = new Image();
+                img.onload = () => {
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0);
+                };
+                img.src = currentDrawing;
             }
         };
+
         setCanvasSize();
-        const resizeObserver = new ResizeObserver(setCanvasSize);
+        
+        const storedPoints = localStorage.getItem('sketchpadPoints');
+        if (storedPoints) {
+            setPoints(JSON.parse(storedPoints));
+        } else {
+            draw(); // initial draw
+        }
+
+        const resizeObserver = new ResizeObserver(() => {
+            setCanvasSize();
+        });
+
         if (canvas.parentElement) {
             resizeObserver.observe(canvas.parentElement);
         }
-        return () => resizeObserver.disconnect();
-    }, [isActive, drawElements]);
 
-    const saveHistory = () => {
-        setHistory(prev => [...prev.slice(-20), elements]);
-    };
+        return () => {
+            resizeObserver.disconnect();
+        };
+
+    }, [draw, isActive]);
     
-    const undo = () => {
-        if (history.length > 0) {
-            const lastState = history[history.length - 1];
-            setElements(lastState);
-            setHistory(prev => prev.slice(0, -1));
-        }
-    };
-    
-    const handleMouseDown = (e) => {
-        saveHistory();
-        const pos = getMousePos(e);
-        setIsDrawing(true);
+    useEffect(() => {
+        localStorage.setItem('sketchpadPoints', JSON.stringify(points));
+        draw();
+    }, [points, draw]);
+
+    const getMousePos = (e) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+        const rect = canvas.getBoundingClientRect();
         
-        const toolProps = {
-            'draw': { color: '#3f3f46', lineWidth: 2, lineDash: [] },
-            'lineAttack': { color: '#ef4444', lineWidth: 4, lineDash: [] },
-            'lineSupply': { color: '#3b82f6', lineWidth: 3, lineDash: [8, 6] },
-        }[activeTool];
-
-        if (toolProps) {
-            setCurrentPath({ points: [pos], ...toolProps });
-        } else if (activeTool === 'eraser') {
-            const hitElementIndex = elements.findIndex(el => {
-                const PADDING = 10;
-                if (el.type === 'path') {
-                    return el.points?.some(p => Math.abs(p.x - pos.x) < PADDING && Math.abs(p.y - pos.y) < PADDING);
-                }
-                return pos.x >= el.x - PADDING && pos.x <= el.x + (el.width || 0) + PADDING && pos.y >= el.y - PADDING && pos.y <= el.y + (el.height || 0) + PADDING;
-            });
-
-            if (hitElementIndex > -1) {
-                setElements(prev => prev.filter((_, index) => index !== hitElementIndex));
-            }
-
-        } else if (activeTool === 'unit') {
-            const type = prompt("Tipo de unidad (autobomba, hidroelevador, ambulancia, comando, personal):", "autobomba")?.toLowerCase();
-            if (type && unitConfig[type]) {
-                const label = prompt("Etiqueta:", unitConfig[type].defaultLabel);
-                if (label) {
-                    const textEl = { id: Date.now(), type: 'text', text: label, x: pos.x + 18, y: pos.y + 4, color: '#ffffff', lineWidth: 1 };
-                    const unitEl = { id: Date.now() + 1, type: 'building', x: pos.x, y: pos.y, width: 32, height: 32, color: unitConfig[type].color, lineWidth: 2 };
-                    setElements(prev => [...prev, unitEl, textEl]);
-                }
-            }
-        } else if (activeTool === 'building' || activeTool === 'text' || activeTool === 'block') {
-             const label = activeTool === 'building' ? prompt("Etiqueta para la estructura:", "Vivienda") : 
-                           activeTool === 'text' ? prompt("Ingrese el texto:") : null;
-            if (activeTool !== 'block' && !label) {
-                setIsDrawing(false);
-                return;
-            }
-            const newElement = {
-                id: Date.now(),
-                type: activeTool,
-                x: pos.x,
-                y: pos.y,
-                text: label || undefined,
-                color: '#a1a1aa',
-                lineWidth: 2
+        if (window.TouchEvent && e instanceof TouchEvent && e.touches[0]) {
+             return {
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
             };
-            setElements(prev => [...prev, newElement]);
-            setActiveTool('select');
+        } else if (e instanceof MouseEvent) {
+             return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+        return { x: 0, y: 0 };
+    };
+
+    const startDrawing = (e) => {
+        e.preventDefault();
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const { x, y } = getMousePos(e.nativeEvent);
+        
+        if (tool === 'point') {
+            const newPoint = { x, y, color, radius: lineWidth + 4 };
+            setPoints(prev => [...prev, newPoint]);
+            // Draw point immediately
+            ctx.beginPath();
+            ctx.arc(newPoint.x, newPoint.y, newPoint.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = newPoint.color;
+            ctx.fill();
+            localStorage.setItem('sketchpadDrawing', canvas.toDataURL());
+            return;
+        }
+
+        setIsDrawing(true);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    };
+
+    const drawMove = (e) => {
+        e.preventDefault();
+        if (!isDrawing || tool === 'point') return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const { x, y } = getMousePos(e.nativeEvent);
+
+        if (tool === 'eraser') {
+            ctx.clearRect(x - 15, y - 15, 30, 30);
+        } else {
+            ctx.lineTo(x, y);
+            ctx.stroke();
         }
     };
 
-    const handleMouseMove = (e) => {
-        if (!isDrawing || !currentPath) return;
-        const pos = getMousePos(e);
-        setCurrentPath(prev => prev ? ({...prev, points: [...prev.points, pos]}) : null);
-        drawElements(); // Redraw for live preview
-    };
-
-    const handleMouseUp = () => {
-        if (currentPath && currentPath.points.length > 1) {
-            setElements(prev => [...prev, {
-                id: Date.now(),
-                type: 'path',
-                points: currentPath.points,
-                color: currentPath.color,
-                lineWidth: currentPath.lineWidth,
-                lineDash: currentPath.lineDash,
-                x: currentPath.points[0].x,
-                y: currentPath.points[0].y
-            }]);
-        }
+    const stopDrawing = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        ctx.closePath();
         setIsDrawing(false);
-        setCurrentPath(null);
+        if (tool === 'pencil' || tool === 'eraser') {
+            localStorage.setItem('sketchpadDrawing', canvas.toDataURL());
+        }
     };
 
     const clearCanvas = () => {
         if (window.confirm("¿Está seguro de que desea borrar todo el boceto?")) {
-            saveHistory();
-            setElements([]);
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            localStorage.removeItem('sketchpadDrawing');
+            localStorage.removeItem('sketchpadPoints');
+            setPoints([]);
         }
     };
     
@@ -242,46 +191,54 @@ const Sketchpad = ({ isActive, onSketchCapture }) => {
         const canvas = canvasRef.current;
         if(canvas) {
             onSketchCapture(canvas.toDataURL('image/png'));
+            alert("Boceto validado para el reporte.");
         }
     };
-    
-    const ToolButton = ({ tool, label, icon }) => (
+
+    const ToolButton = ({ toolName, label, icon }) => (
         React.createElement("button", {
-            onClick: () => setActiveTool(tool),
-            className: `flex items-center justify-center flex-col text-center gap-1 p-2 rounded-md transition-colors text-xs w-20 h-16 ${activeTool === tool ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`,
+            onClick: () => setTool(toolName),
+            className: `p-2 rounded-md transition-colors flex flex-col items-center text-xs w-20 ${tool === toolName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`,
             title: label
         },
             icon,
-            React.createElement("span", null, label)
+            React.createElement("span", { className: "mt-1" }, label)
         )
     );
 
     return (
         React.createElement("div", { className: "flex flex-col gap-4 h-[80vh]" },
-            React.createElement("div", { className: "bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-between gap-4" },
+             React.createElement("div", { className: "bg-zinc-800/60 p-3 rounded-xl flex flex-wrap items-center justify-between gap-4" },
                 React.createElement("div", { className: "flex flex-wrap items-center gap-2" },
-                    React.createElement(ToolButton, { tool: "draw", label: "Lápiz", icon: React.createElement(PencilSwooshIcon, { className: "w-5 h-5"}) }),
-                    React.createElement(ToolButton, { tool: "lineAttack", label: "Línea Ataque", icon: React.createElement("div", { className: "w-5 h-1.5 bg-red-500 rounded-full" }) }),
-                    React.createElement(ToolButton, { tool: "lineSupply", label: "Línea Transf.", icon: React.createElement("div", { className: "w-5 h-1.5 border-t-2 border-dashed border-blue-500" }) }),
-                    React.createElement(ToolButton, { tool: "unit", label: "Unidad", icon: React.createElement(EngineIcon, { className: "w-5 h-5"}) }),
-                    React.createElement(ToolButton, { tool: "building", label: "Estructura", icon: React.createElement("div", { className: "w-5 h-5 border-2 border-current" }) }),
-                    React.createElement(ToolButton, { tool: "text", label: "Texto", icon: React.createElement("span", { className: "font-bold text-lg" }, "T") }),
-                    React.createElement(ToolButton, { tool: "block", label: "Manzana", icon: React.createElement(CubeIcon, { className: "w-5 h-5"}) }),
-                    React.createElement(ToolButton, { tool: "eraser", label: "Borrador", icon: React.createElement(TrashIcon, { className: "w-5 h-5"}) })
+                    React.createElement(ToolButton, { toolName: "pencil", label: "Lápiz", icon: React.createElement(PencilSwooshIcon, { className: "w-6 h-6" }) }),
+                    React.createElement(ToolButton, { toolName: "point", label: "Punto", icon: React.createElement("div", { className: "w-6 h-6 rounded-full border-2 border-dashed border-zinc-400" }) }),
+                    React.createElement(ToolButton, { toolName: "eraser", label: "Borrador", icon: React.createElement("div", { className: "w-6 h-6 bg-zinc-400 rounded" }) }),
+                    
+                    React.createElement("div", { className: "flex items-center gap-2 ml-4" },
+                        React.createElement("label", { htmlFor: "color-picker", className: "text-sm font-medium text-zinc-300" }, "Color:"),
+                        React.createElement("input", { id: "color-picker", type: "color", value: color, onChange: e => setColor(e.target.value), className: "w-10 h-10 bg-transparent border-none rounded-md cursor-pointer" })
+                    ),
+                     React.createElement("div", { className: "flex items-center gap-2" },
+                        React.createElement("label", { htmlFor: "line-width", className: "text-sm font-medium text-zinc-300" }, "Grosor:"),
+                        React.createElement("input", { id: "line-width", type: "range", min: "1", max: "10", value: lineWidth, onChange: e => setLineWidth(Number(e.target.value)) })
+                    )
                 ),
                 React.createElement("div", { className: "flex items-center gap-2" },
-                     React.createElement("button", { onClick: undo, className: "p-2 bg-yellow-600 hover:bg-yellow-500 rounded-md text-white", title: "Deshacer" }, React.createElement(ArrowUturnLeftIcon, { className: "w-5 h-5" })),
-                     React.createElement("button", { onClick: handleValidate, className: "flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-500 rounded-md text-white font-semibold", title: "Validar Boceto" }, React.createElement(CameraIcon, { className: "w-5 h-5" }), "Validar")
+                     React.createElement("button", { onClick: clearCanvas, className: "p-2 bg-red-600 hover:bg-red-500 rounded-md text-white", title: "Limpiar Todo" }, React.createElement(TrashIcon, { className: "w-5 h-5" })),
+                     React.createElement("button", { onClick: handleValidate, className: "flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-500 rounded-md text-white font-semibold", title: "Validar Boceto" }, React.createElement(CameraIcon, { className: "w-5 h-5" }), "Validar para Reporte")
                 )
             ),
-             React.createElement("div", { className: "flex-grow w-full h-full bg-white rounded-lg overflow-hidden border-2 border-zinc-700" },
+            React.createElement("div", { className: "flex-grow w-full h-full bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-700" },
                  React.createElement("canvas", {
                     ref: canvasRef,
-                    className: `w-full h-full ${activeTool === 'select' ? 'cursor-default' : 'cursor-crosshair'}`,
-                    onMouseDown: handleMouseDown,
-                    onMouseMove: handleMouseMove,
-                    onMouseUp: handleMouseUp,
-                    onMouseLeave: handleMouseUp
+                    className: "w-full h-full cursor-crosshair",
+                    onMouseDown: startDrawing,
+                    onMouseMove: drawMove,
+                    onMouseUp: stopDrawing,
+                    onMouseLeave: stopDrawing,
+                    onTouchStart: startDrawing,
+                    onTouchMove: drawMove,
+                    onTouchEnd: stopDrawing
                 })
             )
         )

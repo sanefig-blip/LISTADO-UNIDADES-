@@ -26,6 +26,7 @@ const predefinedUnits = [
     { type: 'person', label: 'Personal', icon: <PersonIcon className="w-5 h-5" />, color: 'bg-purple-600 hover:bg-purple-500', defaultLabel: 'P-1' }
 ];
 
+// FIX: Add a return statement to the component to make it a valid React functional component.
 const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSketch, initialLayer = 'street' }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
