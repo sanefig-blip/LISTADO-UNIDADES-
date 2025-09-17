@@ -86,26 +86,21 @@ const CommandPostParentView = (props) => {
     };
     
     const handleAssignUnit = (unit, groupId) => {
-        const newTrackedUnit = {
-            ...unit,
-            groupName: interventionGroups.find(g => g.id === groupId)?.name || '',
-            task: '', locationInScene: '', workTime: '', departureTime: '', onSceneTime: '', returnTime: ''
-        };
-        
-        const unitPersonnel = allPersonnel.filter(p => p.station === unit.station);
-        const allAssignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
-        const uniquePersonnel = unitPersonnel.filter(p => !allAssignedPersonnelIds.has(p.id));
-
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
-                 const newTrackedPersonnel = uniquePersonnel.map(p => ({
-                    ...p,
-                    groupName: g.name
-                }));
-                return { 
-                    ...g, 
-                    units: [...g.units, newTrackedUnit],
-                    personnel: [...g.personnel, ...newTrackedPersonnel]
+                const newTrackedUnit = {
+                    groupName: g.name || '',
+                    task: '',
+                    locationInScene: '',
+                    workTime: '',
+                    departureTime: '',
+                    onSceneTime: '',
+                    returnTime: ''
+                };
+                const newUnitToAdd = { ...unit, ...newTrackedUnit };
+                return {
+                    ...g,
+                    units: [...g.units, newUnitToAdd]
                 };
             }
             return g;
@@ -114,13 +109,21 @@ const CommandPostParentView = (props) => {
     };
     
     const handleAssignPersonnel = (person, groupId) => {
-        const newTrackedPersonnel = {
-            ...person,
-            groupName: interventionGroups.find(g => g.id === groupId)?.name || ''
-        };
-        onUpdateInterventionGroups(interventionGroups.map(g => 
-            g.id === groupId ? { ...g, personnel: [...g.personnel, newTrackedPersonnel] } : g
-        ));
+        const newGroups = interventionGroups.map(g => {
+            if (g.id === groupId) {
+                // FIX: Refactor for consistency with TS fix.
+                const newPersonnelToAdd = { 
+                    ...person, 
+                    groupName: g.name || ''
+                };
+                return {
+                    ...g,
+                    personnel: [...g.personnel, newPersonnelToAdd]
+                };
+            }
+            return g;
+        });
+        onUpdateInterventionGroups(newGroups);
     };
 
     const handleUnassignUnit = (unitId, groupId) => {

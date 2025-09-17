@@ -97,27 +97,22 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
         onUpdateInterventionGroups(interventionGroups.map(g => g.id === groupId ? { ...g, [field]: value } : g));
     };
     
-    const handleAssignUnit = (unit: FireUnit & { station?: string }, groupId: string) => {
-        const newTrackedUnit: TrackedUnit = {
-            ...unit,
-            groupName: interventionGroups.find(g => g.id === groupId)?.name || '',
-            task: '', locationInScene: '', workTime: '', departureTime: '', onSceneTime: '', returnTime: ''
-        };
-        
-        const unitPersonnel = allPersonnel.filter(p => p.station === unit.station);
-        const allAssignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
-        const uniquePersonnel = unitPersonnel.filter(p => !allAssignedPersonnelIds.has(p.id));
-
+    const handleAssignUnit = (unit: FireUnit, groupId: string) => {
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
-                const newTrackedPersonnel: TrackedPersonnel[] = uniquePersonnel.map(p => ({
-                    ...p,
-                    groupName: g.name
-                }));
-                return { 
-                    ...g, 
-                    units: [...g.units, newTrackedUnit],
-                    personnel: [...g.personnel, ...newTrackedPersonnel]
+                const newTrackedUnit: Omit<TrackedUnit, keyof FireUnit> = {
+                    groupName: g.name || '',
+                    task: '',
+                    locationInScene: '',
+                    workTime: '',
+                    departureTime: '',
+                    onSceneTime: '',
+                    returnTime: ''
+                };
+                const newUnitToAdd = { ...unit, ...newTrackedUnit };
+                return {
+                    ...g,
+                    units: [...g.units, newUnitToAdd]
                 };
             }
             return g;
@@ -126,13 +121,21 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     };
     
     const handleAssignPersonnel = (person: Personnel, groupId: string) => {
-        const newTrackedPersonnel: TrackedPersonnel = {
-            ...person,
-            groupName: interventionGroups.find(g => g.id === groupId)?.name || ''
-        };
-        onUpdateInterventionGroups(interventionGroups.map(g => 
-            g.id === groupId ? { ...g, personnel: [...g.personnel, newTrackedPersonnel] } : g
-        ));
+        const newGroups = interventionGroups.map(g => {
+            if (g.id === groupId) {
+                // FIX: Ensure newPersonnelToAdd conforms to TrackedPersonnel by explicitly defining groupName.
+                const newPersonnelToAdd: TrackedPersonnel = {
+                    ...person,
+                    groupName: g.name || ''
+                };
+                return {
+                    ...g,
+                    personnel: [...g.personnel, newPersonnelToAdd]
+                };
+            }
+            return g;
+        });
+        onUpdateInterventionGroups(newGroups);
     };
 
     const handleUnassignUnit = (unitId: string, groupId: string) => {
