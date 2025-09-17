@@ -357,6 +357,7 @@ export interface TrackedPersonnel extends Personnel {
 
 export interface InterventionGroup {
     id: string;
+    type: 'Frente' | 'Unidad Operativa';
     name: string;
     officerInCharge: string;
     units: TrackedUnit[];

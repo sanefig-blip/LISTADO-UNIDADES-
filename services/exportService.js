@@ -572,6 +572,7 @@ export const exportUnitReportToPdf = (reportData) => {
     doc.save(`Reporte_Unidades_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
+// FIX: Add exportEraReportToPdf function
 export const exportEraReportToPdf = (reportData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -631,6 +632,7 @@ export const exportEraReportToPdf = (reportData) => {
     doc.save(`Reporte_ERA_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
+// FIX: Add exportGeneratorReportToPdf function
 export const exportGeneratorReportToPdf = (reportData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -690,6 +692,7 @@ export const exportGeneratorReportToPdf = (reportData) => {
     doc.save(`Reporte_Generadores_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
+// FIX: Add exportMaterialsReportToPdf function
 export const exportMaterialsReportToPdf = (reportData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -752,6 +755,155 @@ export const exportMaterialsReportToPdf = (reportData) => {
     doc.save(`Reporte_Materiales_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
+// FIX: Add exportSci201ToPdf function
+export const exportSci201ToPdf = (data) => {
+    const doc = new jsPDF();
+    let y = 20;
+
+    const addTitle = (title) => {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, 14, y);
+        y += 8;
+    };
+
+    const addSection = (title) => {
+        if (y > 260) { doc.addPage(); y = 20; }
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, 14, y);
+        y += 7;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+    };
+
+    const addField = (label, value) => {
+        if (!value) return;
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold');
+        doc.text(label + ":", 16, y);
+        doc.setFont('helvetica', 'normal');
+        const splitText = doc.splitTextToSize(value, 150);
+        doc.text(splitText, 55, y, { align: 'left' });
+        y += (splitText.length * 5) + 4;
+    };
+
+    addTitle("SCI-201: Briefing de Incidente");
+    addField("Nombre del Incidente", data.incidentName);
+    addField("Fecha/Hora de Preparación", new Date(data.prepDateTime).toLocaleString());
+
+    addSection("Información General");
+    addField("Ubicación", data.incidentLocation);
+    
+    addSection("Evaluación de la Situación Actual");
+    addField("Naturaleza y Magnitud", data.evalNature);
+    addField("Amenazas Significativas", data.evalThreats);
+    addField("Área Afectada", data.evalAffectedArea);
+    addField("Aislamiento y Cierres", data.evalIsolation);
+
+    addSection("Plan de Acción");
+    addField("Objetivos Iniciales", data.initialObjectives);
+    addField("Estrategias", data.strategies);
+    addField("Tácticas", data.tactics);
+
+    addSection("Organización y Logística");
+    addField("Puesto Comando (PC)", data.pcLocation);
+    addField("Ubicación de Espera (E)", data.eLocation);
+    addField("Ruta de Ingreso", data.ingressRoute);
+    addField("Ruta de Egreso", data.egressRoute);
+    addField("Mensaje de Seguridad", data.safetyMessage);
+    addField("Comandante del Incidente", data.incidentCommander);
+
+    if (data.actions && data.actions.length > 0) {
+        if (y > 240) { doc.addPage(); y = 20; }
+        addSection("Acciones Realizadas");
+        autoTable(doc, {
+            startY: y,
+            head: [['Hora', 'Resumen de la Acción']],
+            body: data.actions.map(a => [a.time, a.summary]),
+            theme: 'grid',
+            headStyles: { fillColor: '#3f3f46' },
+        });
+    }
+
+    doc.save(`SCI-201_${(data.incidentName || 'Briefing').replace(/\s/g, '_')}.pdf`);
+};
+
+// FIX: Add exportSci211ToPdf function
+export const exportSci211ToPdf = (resources) => {
+    const doc = new jsPDF('l', 'mm', 'a4'); // landscape
+    doc.setFontSize(16);
+    doc.text("SCI-211: Registro de Recursos", 14, 20);
+
+    const head = [['Recurso', 'Institución', 'Fecha/Hora Arribo', 'Cant. Pers.', 'Estado', 'Asignado a', 'Observaciones']];
+    const body = resources.map(res => [
+        res.resourceType,
+        res.institution,
+        new Date(res.arrivalDateTime).toLocaleString(),
+        res.personnelCount,
+        res.status,
+        res.assignedTo,
+        res.observations
+    ]);
+
+    autoTable(doc, {
+        head,
+        body,
+        startY: 28,
+        theme: 'grid',
+        headStyles: { fillColor: '#3f3f46' },
+        styles: { fontSize: 8 }
+    });
+    
+    doc.save('SCI-211_Registro_Recursos.pdf');
+};
+
+// FIX: Add exportSci207ToPdf function
+export const exportSci207ToPdf = (victims) => {
+    const doc = new jsPDF('l', 'mm', 'a4'); // landscape
+    doc.setFontSize(16);
+    doc.text("SCI-207: Registro de Víctimas", 14, 20);
+
+    const head = [['Nombre/Ident.', 'Sexo', 'Edad', 'Triage', 'Destino', 'Transportado Por', 'Fecha/Hora Transp.']];
+    const body = victims.map(vic => [
+        vic.patientName,
+        vic.sex,
+        vic.age,
+        vic.triage,
+        vic.transportLocation,
+        vic.transportedBy,
+        new Date(vic.transportDateTime).toLocaleString()
+    ]);
+    
+    const triageColors = {
+        'Rojo': [220, 38, 38],
+        'Amarillo': [234, 179, 8],
+        'Verde': [34, 197, 94],
+        'Negro': [17, 24, 39],
+        '': [113, 113, 122]
+    };
+
+    autoTable(doc, {
+        head,
+        body,
+        startY: 28,
+        theme: 'grid',
+        headStyles: { fillColor: '#3f3f46' },
+        styles: { fontSize: 8 },
+        didParseCell: (data) => {
+            if (data.column.index === 3 && data.cell.section === 'body') {
+                const triage = data.cell.raw;
+                if (triage && triageColors[triage]) {
+                    data.cell.styles.fillColor = triageColors[triage];
+                    data.cell.styles.textColor = (triage === 'Amarillo' || triage === '') ? [0,0,0] : [255,255,255];
+                }
+            }
+        }
+    });
+    
+    doc.save('SCI-207_Registro_Victimas.pdf');
+};
+
 const createPdfTable = (doc, title, head, body, startY) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -767,7 +919,9 @@ const createPdfTable = (doc, title, head, body, startY) => {
     return (doc).lastAutoTable.finalY;
 };
 
-export const exportTacticalCommandPostToPdf = (interventionGroups) => {
+export const exportTacticalCommandPostToPdf = (
+    interventionGroups,
+) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 14;
@@ -835,7 +989,7 @@ export const exportCommandPostSummaryToPdf = (
     y = createPdfTable(doc, `Personal Disponible (${availablePersonnel.length})`, [['Nombre', 'Jerarquía']], availablePersonnel.map(p => [p.name, p.rank]), y) + 10;
 
     doc.save(`Resumen_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
-};
+}
 
 
 export const exportPersonnelToExcel = (personnel, title) => {

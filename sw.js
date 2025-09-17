@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fire-dept-organizer-cache-v60';
+const CACHE_NAME = 'fire-dept-organizer-cache-v63';
 const urlsToCache = [
   './',
   './index.html',
@@ -22,6 +22,10 @@ const urlsToCache = [
   './components/FormSCI201View.js',
   './components/FormSCI211View.js',
   './components/FormSCI207View.js',
+  './components/SciFormsView.js',
+  './components/TacticalCommandPostView.js',
+  './components/CommandPostParentView.js',
+  './components/CommandPostSummaryView.js',
   './components/EraReportDisplay.js',
   './components/GeneratorReportDisplay.js',
   './components/Croquis.js',

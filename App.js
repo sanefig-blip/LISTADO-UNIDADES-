@@ -59,6 +59,7 @@ const App = () => {
     const [materialsReport, setMaterialsReport] = useState(null);
     const [hidroAlertData, setHidroAlertData] = useState(null);
     const [regimen, setRegimen] = useState(null);
+    const [interventionGroups, setInterventionGroups] = useState([]);
     const [view, setView] = useState('unit-report'); // Default to new view
     const [displayDate, setDisplayDate] = useState(null);
     const [commandPersonnel, setCommandPersonnel] = useState([]);
@@ -290,6 +291,7 @@ const App = () => {
         setServiceTemplates(JSON.parse(localStorage.getItem('serviceTemplates') || JSON.stringify(defaultServiceTemplates)));
         setRoster(loadedRoster);
         setRegimen(JSON.parse(localStorage.getItem('regimenData') || JSON.stringify(preloadedRegimenData)));
+        setInterventionGroups(JSON.parse(localStorage.getItem('interventionGroups') || '[]'));
     }, []);
 
     const sortPersonnel = (a, b) => {
@@ -362,6 +364,11 @@ const App = () => {
     const handleUpdateRegimenData = (updatedData) => {
         localStorage.setItem('regimenData', JSON.stringify(updatedData));
         setRegimen(updatedData);
+    };
+
+    const handleUpdateInterventionGroups = (groups) => {
+        localStorage.setItem('interventionGroups', JSON.stringify(groups));
+        setInterventionGroups(groups);
     };
 
     const handleUpdateService = (updatedService, type) => {
@@ -939,7 +946,11 @@ const App = () => {
                 return React.createElement(CommandPostParentView, { 
                     unitReportData: unitReport, 
                     commandPersonnel: commandPersonnel, 
-                    servicePersonnel: servicePersonnel 
+                    servicePersonnel: servicePersonnel,
+                    unitList: unitList,
+                    currentUser: currentUser,
+                    interventionGroups: interventionGroups,
+                    onUpdateInterventionGroups: handleUpdateInterventionGroups
                 });
             case 'forestal':
                 return React.createElement(ForestalView, {});

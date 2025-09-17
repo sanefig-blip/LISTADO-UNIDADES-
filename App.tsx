@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { rankOrder, Schedule, Personnel, Rank, Roster, Service, Officer, ServiceTemplate, Assignment, UnitReportData, EraData, GeneratorData, MaterialsData, Zone, UnitGroup, MaterialLocation, User, HidroAlertData, RegimenData } from './types';
+import { rankOrder, Schedule, Personnel, Rank, Roster, Service, Officer, ServiceTemplate, Assignment, UnitReportData, EraData, GeneratorData, MaterialsData, Zone, UnitGroup, MaterialLocation, User, HidroAlertData, RegimenData, InterventionGroup } from './types';
 import { scheduleData as preloadedScheduleData } from './data/scheduleData';
 import { unitReportData as preloadedUnitReportData } from './data/unitReportData';
 import { eraData as preloadedEraData } from './data/eraData';
@@ -21,7 +21,6 @@ import TimeGroupedScheduleDisplay from './components/TimeGroupedScheduleDisplay'
 import Nomenclador from './components/Nomenclador';
 import UnitReportDisplay from './components/UnitReportDisplay';
 import UnitStatusView from './components/UnitStatusView';
-// Fix: Use CommandPostParentView which is designed to handle the initial data props.
 import CommandPostParentView from './components/CommandPostParentView';
 import EraReportDisplay from './components/EraReportDisplay';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay';
@@ -30,6 +29,7 @@ import MaterialStatusView from './components/MaterialStatusView';
 import ForestalView from './components/ForestalView';
 import HidroAlertView from './components/HidroAlertView';
 import RegimenDeIntervencion from './components/RegimenDeIntervencion';
+import SciFormsView from './components/SciFormsView';
 import Login from './components/Login';
 import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon, LogoutIcon, ShieldExclamationIcon, SunIcon, MaximizeIcon, MinimizeIcon, DocumentTextIcon } from './components/icons';
 import HelpModal from './components/HelpModal';
@@ -60,6 +60,7 @@ const App = () => {
     const [materialsReport, setMaterialsReport] = useState<MaterialsData | null>(null);
     const [hidroAlertData, setHidroAlertData] = useState<HidroAlertData | null>(null);
     const [regimen, setRegimen] = useState<RegimenData | null>(null);
+    const [interventionGroups, setInterventionGroups] = useState<InterventionGroup[]>([]);
     const [view, setView] = useState('unit-report'); // Default to new view
     const [displayDate, setDisplayDate] = useState<Date | null>(null);
     const [commandPersonnel, setCommandPersonnel] = useState<Personnel[]>([]);
@@ -291,6 +292,7 @@ const App = () => {
         setServiceTemplates(JSON.parse(localStorage.getItem('serviceTemplates') || JSON.stringify(defaultServiceTemplates)));
         setRoster(loadedRoster);
         setRegimen(JSON.parse(localStorage.getItem('regimenData') || JSON.stringify(preloadedRegimenData)));
+        setInterventionGroups(JSON.parse(localStorage.getItem('interventionGroups') || '[]'));
 
     }, []);
 
@@ -364,6 +366,11 @@ const App = () => {
     const handleUpdateRegimenData = (updatedData: RegimenData) => {
         localStorage.setItem('regimenData', JSON.stringify(updatedData));
         setRegimen(updatedData);
+    };
+
+    const handleUpdateInterventionGroups = (groups: InterventionGroup[]) => {
+        localStorage.setItem('interventionGroups', JSON.stringify(groups));
+        setInterventionGroups(groups);
     };
 
     const handleUpdateService = (updatedService: Service, type: 'common' | 'sports') => {
@@ -910,44 +917,52 @@ const App = () => {
         switch (view) {
             case 'hidro-alert':
                 if (!hidroAlertData) return null;
-                return <HidroAlertView hidroAlertData={hidroAlertData} onUpdateReport={handleUpdateHidroAlertData} unitList={unitList} />;
+                return React.createElement(HidroAlertView, { hidroAlertData: hidroAlertData, onUpdateReport: handleUpdateHidroAlertData, unitList: unitList });
             case 'unit-report':
                 if (!unitReport) return null;
-                return <UnitReportDisplay reportData={unitReport} searchTerm={searchTerm} onSearchChange={setSearchTerm} onUpdateReport={handleUpdateUnitReport} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} unitList={unitList} unitTypes={unitTypes} currentUser={currentUser} />;
+                return React.createElement(UnitReportDisplay, { reportData: unitReport, searchTerm: searchTerm, onSearchChange: setSearchTerm, onUpdateReport: handleUpdateUnitReport, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, unitList: unitList, unitTypes: unitTypes, currentUser: currentUser });
             case 'unit-status':
                 if (!unitReport) return null;
-                return <UnitStatusView unitReportData={unitReport} />;
+                return React.createElement(UnitStatusView, { unitReportData: unitReport });
             case 'material-status':
                 if (!materialsReport) return null;
-                return <MaterialStatusView materialsData={materialsReport} />;
+                return React.createElement(MaterialStatusView, { materialsData: materialsReport });
             case 'command-post':
                 if (!unitReport) return null;
-                return <CommandPostParentView unitReportData={unitReport} servicePersonnel={servicePersonnel} commandPersonnel={commandPersonnel} />;
+                return React.createElement(CommandPostParentView, { 
+                    unitReportData: unitReport, 
+                    commandPersonnel: commandPersonnel, 
+                    servicePersonnel: servicePersonnel,
+                    unitList: unitList,
+                    currentUser: currentUser,
+                    interventionGroups: interventionGroups,
+                    onUpdateInterventionGroups: handleUpdateInterventionGroups
+                });
             case 'forestal':
-                return <ForestalView />;
+                return React.createElement(ForestalView, {});
             case 'era-report':
                 if (!eraReport) return null;
-                return <EraReportDisplay reportData={eraReport} onUpdateReport={handleUpdateEraReport} currentUser={currentUser} />;
+                return React.createElement(EraReportDisplay, { reportData: eraReport, onUpdateReport: handleUpdateEraReport, currentUser: currentUser });
             case 'generator-report':
                 if (!generatorReport) return null;
-                return <GeneratorReportDisplay reportData={generatorReport} onUpdateReport={handleUpdateGeneratorReport} currentUser={currentUser} />;
+                return React.createElement(GeneratorReportDisplay, { reportData: generatorReport, onUpdateReport: handleUpdateGeneratorReport, currentUser: currentUser });
             case 'materials':
                 if (!materialsReport) return null;
-                return <MaterialsDisplay reportData={materialsReport} onUpdateReport={handleUpdateMaterialsReport} currentUser={currentUser} />;
+                return React.createElement(MaterialsDisplay, { reportData: materialsReport, onUpdateReport: handleUpdateMaterialsReport, currentUser: currentUser });
             case 'schedule':
                 if (!filteredSchedule) return null;
-                return <ScheduleDisplay schedule={filteredSchedule} displayDate={displayDate} selectedServiceIds={selectedServiceIds} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} unitList={unitList} onDateChange={handleDateChange} onUpdateService={handleUpdateService} onUpdateCommandStaff={handleUpdateCommandStaff} onAddNewService={handleAddNewService} onMoveService={handleMoveService} onToggleServiceSelection={handleToggleServiceSelection} onSelectAllServices={handleSelectAllServices} onSaveAsTemplate={handleSaveAsTemplate} onReplaceFromTemplate={(serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId })} onImportGuardLine={() => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true)} onDeleteService={handleDeleteService} searchTerm={searchTerm} onSearchChange={setSearchTerm} currentUser={currentUser} />;
+                return React.createElement(ScheduleDisplay, { schedule: filteredSchedule, displayDate: displayDate, selectedServiceIds: selectedServiceIds, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, unitList: unitList, onDateChange: handleDateChange, onUpdateService: handleUpdateService, onUpdateCommandStaff: handleUpdateCommandStaff, onAddNewService: handleAddNewService, onMoveService: handleMoveService, onToggleServiceSelection: handleToggleServiceSelection, onSelectAllServices: handleSelectAllServices, onSaveAsTemplate: handleSaveAsTemplate, onReplaceFromTemplate: (serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId }), onImportGuardLine: () => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true), onDeleteService: handleDeleteService, searchTerm: searchTerm, onSearchChange: setSearchTerm, currentUser: currentUser });
             case 'time-grouped':
                 if (!filteredSchedule) return null;
-                return <TimeGroupedScheduleDisplay assignmentsByTime={getAssignmentsByTime} onAssignmentStatusChange={handleAssignmentStatusChange} />;
+                return React.createElement(TimeGroupedScheduleDisplay, { assignmentsByTime: getAssignmentsByTime, onAssignmentStatusChange: handleAssignmentStatusChange });
             case 'nomenclador':
                  if (currentUser.role !== 'admin') {
-                    return <div className="text-center text-red-400 text-lg">Acceso denegado. Se requieren permisos de administrador.</div>;
+                    return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado. Se requieren permisos de administrador.");
                 }
-                return <Nomenclador commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} units={unitList} unitTypes={unitTypes} roster={roster} users={usersData} onAddCommandPersonnel={(item) => updateAndSaveCommandPersonnel([...commandPersonnel, item])} onUpdateCommandPersonnel={(item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p))} onRemoveCommandPersonnel={(item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id))} onAddServicePersonnel={(item) => updateAndSaveServicePersonnel([...servicePersonnel, item])} onUpdateServicePersonnel={(item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p))} onRemoveServicePersonnel={(item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id))} onUpdateUnits={updateAndSaveUnits} onUpdateUnitTypes={updateAndSaveUnitTypes} onUpdateRoster={updateAndSaveRoster} onUpdateUsers={updateAndSaveUsers} />;
+                return React.createElement(Nomenclador, { commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, unitTypes: unitTypes, roster: roster, users: usersData, onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)), onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)), onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers });
             case 'regimen':
                 if(!regimen) return null;
-                return <RegimenDeIntervencion regimenData={regimen} onUpdateRegimenData={handleUpdateRegimenData} />;
+                return React.createElement(RegimenDeIntervencion, { regimenData: regimen, onUpdateRegimenData: handleUpdateRegimenData });
             default:
                 return null;
         }
@@ -956,129 +971,135 @@ const App = () => {
     const getButtonClass = (buttonView: string) => `flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 outline-none transition-colors whitespace-nowrap focus-visible:bg-zinc-700/50 ${view === buttonView ? 'border-blue-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-100 hover:border-zinc-500'}`;
     
      if (!currentUser) {
-        return <Login onLogin={handleLogin} users={usersData} />;
+        return React.createElement(Login, { onLogin: handleLogin, users: usersData });
     }
     
     if (!schedule || !displayDate || !unitReport || !eraReport || !generatorReport || !materialsReport || !hidroAlertData || !regimen) {
         return (
-            <div className="bg-zinc-900 text-white min-h-screen flex justify-center items-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
+            React.createElement("div", { className: "bg-zinc-900 text-white min-h-screen flex justify-center items-center" },
+                React.createElement("div", { className: "animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500" })
+            )
         );
     }
 
     return (
-        <div className="bg-zinc-900 text-white min-h-screen font-sans">
-            <input type="file" ref={fileInputRef} onChange={handleFileImport} style={{ display: 'none' }} accept=".xlsx,.xls,.docx,.ods" />
-            <input type="file" ref={unitReportFileInputRef} onChange={handleUnitReportImport} style={{ display: 'none' }} accept=".xlsx,.xls" />
-            <input type="file" ref={unitReportPdfFileInputRef} onChange={handleUnitReportPdfImport} style={{ display: 'none' }} accept=".pdf" />
-            <input type="file" ref={rosterInputRef} onChange={handleRosterImport} style={{ display: 'none' }} accept=".json,.docx" />
-            <header className="bg-zinc-800/80 backdrop-blur-sm sticky top-0 z-40 shadow-lg">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center">
-                            <h1 className="text-2xl font-bold text-white tracking-wider mr-4">BOMBEROS DE LA CIUDAD</h1>
-                            <button onClick={handleResetData} className="mr-2 text-zinc-400 hover:text-white transition-colors" aria-label="Reiniciar Datos"><RefreshIcon className="w-6 h-6" /></button>
-                            <button onClick={() => setIsHelpModalOpen(true)} className="mr-4 text-zinc-400 hover:text-white transition-colors" aria-label="Ayuda"><QuestionMarkCircleIcon className="w-6 h-6" /></button>
-                        </div>
-                        <div className="flex items-center justify-end gap-2 md:gap-4">
-                             <div className="flex items-center text-sm text-zinc-300 flex-shrink-0">
-                                <span>Conectado: <strong className="text-white">{currentUser.username}</strong></span>
-                                <button onClick={handleLogout} className="ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors" title="Cerrar sesión"><LogoutIcon className="w-5 h-5" /></button>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="relative" ref={importMenuRef}>
-                                    <button onClick={() => setImportMenuOpen(prev => !prev)} className='flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors'>
-                                        <UploadIcon className='w-5 h-5' />
-                                        <span>Importar</span>
-                                        <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isImportMenuOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {isImportMenuOpen && (
-                                        <div className="absolute right-0 mt-2 w-72 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in">
-                                            <div className="py-1" role="menu" aria-orientation="vertical">
-                                                <button type="button" onClick={() => { fileInputRef.current?.click(); setImportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                    <UploadIcon className='w-4 h-4' /> Importar Horario (Word/Excel)
-                                                </button>
-                                                <button type="button" onClick={() => { unitReportFileInputRef.current?.click(); setImportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                    <UploadIcon className='w-4 h-4' /> Importar Reporte Unidades (Excel)
-                                                </button>
-                                                <button type="button" onClick={() => { unitReportPdfFileInputRef.current?.click(); setImportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                    <UploadIcon className='w-4 h-4' /> Importar Reporte Unidades (PDF)
-                                                </button>
-                                                <button type="button" onClick={() => { rosterInputRef.current?.click(); setImportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                    <UploadIcon className='w-4 h-4' /> Importar Rol de Guardia (JSON/Word)
-                                                </button>
-                                                <button type="button" onClick={() => { exportRosterWordTemplate(); setImportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                    <DownloadIcon className='w-4 h-4' /> Plantilla Rol de Guardia (Word)
-                                                </button>
-                                                <button type="button" onClick={() => { openTemplateModal({ mode: 'add', serviceType: 'common' }); setImportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                    <BookmarkIcon className='w-4 h-4' /> Añadir desde Plantilla
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+        React.createElement("div", { className: "bg-zinc-900 text-white min-h-screen font-sans" },
+            React.createElement("input", { type: "file", ref: fileInputRef, onChange: handleFileImport, style: { display: 'none' }, accept: ".xlsx,.xls,.docx,.ods" }),
+            React.createElement("input", { type: "file", ref: unitReportFileInputRef, onChange: handleUnitReportImport, style: { display: 'none' }, accept: ".xlsx,.xls" }),
+            React.createElement("input", { type: "file", ref: unitReportPdfFileInputRef, onChange: handleUnitReportPdfImport, style: { display: 'none' }, accept: ".pdf" }),
+            React.createElement("input", { type: "file", ref: rosterInputRef, onChange: handleRosterImport, style: { display: 'none' }, accept: ".json,.docx" }),
+            React.createElement("header", { className: "bg-zinc-800/80 backdrop-blur-sm sticky top-0 z-40 shadow-lg" },
+                React.createElement("div", { className: "container mx-auto px-4 sm:px-6 lg:px-8" },
+                    React.createElement("div", { className: "flex items-center justify-between h-16" },
+                        React.createElement("div", { className: "flex items-center" },
+                            React.createElement("h1", { className: "text-2xl font-bold text-white tracking-wider mr-4" }, "BOMBEROS DE LA CIUDAD"),
+                            React.createElement("button", { onClick: handleResetData, className: "mr-2 text-zinc-400 hover:text-white transition-colors", "aria-label": "Reiniciar Datos"}, React.createElement(RefreshIcon, { className: "w-6 h-6" })),
+                            React.createElement("button", { onClick: () => setIsHelpModalOpen(true), className: "mr-4 text-zinc-400 hover:text-white transition-colors", "aria-label": "Ayuda"}, React.createElement(QuestionMarkCircleIcon, { className: "w-6 h-6" }))
+                        ),
+                        React.createElement("div", { className: "flex items-center justify-end gap-2 md:gap-4" },
+                             React.createElement("div", { className: "flex items-center text-sm text-zinc-300 flex-shrink-0" },
+                                React.createElement("span", null, "Conectado: ", React.createElement("strong", { className: "text-white" }, currentUser.username)),
+                                React.createElement("button", { onClick: handleLogout, className: "ml-2 p-1.5 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors", title: "Cerrar sesión"}, React.createElement(LogoutIcon, { className: "w-5 h-5" }))
+                            ),
+                            React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0" },
+                                React.createElement("div", { className: "relative", ref: importMenuRef },
+                                    React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },
+                                        React.createElement(UploadIcon, { className: 'w-5 h-5' }),
+                                        React.createElement("span", null, "Importar"),
+                                        React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isImportMenuOpen ? 'rotate-180' : ''}` })
+                                    ),
+                                    isImportMenuOpen && (
+                                        React.createElement("div", { className: "absolute right-0 mt-2 w-72 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
+                                            React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical" },
+                                                React.createElement("button", { type: "button", onClick: () => { fileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Horario (Word/Excel)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { unitReportFileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Reporte Unidades (Excel)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { unitReportPdfFileInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Reporte Unidades (PDF)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { rosterInputRef.current?.click(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(UploadIcon, { className: 'w-4 h-4' }), " Importar Rol de Guardia (JSON/Word)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { exportRosterWordTemplate(); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Plantilla Rol de Guardia (Word)"
+                                                ),
+                                                React.createElement("button", { type: "button", onClick: () => { openTemplateModal({ mode: 'add', serviceType: 'common' }); setImportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                    React.createElement(BookmarkIcon, { className: 'w-4 h-4' }), " Añadir desde Plantilla"
+                                                )
+                                            )
+                                        )
+                                    )
+                                ),
 
-                                <div className="relative" ref={exportMenuRef}>
-                                    <button onClick={() => setExportMenuOpen(prev => !prev)} className='flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white font-medium transition-colors'>
-                                        <DownloadIcon className='w-5 h-5' />
-                                        <span>Exportar</span>
-                                        <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {isExportMenuOpen && <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in">
-                                        <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                            <button type="button" onClick={() => { exportScheduleToWord({ ...schedule, date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() }); setExportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                <DownloadIcon className='w-4 h-4' /> Exportar General</button>
-                                            <button type="button" onClick={() => { exportScheduleByTimeToWord({ date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(), assignmentsByTime: getAssignmentsByTime }); setExportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                <DownloadIcon className='w-4 h-4' /> Exportar por Hora</button>
-                                            <button type="button" onClick={() => { setIsExportTemplateModalOpen(true); setExportMenuOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left" role="menuitem">
-                                                <DownloadIcon className='w-4 h-4' /> Exportar Plantilla</button>
-                                        </div>
-                                    </div>}
-                                </div>
+                                React.createElement("div", { className: "relative", ref: exportMenuRef },
+                                    React.createElement("button", { onClick: () => setExportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white font-medium transition-colors' },
+                                        React.createElement(DownloadIcon, { className: 'w-5 h-5' }),
+                                        React.createElement("span", null, "Exportar"),
+                                        React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}` })
+                                    ),
+                                    isExportMenuOpen && React.createElement("div", { className: "absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
+                                        React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical", "aria-labelledby": "options-menu" },
+                                            React.createElement("button", { type: "button", onClick: () => { exportScheduleToWord({ ...schedule, date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() }); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar General"),
+                                            React.createElement("button", { type: "button", onClick: () => { exportScheduleByTimeToWord({ date: displayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(), assignmentsByTime: getAssignmentsByTime }); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar por Hora"),
+                                            React.createElement("button", { type: "button", onClick: () => { setIsExportTemplateModalOpen(true); setExportMenuOpen(false); }, className: "flex items-center gap-3 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 w-full text-left", role: "menuitem" },
+                                                React.createElement(DownloadIcon, { className: 'w-4 h-4' }), " Exportar Plantilla")
+                                        )
+                                    )
+                                ),
                                 
-                                {selectedServiceIds.size > 0 && view === 'schedule' && (
-                                    <button onClick={handleToggleVisibilityForSelected} className={`flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ${visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`}>
-                                        {visibilityAction.action === 'hide' ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                                        {`${visibilityAction.label} (${selectedServiceIds.size})`}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-             <div className="sticky top-16 z-30 bg-zinc-800/80 backdrop-blur-sm border-b border-zinc-700">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <nav className="relative overflow-hidden">
-                    <div ref={navScrollRef} className="flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide cursor-grab" onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}>
-                        <button className={getButtonClass('unit-report')} onClick={() => setView('unit-report')}><FireIcon className="w-5 h-5" /> Reporte de Unidades</button>
-                        <button className={getButtonClass('hidro-alert')} onClick={() => setView('hidro-alert')}><ShieldExclamationIcon className="w-5 h-5" /> Alerta Hidro</button>
-                        <button className={getButtonClass('unit-status')} onClick={() => setView('unit-status')}><FilterIcon className="w-5 h-5" /> Estado de Unidades</button>
-                        <button className={getButtonClass('material-status')} onClick={() => setView('material-status')}><ClipboardCheckIcon className="w-5 h-5" /> Estado de Materiales</button>
-                        {(currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && <button className={getButtonClass('command-post')} onClick={() => setView('command-post')}><AnnotationIcon className="w-5 h-5" /> Puesto Comando</button>}
-                        {currentUser.role === 'admin' && <button className={getButtonClass('forestal')} onClick={() => setView('forestal')}><MapIcon className="w-5 h-5" /> Forestal</button>}
-                        <button className={getButtonClass('era-report')} onClick={() => setView('era-report')}><LightningBoltIcon className="w-5 h-5" /> Trasvazadores E.R.A.</button>
-                        <button className={getButtonClass('generator-report')} onClick={() => setView('generator-report')}><LightningBoltIcon className="w-5 h-5" /> Grupos Electrógenos</button>
-                        <button className={getButtonClass('materials')} onClick={() => setView('materials')}><CubeIcon className="w-5 h-5" /> Materiales</button>
-                        <button className={getButtonClass('schedule')} onClick={() => setView('schedule')}><ClipboardListIcon className="w-5 h-5" /> Planificador</button>
-                        {currentUser.role === 'admin' && <button className={getButtonClass('time-grouped')} onClick={() => setView('time-grouped')}><ClockIcon className="w-5 h-5" /> Vista por Hora</button>}
-                        {(currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && <button className={getButtonClass('regimen')} onClick={() => setView('regimen')}><DocumentTextIcon className="w-5 h-5" /> Régimen de Intervención</button>}
-                        {currentUser.role === 'admin' && <button className={getButtonClass('nomenclador')} onClick={() => setView('nomenclador')}><BookOpenIcon className="w-5 h-5" /> Nomencladores</button>}
-                    </div>
-                    <div className={`absolute top-0 left-0 bottom-0 w-8 bg-gradient-to-r from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.left ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true"></div>
-                    <div className={`absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.right ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true"></div>
-                </nav>
-              </div>
-            </div>
-            <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-                {renderContent()}
-            </main>
-            {isHelpModalOpen && <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} unitList={unitList} commandPersonnel={commandPersonnel} servicePersonnel={servicePersonnel} />}
-            {isTemplateModalOpen && <ServiceTemplateModal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} templates={serviceTemplates} onSelectTemplate={(template) => handleSelectTemplate(template, templateModalProps)} onDeleteTemplate={handleDeleteTemplate} />}
-            {isExportTemplateModalOpen && <ExportTemplateModal isOpen={isExportTemplateModalOpen} onClose={() => setIsExportTemplateModalOpen(false)} onExport={handleExportAsTemplate} />}
-        </div>
+                                selectedServiceIds.size > 0 && view === 'schedule' && (
+                                    React.createElement("button", { onClick: handleToggleVisibilityForSelected, className: `flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ${visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`},
+                                        visibilityAction.action === 'hide' ? React.createElement(EyeOffIcon, { className: "w-5 h-5" }) : React.createElement(EyeIcon, { className: "w-5 h-5" }),
+                                        `${visibilityAction.label} (${selectedServiceIds.size})`
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+             React.createElement("div", { className: "sticky top-16 z-30 bg-zinc-800/80 backdrop-blur-sm border-b border-zinc-700" },
+              React.createElement("div", { className: "container mx-auto px-4 sm:px-6 lg:px-8" },
+                React.createElement("nav", { className: "relative overflow-hidden" },
+                    React.createElement("div", {
+                            ref: navScrollRef,
+                            className: "flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide cursor-grab",
+                            onMouseDown: handleMouseDown,
+                            onMouseLeave: handleMouseLeave,
+                            onMouseUp: handleMouseUp,
+                            onMouseMove: handleMouseMove
+                        },
+                        React.createElement("button", { className: getButtonClass('unit-report'), onClick: () => setView('unit-report') }, React.createElement(FireIcon, { className: "w-5 h-5" }), " Reporte de Unidades"),
+                        React.createElement("button", { className: getButtonClass('hidro-alert'), onClick: () => setView('hidro-alert') }, React.createElement(ShieldExclamationIcon, { className: "w-5 h-5" }), " Alerta Hidro"),
+                        React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
+                        React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
+                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
+                        currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
+                        React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
+                        React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
+                        React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
+                        React.createElement("button", { className: getButtonClass('schedule'), onClick: () => setView('schedule') }, React.createElement(ClipboardListIcon, { className: "w-5 h-5" }), " Planificador"),
+                        currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('time-grouped'), onClick: () => setView('time-grouped') }, React.createElement(ClockIcon, { className: "w-5 h-5" }), " Vista por Hora"),
+                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('regimen'), onClick: () => setView('regimen') }, React.createElement(DocumentTextIcon, { className: "w-5 h-5" }), " Régimen de Intervención"),
+                        currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores")
+                    ),
+                    React.createElement("div", { className: `absolute top-0 left-0 bottom-0 w-8 bg-gradient-to-r from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.left ? 'opacity-100' : 'opacity-0'}`, "aria-hidden": "true" }),
+                    React.createElement("div", { className: `absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.right ? 'opacity-100' : 'opacity-0'}`, "aria-hidden": "true" })
+                )
+              )
+            ),
+            React.createElement("main", { className: "container mx-auto p-4 sm:p-6 lg:p-8" },
+                renderContent()
+            ),
+            isHelpModalOpen && React.createElement(HelpModal, { isOpen: isHelpModalOpen, onClose: () => setIsHelpModalOpen(false), unitList: unitList, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel }),
+            isTemplateModalOpen && React.createElement(ServiceTemplateModal, { isOpen: isTemplateModalOpen, onClose: () => setIsTemplateModalOpen(false), templates: serviceTemplates, onSelectTemplate: (template) => handleSelectTemplate(template, templateModalProps), onDeleteTemplate: handleDeleteTemplate }),
+            isExportTemplateModalOpen && React.createElement(ExportTemplateModal, { isOpen: isExportTemplateModalOpen, onClose: () => setIsExportTemplateModalOpen(false), onExport: handleExportAsTemplate })
+        )
     );
 };
-
 export default App;

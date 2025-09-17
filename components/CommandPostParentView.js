@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import CommandPostSummaryView from './CommandPostSummaryView.js';
-import TacticalCommandPostView from './TacticalCommandPostView.js';
+import TacticalCommandPostView from './CommandPostView.js';
+import SciFormsView from './SciFormsView.js';
+import { PlusCircleIcon } from './icons.js';
 
-const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePersonnel }) => {
+const CommandPostParentView = (props) => {
+    const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
     const [activeTab, setActiveTab] = useState('summary');
-    const [interventionGroups, setInterventionGroups] = useState([]);
     const [incidentDetails, setIncidentDetails] = useState({ type: '', address: '', alarmTime: '' });
 
     const allUnits = useMemo(() => {
@@ -61,23 +63,26 @@ const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePerson
         };
     }, [interventionGroups, allUnits, allPersonnel]);
 
-    const handleCreateGroup = () => {
+    const handleCreateGroup = (type) => {
         const newGroup = {
             id: `group-${Date.now()}`,
-            name: `Nuevo Grupo ${interventionGroups.length + 1}`,
+            type: type,
+            name: type === 'Frente' 
+                ? `Nuevo Frente ${interventionGroups.filter(g => g.type === 'Frente').length + 1}` 
+                : `Nueva U.O. ${interventionGroups.filter(g => g.type === 'Unidad Operativa').length + 1}`,
             officerInCharge: '',
             units: [],
             personnel: [],
         };
-        setInterventionGroups(prev => [...prev, newGroup]);
+        onUpdateInterventionGroups([...interventionGroups, newGroup]);
     };
 
     const handleDeleteGroup = (groupId) => {
-        setInterventionGroups(prev => prev.filter(g => g.id !== groupId));
+        onUpdateInterventionGroups(interventionGroups.filter(g => g.id !== groupId));
     };
 
     const handleGroupChange = (groupId, field, value) => {
-        setInterventionGroups(prev => prev.map(g => g.id === groupId ? { ...g, [field]: value } : g));
+        onUpdateInterventionGroups(interventionGroups.map(g => g.id === groupId ? { ...g, [field]: value } : g));
     };
     
     const handleAssignUnit = (unit, groupId) => {
@@ -88,9 +93,10 @@ const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePerson
         };
         
         const unitPersonnel = allPersonnel.filter(p => p.station === unit.station);
-        const uniquePersonnel = unitPersonnel.filter(p => !interventionGroups.some(g => g.personnel.some(assignedP => assignedP.id === p.id)));
+        const allAssignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
+        const uniquePersonnel = unitPersonnel.filter(p => !allAssignedPersonnelIds.has(p.id));
 
-        setInterventionGroups(prev => prev.map(g => {
+        const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
                  const newTrackedPersonnel = uniquePersonnel.map(p => ({
                     ...p,
@@ -103,7 +109,8 @@ const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePerson
                 };
             }
             return g;
-        }));
+        });
+        onUpdateInterventionGroups(newGroups);
     };
     
     const handleAssignPersonnel = (person, groupId) => {
@@ -111,25 +118,25 @@ const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePerson
             ...person,
             groupName: interventionGroups.find(g => g.id === groupId)?.name || ''
         };
-        setInterventionGroups(prev => prev.map(g => 
+        onUpdateInterventionGroups(interventionGroups.map(g => 
             g.id === groupId ? { ...g, personnel: [...g.personnel, newTrackedPersonnel] } : g
         ));
     };
 
     const handleUnassignUnit = (unitId, groupId) => {
-        setInterventionGroups(prev => prev.map(g => 
+        onUpdateInterventionGroups(interventionGroups.map(g => 
             g.id === groupId ? { ...g, units: g.units.filter(u => u.id !== unitId) } : g
         ));
     };
 
     const handleUnassignPersonnel = (personnelId, groupId) => {
-        setInterventionGroups(prev => prev.map(g => 
+        onUpdateInterventionGroups(interventionGroups.map(g => 
             g.id === groupId ? { ...g, personnel: g.personnel.filter(p => p.id !== personnelId) } : g
         ));
     };
 
     const handleUnitDetailChange = (groupId, unitId, field, value) => {
-        setInterventionGroups(prev => prev.map(group => {
+        onUpdateInterventionGroups(interventionGroups.map(group => {
             if (group.id === groupId) {
                 return {
                     ...group,
@@ -148,11 +155,14 @@ const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePerson
         children)
     );
 
+    const showSciForms = currentUser.role === 'admin' || currentUser.username === 'Puesto Comando';
+
     return (
         React.createElement("div", null,
             React.createElement("div", { className: "flex border-b border-zinc-700" },
                 React.createElement(TabButton, { tabId: "summary" }, "Resumen"),
-                React.createElement(TabButton, { tabId: "tactical" }, "Comando Táctico")
+                React.createElement(TabButton, { tabId: "tactical" }, "Comando Táctico"),
+                showSciForms && React.createElement(TabButton, { tabId: "sci-forms" }, "Formularios SCI")
             ),
             React.createElement("div", { className: "pt-6" },
                 activeTab === 'summary' && 
@@ -162,18 +172,36 @@ const CommandPostParentView = ({ unitReportData, commandPersonnel, servicePerson
                         interventionGroups: interventionGroups
                     }),
                 activeTab === 'tactical' && 
-                    React.createElement(TacticalCommandPostView, { 
-                        interventionGroups: interventionGroups,
-                        availableUnits: availableUnits,
-                        availablePersonnel: availablePersonnel,
-                        allPersonnel: allPersonnel,
-                        onGroupChange: handleGroupChange,
-                        onDeleteGroup: handleDeleteGroup,
-                        onAssignUnit: handleAssignUnit,
-                        onAssignPersonnel: handleAssignPersonnel,
-                        onUnassignUnit: handleUnassignUnit,
-                        onUnassignPersonnel: handleUnassignPersonnel,
-                        onUnitDetailChange: handleUnitDetailChange
+                    React.createElement("div", { className: "space-y-6" },
+                        React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl flex items-center gap-4" },
+                            React.createElement("h3", { className: "text-lg font-semibold text-white" }, "Gestionar Grupos de Trabajo:"),
+                            React.createElement("button", { onClick: () => handleCreateGroup('Frente'), className: "flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold text-sm transition-colors" },
+                                React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
+                                "Crear Frente"
+                            ),
+                            React.createElement("button", { onClick: () => handleCreateGroup('Unidad Operativa'), className: "flex items-center gap-2 px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold text-sm transition-colors" },
+                                React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
+                                "Crear Unidad Operativa"
+                            )
+                        ),
+                        React.createElement(TacticalCommandPostView, { 
+                            interventionGroups: interventionGroups,
+                            availableUnits: availableUnits,
+                            availablePersonnel: availablePersonnel,
+                            allPersonnel: allPersonnel,
+                            onGroupChange: handleGroupChange,
+                            onDeleteGroup: handleDeleteGroup,
+                            onAssignUnit: handleAssignUnit,
+                            onAssignPersonnel: handleAssignPersonnel,
+                            onUnassignUnit: handleUnassignUnit,
+                            onUnassignPersonnel: handleUnassignPersonnel,
+                            onUnitDetailChange: handleUnitDetailChange
+                        })
+                    ),
+                activeTab === 'sci-forms' && showSciForms &&
+                    React.createElement(SciFormsView, {
+                        personnel: [...commandPersonnel, ...servicePersonnel],
+                        unitList: unitList
                     })
             )
         )
