@@ -15,19 +15,25 @@ const TacticalCommandPostView = ({
     onUnitDetailChange
 }) => {
     const [assignMenuOpen, setAssignMenuOpen] = useState(null);
-    const assignMenuRef = useRef(null);
+    const assignMenuRefs = useRef(new Map());
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (assignMenuOpen && event.target instanceof Node && assignMenuRef.current && !assignMenuRef.current.contains(event.target)) {
+            if (!assignMenuOpen) return;
+            const key = `${assignMenuOpen.type}-${assignMenuOpen.id}`;
+            const currentRef = assignMenuRefs.current.get(key);
+            if (currentRef && !currentRef.contains(event.target)) {
                  setAssignMenuOpen(null);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [assignMenuOpen]);
+    
+    const handleSetRef = (key, el) => {
+        if (el) assignMenuRefs.current.set(key, el);
+        else assignMenuRefs.current.delete(key);
+    };
 
     return (
         React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6" },
@@ -41,14 +47,14 @@ const TacticalCommandPostView = ({
                         React.createElement("ul", { className: "space-y-2 max-h-64 overflow-y-auto pr-2" },
                             availableUnits.map(unit => (
                                 React.createElement("li", { key: unit.id, className: "flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm" },
-                                    React.createElement("span", { className: "font-mono text-zinc-200" }, unit.id, " ", React.createElement("span", { className: "text-zinc-400" }, `(${unit.type})`)),
-                                    React.createElement("div", { className: "relative", ref: assignMenuRef },
+                                    React.createElement("span", { className: "font-mono text-zinc-200" }, unit.id, React.createElement("span", { className: "text-zinc-400" }, ` (${unit.type})`)),
+                                    React.createElement("div", { className: "relative", ref: (el) => handleSetRef(`unit-${unit.id}`, el) },
                                         React.createElement("button", { onClick: () => setAssignMenuOpen(prev => (prev?.type === 'unit' && prev.id === unit.id) ? null : {type: 'unit', id: unit.id}), className: "px-2 py-1 text-xs bg-sky-600 hover:bg-sky-500 rounded text-white"}, "Asignar"),
                                         assignMenuOpen?.type === 'unit' && assignMenuOpen?.id === unit.id && (
-                                            React.createElement("div", { className: "absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20" },
+                                            React.createElement("div", { className: "absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20 animate-fade-in" },
                                                 interventionGroups.length > 0 ? interventionGroups.map(g => (
                                                     React.createElement("button", { key: g.id, onClick: () => { onAssignUnit(unit, g.id); setAssignMenuOpen(null); }, className: "block w-full text-left px-3 py-2 hover:bg-zinc-500 transition-colors"}, `${g.type}: ${g.name}`)
-                                                )) : React.createElement("div", {className: "px-3 py-2 text-zinc-400"}, "Crear un grupo primero.")
+                                                )) : React.createElement("div", { className: "px-3 py-2 text-zinc-400 text-xs"}, "Crear un grupo.")
                                             )
                                         )
                                     )
@@ -62,13 +68,13 @@ const TacticalCommandPostView = ({
                             availablePersonnel.map(person => (
                                 React.createElement("li", { key: person.id, className: "flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm" },
                                     React.createElement("span", { className: "text-zinc-200" }, person.name),
-                                    React.createElement("div", { className: "relative", ref: assignMenuRef },
+                                     React.createElement("div", { className: "relative", ref: (el) => handleSetRef(`personnel-${person.id}`, el) },
                                         React.createElement("button", { onClick: () => setAssignMenuOpen(prev => (prev?.type === 'personnel' && prev.id === person.id) ? null : {type: 'personnel', id: person.id}), className: "px-2 py-1 text-xs bg-sky-600 hover:bg-sky-500 rounded text-white"}, "Asignar"),
                                         assignMenuOpen?.type === 'personnel' && assignMenuOpen?.id === person.id && (
-                                            React.createElement("div", { className: "absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20" },
+                                            React.createElement("div", { className: "absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20 animate-fade-in" },
                                                 interventionGroups.length > 0 ? interventionGroups.map(g => (
                                                     React.createElement("button", { key: g.id, onClick: () => { onAssignPersonnel(person, g.id); setAssignMenuOpen(null); }, className: "block w-full text-left px-3 py-2 hover:bg-zinc-500 transition-colors"}, `${g.type}: ${g.name}`)
-                                                )) : React.createElement("div", {className: "px-3 py-2 text-zinc-400"}, "Crear un grupo primero.")
+                                                )) : React.createElement("div", { className: "px-3 py-2 text-zinc-400 text-xs"}, "Crear un grupo.")
                                             )
                                         )
                                     )
@@ -81,7 +87,7 @@ const TacticalCommandPostView = ({
 
             React.createElement("div", { className: "lg:col-span-2 space-y-4" },
                 interventionGroups.map(group => (
-                    React.createElement("div", { key: group.id, className: "bg-zinc-900/50 p-4 rounded-lg" },
+                    React.createElement("div", { key: group.id, className: "bg-zinc-900/50 p-4 rounded-lg animate-fade-in" },
                         React.createElement("div", { className: "flex justify-between items-center mb-3" },
                             React.createElement("div", { className: "flex items-center gap-3 w-2/3" },
                                 React.createElement("span", { className: `flex-shrink-0 text-xs font-bold px-2 py-1 rounded-md ${group.type === 'Frente' ? 'bg-blue-500 text-white' : 'bg-teal-500 text-white'}`}, group.type),
@@ -93,7 +99,7 @@ const TacticalCommandPostView = ({
                             React.createElement("label", { className: "text-sm text-zinc-400" }, "Oficial a Cargo:"),
                             React.createElement("input", { value: group.officerInCharge, onChange: e => onGroupChange(group.id, 'officerInCharge', e.target.value), className: "w-full bg-zinc-700 rounded p-1 mt-1 text-white", list: "personnel-list"}),
                             React.createElement("datalist", { id: "personnel-list" },
-                                allPersonnel.map(p => React.createElement("option", { key: p.id, value: p.name }))
+                                allPersonnel.map(p => React.createElement("option", { key: p.id, value: `${p.rank} ${p.name}` }))
                             )
                         ),
                         
@@ -119,7 +125,7 @@ const TacticalCommandPostView = ({
                         React.createElement("ul", { className: "space-y-1 text-sm max-h-60 overflow-y-auto pr-2" },
                             group.personnel.map(person => (
                                 React.createElement("li", { key: person.id, className: "flex justify-between items-center bg-zinc-800 p-2 rounded-md" },
-                                    React.createElement("span", { className: "text-zinc-300" }, person.name, " ", React.createElement("span", { className: "text-xs text-zinc-400" }, `(${person.rank})`)),
+                                    React.createElement("span", { className: "text-zinc-300" }, person.name, React.createElement("span", { className: "text-xs text-zinc-400" }, ` (${person.rank})`)),
                                     React.createElement("button", { onClick: () => onUnassignPersonnel(person.id, group.id), className: "text-zinc-400 hover:text-yellow-400" }, React.createElement(TrashIcon, { className: "w-4 h-4"}))
                                 )
                             ))

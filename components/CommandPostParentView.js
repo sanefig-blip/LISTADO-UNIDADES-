@@ -5,43 +5,17 @@ import SciFormsView from './SciFormsView.js';
 import { PlusCircleIcon } from './icons.js';
 
 const CommandPostParentView = (props) => {
-    const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
+    const { unitReportData, commandPersonnel, servicePersonnel, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
     const [activeTab, setActiveTab] = useState('summary');
-    const [incidentDetails, setIncidentDetails] = useState({ type: '', address: '', alarmTime: '' });
 
-    const allUnits = useMemo(() => {
-        return unitReportData.zones.flatMap(zone => 
+    const { allUnits, allPersonnel } = useMemo(() => {
+        const units = unitReportData.zones.flatMap(zone => 
             zone.groups.flatMap(group => 
                 group.units.map(unit => ({ ...unit, station: group.name }))
             )
         );
-    }, [unitReportData]);
 
-    const allPersonnel = useMemo(() => {
         const personnelMap = new Map();
-        
-        const processOfficerList = (officerList, station) => {
-            (officerList || []).forEach(officerString => {
-                const parts = officerString.split(' ');
-                if (parts.length > 1) {
-                    const name = parts.slice(1).join(' ');
-                    const rank = parts[0];
-                     if (!personnelMap.has(name)) { // Avoid duplicates
-                        personnelMap.set(name, {
-                            id: `p-${name.replace(/\s/g, '')}`, name, rank, station
-                        });
-                    }
-                }
-            });
-        };
-
-        unitReportData.zones.forEach(zone => {
-            zone.groups.forEach(group => {
-                processOfficerList(group.crewOfficers, group.name);
-                processOfficerList(group.standbyOfficers, group.name);
-                processOfficerList(group.servicesOfficers, group.name);
-            });
-        });
         
         [...commandPersonnel, ...servicePersonnel].forEach(p => {
              if (!personnelMap.has(p.name)) {
@@ -49,36 +23,42 @@ const CommandPostParentView = (props) => {
             }
         });
 
-        return Array.from(personnelMap.values());
+        return { allUnits: units, allPersonnel: Array.from(personnelMap.values()) };
     }, [unitReportData, commandPersonnel, servicePersonnel]);
 
-
-    const { availableUnits, availablePersonnel } = useMemo(() => {
+    const { availableUnits, availablePersonnel, interventionUnits, interventionPersonnel } = useMemo(() => {
         const assignedUnitIds = new Set(interventionGroups.flatMap(g => g.units.map(u => u.id)));
         const assignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
         
-        return {
-            availableUnits: allUnits.filter(u => !assignedUnitIds.has(u.id)),
-            availablePersonnel: allPersonnel.filter(p => !assignedPersonnelIds.has(p.id))
+        const availableU = allUnits.filter(u => !assignedUnitIds.has(u.id) && u.status.toLowerCase().includes('para servicio'));
+        const availableP = allPersonnel.filter(p => !assignedPersonnelIds.has(p.id));
+        
+        const interventionU = allUnits.filter(u => assignedUnitIds.has(u.id));
+        const interventionP = allPersonnel.filter(p => assignedPersonnelIds.has(p.id));
+
+        return { 
+            availableUnits: availableU, 
+            availablePersonnel: availableP,
+            interventionUnits: interventionU,
+            interventionPersonnel: interventionP
         };
     }, [interventionGroups, allUnits, allPersonnel]);
 
     const handleCreateGroup = (type) => {
         const newGroup = {
-            id: `group-${Date.now()}`,
-            type: type,
+            id: `group-${Date.now()}`, type,
             name: type === 'Frente' 
                 ? `Nuevo Frente ${interventionGroups.filter(g => g.type === 'Frente').length + 1}` 
                 : `Nueva U.O. ${interventionGroups.filter(g => g.type === 'Unidad Operativa').length + 1}`,
-            officerInCharge: '',
-            units: [],
-            personnel: [],
+            officerInCharge: '', units: [], personnel: [],
         };
         onUpdateInterventionGroups([...interventionGroups, newGroup]);
     };
 
     const handleDeleteGroup = (groupId) => {
-        onUpdateInterventionGroups(interventionGroups.filter(g => g.id !== groupId));
+        if (window.confirm("¿Está seguro? Los recursos asignados volverán a estar disponibles.")) {
+            onUpdateInterventionGroups(interventionGroups.filter(g => g.id !== groupId));
+        }
     };
 
     const handleGroupChange = (groupId, field, value) => {
@@ -89,19 +69,11 @@ const CommandPostParentView = (props) => {
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
                 const newTrackedUnit = {
-                    groupName: g.name || '',
-                    task: '',
-                    locationInScene: '',
-                    workTime: '',
-                    departureTime: '',
-                    onSceneTime: '',
-                    returnTime: ''
+                    ...unit, groupName: g.name || '', task: '', locationInScene: '', workTime: '',
+                    departureTime: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }), 
+                    onSceneTime: '', returnTime: ''
                 };
-                const newUnitToAdd = { ...unit, ...newTrackedUnit };
-                return {
-                    ...g,
-                    units: [...g.units, newUnitToAdd]
-                };
+                return { ...g, units: [...g.units, newTrackedUnit] };
             }
             return g;
         });
@@ -109,21 +81,9 @@ const CommandPostParentView = (props) => {
     };
     
     const handleAssignPersonnel = (person, groupId) => {
-        const newGroups = interventionGroups.map(g => {
-            if (g.id === groupId) {
-                // FIX: Refactor for consistency with TS fix.
-                const newPersonnelToAdd = { 
-                    ...person, 
-                    groupName: g.name || ''
-                };
-                return {
-                    ...g,
-                    personnel: [...g.personnel, newPersonnelToAdd]
-                };
-            }
-            return g;
-        });
-        onUpdateInterventionGroups(newGroups);
+        onUpdateInterventionGroups(interventionGroups.map(g => 
+            g.id === groupId ? { ...g, personnel: [...g.personnel, { ...person, groupName: g.name || '' }] } : g
+        ));
     };
 
     const handleUnassignUnit = (unitId, groupId) => {
@@ -139,23 +99,16 @@ const CommandPostParentView = (props) => {
     };
 
     const handleUnitDetailChange = (groupId, unitId, field, value) => {
-        onUpdateInterventionGroups(interventionGroups.map(group => {
-            if (group.id === groupId) {
-                return {
-                    ...group,
-                    units: group.units.map(unit => unit.id === unitId ? { ...unit, [field]: value } : unit)
-                };
-            }
-            return group;
-        }));
+        onUpdateInterventionGroups(interventionGroups.map(g => 
+            g.id === groupId ? { ...g, units: g.units.map(u => u.id === unitId ? { ...u, [field]: value } : u) } : g
+        ));
     };
 
     const TabButton = ({ tabId, children }) => (
         React.createElement("button", {
             onClick: () => setActiveTab(tabId),
             className: `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === tabId ? 'bg-zinc-800/60 text-white' : 'bg-zinc-900/50 hover:bg-zinc-700/80 text-zinc-400'}`
-        },
-        children)
+        }, children)
     );
 
     const showSciForms = currentUser.role === 'admin' || currentUser.username === 'Puesto Comando';
@@ -179,12 +132,10 @@ const CommandPostParentView = (props) => {
                         React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl flex items-center gap-4" },
                             React.createElement("h3", { className: "text-lg font-semibold text-white" }, "Gestionar Grupos de Trabajo:"),
                             React.createElement("button", { onClick: () => handleCreateGroup('Frente'), className: "flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold text-sm transition-colors" },
-                                React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
-                                "Crear Frente"
+                                React.createElement(PlusCircleIcon, { className: "w-5 h-5" }), " Crear Frente"
                             ),
                             React.createElement("button", { onClick: () => handleCreateGroup('Unidad Operativa'), className: "flex items-center gap-2 px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-md text-white font-semibold text-sm transition-colors" },
-                                React.createElement(PlusCircleIcon, { className: "w-5 h-5" }),
-                                "Crear Unidad Operativa"
+                                React.createElement(PlusCircleIcon, { className: "w-5 h-5" }), " Crear Unidad Operativa"
                             )
                         ),
                         React.createElement(TacticalCommandPostView, { 
@@ -201,11 +152,7 @@ const CommandPostParentView = (props) => {
                             onUnitDetailChange: handleUnitDetailChange
                         })
                     ),
-                activeTab === 'sci-forms' && showSciForms &&
-                    React.createElement(SciFormsView, {
-                        personnel: [...commandPersonnel, ...servicePersonnel],
-                        unitList: unitList
-                    })
+                activeTab === 'sci-forms' && showSciForms && React.createElement(SciFormsView, { personnel: [...commandPersonnel, ...servicePersonnel], unitList: props.unitList })
             )
         )
     );
