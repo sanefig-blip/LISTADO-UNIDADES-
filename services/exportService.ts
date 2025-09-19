@@ -2,7 +2,7 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Headi
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Schedule, Assignment, Service, Personnel, UnitReportData, RANKS, EraData, GeneratorData, UnitGroup, FireUnit, SCI201Data, SCI211Resource, SCI207Victim, MaterialsData, InterventionGroup, TrackedUnit } from '../types';
+import { Schedule, Assignment, Service, Personnel, UnitReportData, RANKS, EraData, GeneratorData, UnitGroup, FireUnit, SCI201Data, SCI211Resource, SCI207Victim, MaterialsData, InterventionGroup, TrackedUnit, TrackedPersonnel, TriageCategory } from '../types';
 
 // Helper to save files
 const saveFile = (data: BlobPart, fileName: string, fileType: string) => {
@@ -569,7 +569,7 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
             4: { cellWidth: 30 },
             5: { cellWidth: 15, halign: 'center' },
         },
-        didDrawPage: (data) => {
+        didDrawPage: (data: any) => {
             drawPageHeader();
         }
     });
@@ -833,7 +833,6 @@ export const exportSci201ToPdf = (data: SCI201Data) => {
 
     doc.save(`SCI-201_${(data.incidentName || 'Briefing').replace(/\s/g, '_')}.pdf`);
 };
-
 // FIX: Add exportSci211ToPdf function
 export const exportSci211ToPdf = (resources: SCI211Resource[]) => {
     const doc = new jsPDF('l', 'mm', 'a4'); // landscape
@@ -880,7 +879,7 @@ export const exportSci207ToPdf = (victims: SCI207Victim[]) => {
         new Date(vic.transportDateTime).toLocaleString()
     ]);
     
-    const triageColors: {[key: string]: [number, number, number] | string} = {
+    const triageColors: {[key in TriageCategory]: number[]} = {
         'Rojo': [220, 38, 38],
         'Amarillo': [234, 179, 8],
         'Verde': [34, 197, 94],
@@ -897,8 +896,11 @@ export const exportSci207ToPdf = (victims: SCI207Victim[]) => {
         styles: { fontSize: 8 },
         didParseCell: (data: any) => {
             if (data.column.index === 3 && data.cell.section === 'body') {
-                const triage = data.cell.raw as keyof typeof triageColors;
-                if (triage && triageColors[triage]) {
+                const triage = data.cell.raw as TriageCategory;
+                // FIX: The original check `if (triage && triageColors[triage])` incorrectly excluded empty strings.
+                // An empty string is a valid TriageCategory and should be styled.
+                // Changed to `if (triage in triageColors)` to correctly handle all possible triage values.
+                if (triage in triageColors) {
                     data.cell.styles.fillColor = triageColors[triage];
                     data.cell.styles.textColor = (triage === 'Amarillo' || triage === '') ? [0,0,0] : [255,255,255];
                 }
@@ -909,7 +911,7 @@ export const exportSci207ToPdf = (victims: SCI207Victim[]) => {
     doc.save('SCI-207_Registro_Victimas.pdf');
 };
 
-const createPdfTable = (doc: jsPDF, title: string, head: string[][], body: any[][], startY: number) => {
+const createPdfTable = (doc: jsPDF, title: string, head: any[], body: any[], startY: number) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(title, 14, startY);
@@ -950,7 +952,7 @@ export const exportTacticalCommandPostToPdf = (
         if (group.units.length > 0) {
             y = createPdfTable(doc, 'Unidades Asignadas', 
                 [['Unidad', 'Tarea', 'Ubicación', 'T. Trabajo', 'H. Salida', 'H. Lugar', 'H. Regreso']], 
-                group.units.map((u: TrackedUnit) => [u.id, u.task, u.locationInScene, u.workTime, u.departureTime, u.onSceneTime, u.returnTime]), 
+                group.units.map(u => [u.id, u.task, u.locationInScene, u.workTime, u.departureTime, u.onSceneTime, u.returnTime]), 
                 y
             ) + 6;
         }
@@ -970,8 +972,8 @@ export const exportTacticalCommandPostToPdf = (
 export const exportCommandPostSummaryToPdf = (
     availableUnits: FireUnit[],
     availablePersonnel: Personnel[],
-    interventionUnits: FireUnit[],
-    interventionPersonnel: Personnel[]
+    interventionUnits: TrackedUnit[],
+    interventionPersonnel: TrackedPersonnel[]
 ) => {
     const doc = new jsPDF();
     let y = 15;
@@ -994,7 +996,7 @@ export const exportCommandPostSummaryToPdf = (
     y = createPdfTable(doc, `Personal Disponible (${availablePersonnel.length})`, [['Nombre', 'Jerarquía']], availablePersonnel.map(p => [p.name, p.rank]), y) + 10;
 
     doc.save(`Resumen_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
-}
+};
 
 
 export const exportPersonnelToExcel = (personnel: Personnel[], title: string) => {

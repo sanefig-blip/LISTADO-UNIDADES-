@@ -53,6 +53,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
 
         const statusColors = { 'Pendiente': '#71717a', 'Desplazado': '#3b82f6', 'En QTH': '#f59e0b', 'Normalizado': '#22c55e' };
 
+        // FIX: Add a null check for editableData.alertPoints to prevent runtime errors when the data is incomplete.
         if (editableData && editableData.alertPoints) {
             editableData.alertPoints.forEach(point => {
                 if (point.coords && point.type === 'Punto Fijo') {
@@ -70,6 +71,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
             });
         }
          
+        // FIX: Add a null check for editableData.underpasses to ensure the component remains stable with partial data.
         if (editableData && editableData.underpasses) {
             editableData.underpasses.forEach(up => {
                 if (up.coords) {

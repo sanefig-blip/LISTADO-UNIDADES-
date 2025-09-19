@@ -349,6 +349,10 @@ export interface TrackedUnit extends FireUnit {
     departureTime: string;
     onSceneTime: string;
     returnTime: string;
+    lat?: number;
+    lng?: number;
+    mapLabel?: string;
+    mapColor?: string;
 }
 
 export interface TrackedPersonnel extends Personnel {

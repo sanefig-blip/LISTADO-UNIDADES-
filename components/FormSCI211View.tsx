@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { SCI211Resource, Personnel } from '../types';
 import { PlusCircleIcon, TrashIcon, DownloadIcon } from './icons';
-// FIX: Correctly import the newly added PDF export function.
 import { exportSci211ToPdf } from '../services/exportService';
 
 interface FormSCI211ViewProps {

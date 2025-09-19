@@ -89,7 +89,8 @@ const ForestalView = ({ interventionGroups }) => {
 
             // Map Area
             React.createElement("main", { className: "lg:col-span-3 h-full" },
-                React.createElement(Croquis, { isActive: true, onSketchCapture: () => {}, onUnlockSketch: () => {} })
+                // FIX: Pass interventionGroups to Croquis component.
+                React.createElement(Croquis, { isActive: true, onSketchCapture: () => {}, onUnlockSketch: () => {}, interventionGroups: interventionGroups })
             )
         )
     );

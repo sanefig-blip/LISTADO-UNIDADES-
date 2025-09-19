@@ -94,7 +94,8 @@ const ForestalView: React.FC<ForestalViewProps> = ({ interventionGroups }) => {
 
             {/* Map Area */}
             <main className="lg:col-span-3 h-full">
-                <Croquis isActive={true} onSketchCapture={() => {}} onUnlockSketch={() => {}} />
+                {/* FIX: Pass interventionGroups to Croquis component. */}
+                <Croquis isActive={true} onSketchCapture={() => {}} onUnlockSketch={() => {}} interventionGroups={interventionGroups} />
             </main>
         </div>
     );

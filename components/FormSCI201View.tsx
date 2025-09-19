@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { SCI201Data, SCI201Action } from '../types';
 import { PlusCircleIcon, TrashIcon, DownloadIcon } from './icons';
-// FIX: Correctly import the newly added PDF export function.
 import { exportSci201ToPdf } from '../services/exportService';
 
 const FormSCI201View: React.FC = () => {

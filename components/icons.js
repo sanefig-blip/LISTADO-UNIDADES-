@@ -203,10 +203,10 @@ export const ClipboardCopyIcon = ({ className }) => (
 );
 
 export const ClipboardCheckIcon = ({ className }) => (
-    React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
-      React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" }),
-      React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 14l2 2 4-4" })
-    )
+  React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
+    React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" }),
+    React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 14l2 2 4-4" })
+  )
 );
 
 export const EngineIcon = ({ className }) => (
@@ -327,13 +327,13 @@ export const DocumentTextIcon = ({ className }) => (
 );
 
 export const AttackArrowIcon = ({ className }) => (
-    React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
+    React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
         React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M13 7l5 5m0 0l-5 5m5-5H6" })
     )
 );
 
 export const TransferLineIcon = ({ className }) => (
-    React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
+    React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className, fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
         React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 6h16M4 12h16M4 18h16", strokeDasharray: "4 4" })
     )
 );

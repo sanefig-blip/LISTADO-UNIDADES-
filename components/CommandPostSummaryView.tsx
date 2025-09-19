@@ -1,5 +1,5 @@
 import React from 'react';
-import { InterventionGroup, FireUnit, Personnel } from '../types';
+import { InterventionGroup, FireUnit, Personnel, TrackedUnit, TrackedPersonnel } from '../types';
 import { DownloadIcon } from './icons';
 import { exportCommandPostSummaryToPdf } from '../services/exportService';
 
@@ -15,7 +15,7 @@ const CommandPostSummaryView: React.FC<CommandPostSummaryViewProps> = ({ availab
     const interventionPersonnel = interventionGroups.flatMap(g => g.personnel);
 
     const handleExport = () => {
-        exportCommandPostSummaryToPdf(availableUnits, availablePersonnel, interventionUnits, interventionPersonnel);
+        exportCommandPostSummaryToPdf(availableUnits, availablePersonnel, interventionUnits as TrackedUnit[], interventionPersonnel as TrackedPersonnel[]);
     };
 
     const ResourceList: React.FC<{ title: string; count: number; children: React.ReactNode }> = ({ title, count, children }) => (

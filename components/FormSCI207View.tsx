@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { SCI207Victim, TriageCategory } from '../types';
 import { PlusCircleIcon, TrashIcon, DownloadIcon } from './icons';
-// FIX: Correctly import the newly added PDF export function.
 import { exportSci207ToPdf } from '../services/exportService';
 
 

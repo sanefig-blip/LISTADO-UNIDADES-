@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { UnitReportData, Personnel, FireUnit, InterventionGroup, TrackedUnit, TrackedPersonnel, User } from '../types';
 import CommandPostSummaryView from './CommandPostSummaryView';
 import TacticalCommandPostView from './CommandPostView';
+import Croquis from './Croquis';
+import SciFormsView from './SciFormsView';
 import { PlusCircleIcon } from './icons';
 
 interface CommandPostParentViewProps {
@@ -15,8 +17,8 @@ interface CommandPostParentViewProps {
 }
 
 const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
-    const { unitReportData, commandPersonnel, servicePersonnel, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
-    const [activeTab, setActiveTab] = useState<'summary' | 'tactical'>('summary');
+    const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
+    const [activeTab, setActiveTab] = useState<'summary' | 'tactical' | 'croquis' | 'sci'>('summary');
 
     const { allUnits, allPersonnel } = useMemo(() => {
         const units = unitReportData.zones.flatMap(zone => 
@@ -66,7 +68,7 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
         }
     };
 
-    const handleGroupChange = (groupId: string, field: 'name' | 'officerInCharge', value: string) => {
+    const handleGroupChange = (groupId: string, field: 'name' | 'officerInCharge' | 'lat' | 'lng', value: string | number) => {
         onUpdateInterventionGroups(interventionGroups.map(g => g.id === groupId ? { ...g, [field]: value } : g));
     };
     
@@ -74,9 +76,16 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
                 const newTrackedUnit: TrackedUnit = {
-                    ...unit, groupName: g.name || '', task: '', locationInScene: '', workTime: '',
-                    departureTime: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }), 
-                    onSceneTime: '', returnTime: ''
+                    ...unit,
+                    groupName: g.name || '',
+                    task: '',
+                    locationInScene: '',
+                    workTime: '',
+                    departureTime: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    onSceneTime: '',
+                    returnTime: '',
+                    mapLabel: unit.id, // Default label
+                    mapColor: '#ef4444', // Default color (red-500)
                 };
                 return { ...g, units: [...g.units, newTrackedUnit] };
             }
@@ -108,12 +117,14 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
             g.id === groupId ? { ...g, units: g.units.map(u => u.id === unitId ? { ...u, [field]: value } : u) } : g
         ));
     };
-
-    const TabButton: React.FC<{ tabId: 'summary' | 'tactical'; children: React.ReactNode }> = ({ tabId, children }) => (
+    
+    const TabButton = ({ tabId, children }: { tabId: 'summary' | 'tactical' | 'croquis' | 'sci', children: React.ReactNode }) => (
         <button
             onClick={() => setActiveTab(tabId)}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === tabId ? 'bg-zinc-800/60 text-white' : 'bg-zinc-900/50 hover:bg-zinc-700/80 text-zinc-400'}`}
-        >{children}</button>
+        >
+            {children}
+        </button>
     );
 
     return (
@@ -121,6 +132,8 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
             <div className="flex border-b border-zinc-700">
                 <TabButton tabId="summary">Resumen</TabButton>
                 <TabButton tabId="tactical">Comando Táctico</TabButton>
+                <TabButton tabId="croquis">Croquis de Situación</TabButton>
+                <TabButton tabId="sci">Formularios SCI</TabButton>
             </div>
             <div className="pt-6">
                 {activeTab === 'summary' && 
@@ -156,6 +169,14 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
                         />
                     </div>
                 }
+                {activeTab === 'croquis' && <Croquis 
+                    isActive={true} 
+                    onSketchCapture={() => {}} 
+                    onUnlockSketch={() => {}} 
+                    interventionGroups={interventionGroups}
+                    onUpdateInterventionGroups={onUpdateInterventionGroups}
+                /> }
+                {activeTab === 'sci' && <SciFormsView personnel={allPersonnel} unitList={unitList} /> }
             </div>
         </div>
     );

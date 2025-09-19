@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import CommandPostSummaryView from './CommandPostSummaryView.js';
 import TacticalCommandPostView from './CommandPostView.js';
+import Croquis from './Croquis.js';
+import SciFormsView from './SciFormsView.js';
 import { PlusCircleIcon } from './icons.js';
 
 const CommandPostParentView = (props) => {
-    const { unitReportData, commandPersonnel, servicePersonnel, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
+    const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
     const [activeTab, setActiveTab] = useState('summary');
 
     const { allUnits, allPersonnel } = useMemo(() => {
@@ -63,9 +65,16 @@ const CommandPostParentView = (props) => {
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
                 const newTrackedUnit = {
-                    ...unit, groupName: g.name || '', task: '', locationInScene: '', workTime: '',
-                    departureTime: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }), 
-                    onSceneTime: '', returnTime: ''
+                    ...unit,
+                    groupName: g.name || '',
+                    task: '',
+                    locationInScene: '',
+                    workTime: '',
+                    departureTime: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    onSceneTime: '',
+                    returnTime: '',
+                    mapLabel: unit.id, // Default label
+                    mapColor: '#ef4444', // Default color (red-500)
                 };
                 return { ...g, units: [...g.units, newTrackedUnit] };
             }
@@ -97,7 +106,7 @@ const CommandPostParentView = (props) => {
             g.id === groupId ? { ...g, units: g.units.map(u => u.id === unitId ? { ...u, [field]: value } : u) } : g
         ));
     };
-
+    
     const TabButton = ({ tabId, children }) => (
         React.createElement("button", {
             onClick: () => setActiveTab(tabId),
@@ -109,7 +118,9 @@ const CommandPostParentView = (props) => {
         React.createElement("div", null,
             React.createElement("div", { className: "flex border-b border-zinc-700" },
                 React.createElement(TabButton, { tabId: "summary" }, "Resumen"),
-                React.createElement(TabButton, { tabId: "tactical" }, "Comando Táctico")
+                React.createElement(TabButton, { tabId: "tactical" }, "Comando Táctico"),
+                React.createElement(TabButton, { tabId: "croquis" }, "Croquis de Situación"),
+                React.createElement(TabButton, { tabId: "sci" }, "Formularios SCI")
             ),
             React.createElement("div", { className: "pt-6" },
                 activeTab === 'summary' && 
@@ -142,7 +153,15 @@ const CommandPostParentView = (props) => {
                             onUnassignPersonnel: handleUnassignPersonnel,
                             onUnitDetailChange: handleUnitDetailChange
                         })
-                    )
+                    ),
+                activeTab === 'croquis' && React.createElement(Croquis, { 
+                    isActive: true, 
+                    onSketchCapture: () => {}, 
+                    onUnlockSketch: () => {}, 
+                    interventionGroups: interventionGroups,
+                    onUpdateInterventionGroups: onUpdateInterventionGroups
+                }),
+                activeTab === 'sci' && React.createElement(SciFormsView, { personnel: allPersonnel, unitList: unitList })
             )
         )
     );

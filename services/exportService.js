@@ -893,7 +893,10 @@ export const exportSci207ToPdf = (victims) => {
         didParseCell: (data) => {
             if (data.column.index === 3 && data.cell.section === 'body') {
                 const triage = data.cell.raw;
-                if (triage && triageColors[triage]) {
+                // FIX: The original check `if (triage && triageColors[triage])` incorrectly excluded empty strings.
+                // An empty string is a valid TriageCategory and should be styled.
+                // Changed to `if (triage in triageColors)` to correctly handle all possible triage values.
+                if (triage in triageColors) {
                     data.cell.styles.fillColor = triageColors[triage];
                     data.cell.styles.textColor = (triage === 'Amarillo' || triage === '') ? [0,0,0] : [255,255,255];
                 }

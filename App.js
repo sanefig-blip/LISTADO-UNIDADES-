@@ -932,11 +932,16 @@ const App = () => {
                     unitReportData: unitReport, 
                     commandPersonnel: commandPersonnel, 
                     servicePersonnel: servicePersonnel,
-                    unitList: unitList,
                     currentUser: currentUser,
                     interventionGroups: interventionGroups,
-                    onUpdateInterventionGroups: handleUpdateInterventionGroups
+                    onUpdateInterventionGroups: handleUpdateInterventionGroups,
+                    unitList: unitList
                 });
+            case 'forestal':
+                if (currentUser.role !== 'admin' && currentUser.username !== 'Puesto Comando') {
+                    return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado.");
+                }
+                return React.createElement(ForestalView, { interventionGroups: interventionGroups });
             case 'era-report':
                 if (!eraReport) return null;
                 return React.createElement(EraReportDisplay, { reportData: eraReport, onUpdateReport: handleUpdateEraReport, currentUser: currentUser });
@@ -959,9 +964,7 @@ const App = () => {
                 return React.createElement(Nomenclador, { commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, unitTypes: unitTypes, roster: roster, users: usersData, onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)), onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)), onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers });
             case 'regimen':
                 if(!regimen) return null;
-                return React.createElement(RegimenDeIntervencion, { regimenData: regimen, onUpdateRegimenData: handleUpdateRegimenData });
-            case 'forestal':
-                return React.createElement(ForestalView, { interventionGroups: interventionGroups });
+                return React.createElement(RegimenDeIntervencion, { regimenData: regimen, onUpdateRegimenData: handleUpdateRegimenData, currentUser: currentUser });
             default:
                 return null;
         }
@@ -1078,7 +1081,7 @@ const App = () => {
                         React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
                         React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
                         (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
-                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
+                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(FireIcon, { className: "w-5 h-5 text-orange-400" }), " Incendio Forestal"),
                         React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
                         React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
                         React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),

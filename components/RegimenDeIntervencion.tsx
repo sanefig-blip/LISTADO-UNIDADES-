@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { RegimenData, RegimenSection } from '../types';
+import { RegimenData, RegimenSection, User } from '../types';
 import { PencilIcon, XCircleIcon } from './icons';
 
 interface RegimenDeIntervencionProps {
     regimenData: RegimenData;
     onUpdateRegimenData: (updatedData: RegimenData) => void;
+    currentUser: User;
 }
 
-const RegimenDeIntervencion: React.FC<RegimenDeIntervencionProps> = ({ regimenData, onUpdateRegimenData }) => {
+const RegimenDeIntervencion: React.FC<RegimenDeIntervencionProps> = ({ regimenData, onUpdateRegimenData, currentUser }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editableData, setEditableData] = useState<RegimenData>(() => JSON.parse(JSON.stringify(regimenData)));
 
@@ -73,13 +74,15 @@ const RegimenDeIntervencion: React.FC<RegimenDeIntervencionProps> = ({ regimenDa
                     <h2 className="text-3xl font-bold text-white">{regimenData.title}</h2>
                     <p className="text-zinc-400 text-sm">Última actualización: {new Date(regimenData.lastUpdated).toLocaleString()}</p>
                 </div>
-                {isEditing ? (
-                    <div className="flex items-center gap-2">
-                        <button onClick={handleSave} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2"><PencilIcon className="w-5 h-5" /> Guardar</button>
-                        <button onClick={handleCancel} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"><XCircleIcon className="w-6 h-6" /></button>
-                    </div>
-                ) : (
-                    <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2"><PencilIcon className="w-5 h-5" /> Editar</button>
+                {currentUser.role === 'admin' && (
+                    isEditing ? (
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleSave} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2"><PencilIcon className="w-5 h-5" /> Guardar</button>
+                            <button onClick={handleCancel} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"><XCircleIcon className="w-6 h-6" /></button>
+                        </div>
+                    ) : (
+                        <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white font-semibold transition-colors flex items-center gap-2"><PencilIcon className="w-5 h-5" /> Editar</button>
+                    )
                 )}
             </div>
 
@@ -120,6 +123,20 @@ const RegimenDeIntervencion: React.FC<RegimenDeIntervencionProps> = ({ regimenDa
                                                 </div>
                                             )}
                                         </div>
+                                    );
+                                case 'list':
+                                    return (
+                                        <ul key={contentIdx} className="list-disc list-inside space-y-2 pl-4">
+                                            {item.items.map((listItem, listIdx) => {
+                                                 const parts = listItem.split('....');
+                                                 return (
+                                                     <li key={listIdx} className="text-zinc-300">
+                                                         <span className="font-semibold text-zinc-100">{parts[0]}</span>
+                                                         {parts[1] && <span className="text-zinc-400">....{parts[1]}</span>}
+                                                     </li>
+                                                 );
+                                            })}
+                                        </ul>
                                     );
                                 default:
                                     return null;
