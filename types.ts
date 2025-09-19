@@ -362,4 +362,6 @@ export interface InterventionGroup {
     officerInCharge: string;
     units: TrackedUnit[];
     personnel: TrackedPersonnel[];
+    lat?: number;
+    lng?: number;
 }

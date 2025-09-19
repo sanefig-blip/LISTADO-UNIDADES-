@@ -37,6 +37,13 @@ export const rankOrder = {
   'AUXILIAR NIVEL H': 16,
   'OTRO': 17
 };
+// --- Command Post Types ---
+// Estas son interfaces en TS, pero las exportamos como placeholders en JS
+// La forma real es definida por el uso en los componentes.
+export const CommandPostTrackedUnit = {};
+export const TrackedUnit = {};
+export const TrackedPersonnel = {};
+export const InterventionGroup = {};
 
 // User interface: { id, username, password, role, station }
 // SCI Forms Types - these are interfaces in TS, but we export them as placeholders

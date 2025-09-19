@@ -28,7 +28,7 @@ import MaterialsDisplay from './components/MaterialsDisplay';
 import MaterialStatusView from './components/MaterialStatusView';
 import HidroAlertView from './components/HidroAlertView';
 import RegimenDeIntervencion from './components/RegimenDeIntervencion';
-import CroquisView from './components/CroquisView';
+import ForestalView from './components/ForestalView';
 import Login from './components/Login';
 import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon, LogoutIcon, ShieldExclamationIcon, SunIcon, MaximizeIcon, MinimizeIcon, DocumentTextIcon } from './components/icons';
 import HelpModal from './components/HelpModal';
@@ -60,7 +60,7 @@ const App = () => {
     const [hidroAlertData, setHidroAlertData] = useState<HidroAlertData | null>(null);
     const [regimen, setRegimen] = useState<RegimenData | null>(null);
     const [interventionGroups, setInterventionGroups] = useState<InterventionGroup[]>([]);
-    const [view, setView] = useState('unit-report'); // Default to new view
+    const [view, setView] = useState('unit-report');
     const [displayDate, setDisplayDate] = useState<Date | null>(null);
     const [commandPersonnel, setCommandPersonnel] = useState<Personnel[]>([]);
     const [servicePersonnel, setServicePersonnel] = useState<Personnel[]>([]);
@@ -938,8 +938,6 @@ const App = () => {
                     interventionGroups: interventionGroups,
                     onUpdateInterventionGroups: handleUpdateInterventionGroups
                 });
-            case 'croquis':
-                return React.createElement(CroquisView, { interventionGroups: interventionGroups });
             case 'era-report':
                 if (!eraReport) return null;
                 return React.createElement(EraReportDisplay, { reportData: eraReport, onUpdateReport: handleUpdateEraReport, currentUser: currentUser });
@@ -963,12 +961,14 @@ const App = () => {
             case 'regimen':
                 if(!regimen) return null;
                 return React.createElement(RegimenDeIntervencion, { regimenData: regimen, onUpdateRegimenData: handleUpdateRegimenData });
+            case 'forestal':
+                return React.createElement(ForestalView, {});
             default:
                 return null;
         }
     };
     
-    const getButtonClass = (buttonView: string) => `flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 outline-none transition-colors whitespace-nowrap focus-visible:bg-zinc-700/50 ${view === buttonView ? 'border-blue-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-100 hover:border-zinc-500'}`;
+    const getButtonClass = (buttonView: string) => 'flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 outline-none transition-colors whitespace-nowrap focus-visible:bg-zinc-700/50 ' + (view === buttonView ? 'border-blue-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-100 hover:border-zinc-500');
     
      if (!currentUser) {
         return React.createElement(Login, { onLogin: handleLogin, users: usersData });
@@ -1006,7 +1006,7 @@ const App = () => {
                                     React.createElement("button", { onClick: () => setImportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition-colors' },
                                         React.createElement(UploadIcon, { className: 'w-5 h-5' }),
                                         React.createElement("span", null, "Importar"),
-                                        React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isImportMenuOpen ? 'rotate-180' : ''}` })
+                                        React.createElement(ChevronDownIcon, { className: 'w-4 h-4 transition-transform duration-200 ' + (isImportMenuOpen ? 'rotate-180' : '') })
                                     ),
                                     isImportMenuOpen && (
                                         React.createElement("div", { className: "absolute right-0 mt-2 w-72 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
@@ -1038,7 +1038,7 @@ const App = () => {
                                     React.createElement("button", { onClick: () => setExportMenuOpen(prev => !prev), className: 'flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white font-medium transition-colors' },
                                         React.createElement(DownloadIcon, { className: 'w-5 h-5' }),
                                         React.createElement("span", null, "Exportar"),
-                                        React.createElement(ChevronDownIcon, { className: `w-4 h-4 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}` })
+                                        React.createElement(ChevronDownIcon, { className: 'w-4 h-4 transition-transform duration-200 ' + (isExportMenuOpen ? 'rotate-180' : '') })
                                     ),
                                     isExportMenuOpen && React.createElement("div", { className: "absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg bg-zinc-700 ring-1 ring-black ring-opacity-5 z-50 animate-scale-in" },
                                         React.createElement("div", { className: "py-1", role: "menu", "aria-orientation": "vertical", "aria-labelledby": "options-menu" },
@@ -1053,7 +1053,7 @@ const App = () => {
                                 ),
                                 
                                 selectedServiceIds.size > 0 && view === 'schedule' && (
-                                    React.createElement("button", { onClick: handleToggleVisibilityForSelected, className: `flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ${visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`},
+                                    React.createElement("button", { onClick: handleToggleVisibilityForSelected, className: 'flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-colors animate-fade-in ' + (visibilityAction.action === 'hide' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500')},
                                         visibilityAction.action === 'hide' ? React.createElement(EyeOffIcon, { className: "w-5 h-5" }) : React.createElement(EyeIcon, { className: "w-5 h-5" }),
                                         `${visibilityAction.label} (${selectedServiceIds.size})`
                                     )
@@ -1079,7 +1079,7 @@ const App = () => {
                         React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
                         React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
                         (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
-                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('croquis'), onClick: () => setView('croquis') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Croquis"),
+                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
                         React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
                         React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
                         React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),
@@ -1088,8 +1088,8 @@ const App = () => {
                         (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('regimen'), onClick: () => setView('regimen') }, React.createElement(DocumentTextIcon, { className: "w-5 h-5" }), " Régimen de Intervención"),
                         currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('nomenclador'), onClick: () => setView('nomenclador') }, React.createElement(BookOpenIcon, { className: "w-5 h-5" }), " Nomencladores")
                     ),
-                    React.createElement("div", { className: `absolute top-0 left-0 bottom-0 w-8 bg-gradient-to-r from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.left ? 'opacity-100' : 'opacity-0'}`, "aria-hidden": "true" }),
-                    React.createElement("div", { className: `absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ${showScrollIndicators.right ? 'opacity-100' : 'opacity-0'}`, "aria-hidden": "true" })
+                    React.createElement("div", { className: 'absolute top-0 left-0 bottom-0 w-8 bg-gradient-to-r from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ' + (showScrollIndicators.left ? 'opacity-100' : 'opacity-0'), "aria-hidden": "true" }),
+                    React.createElement("div", { className: 'absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-zinc-800 to-transparent pointer-events-none transition-opacity duration-300 ' + (showScrollIndicators.right ? 'opacity-100' : 'opacity-0'), "aria-hidden": "true" })
                 )
               )
             ),

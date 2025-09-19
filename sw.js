@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fire-dept-organizer-cache-v65';
+const CACHE_NAME = 'fire-dept-organizer-cache-v300';
 const urlsToCache = [
   './',
   './index.html',
@@ -17,9 +17,13 @@ const urlsToCache = [
   './components/ExportTemplateModal.js',
   './components/UnitReportDisplay.js',
   './components/UnitStatusView.js',
-  './components/CommandPostView.js',
   './components/CommandPostParentView.js',
+  './components/CommandPostView.js',
   './components/CommandPostSummaryView.js',
+  './components/SciFormsView.js',
+  './components/FormSCI201View.js',
+  './components/FormSCI211View.js',
+  './components/FormSCI207View.js',
   './components/EraReportDisplay.js',
   './components/GeneratorReportDisplay.js',
   './components/MaterialsDisplay.js',
@@ -27,6 +31,9 @@ const urlsToCache = [
   './components/HidroAlertView.js',
   './components/RegimenDeIntervencion.js',
   './components/CroquisView.js',
+  './components/Login.js',
+  './components/ForestalView.js',
+  './components/Croquis.js',
   './services/geminiService.js',
   './services/exportService.js',
   './services/wordImportService.js',
@@ -43,6 +50,7 @@ const urlsToCache = [
   './data/materialsData.js',
   './data/hidroAlertData.js',
   './data/regimenData.js',
+  './data/streets.js',
   'https://cdn.tailwindcss.com',
   'https://esm.sh/docx@8.5.0',
   'https://esm.sh/xlsx@0.18.5',
