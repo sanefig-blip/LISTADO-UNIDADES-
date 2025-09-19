@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import Croquis from './Croquis';
 import { SunIcon, FireIcon, ClipboardListIcon, PlusCircleIcon, TrashIcon } from './icons';
+import { InterventionGroup } from '../types';
 
-const ForestalView: React.FC = () => {
+interface ForestalViewProps {
+    interventionGroups: InterventionGroup[];
+}
+
+const ForestalView: React.FC<ForestalViewProps> = ({ interventionGroups }) => {
     const [weather, setWeather] = useState({
         temp: '25',
         humidity: '40',

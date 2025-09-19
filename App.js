@@ -961,7 +961,7 @@ const App = () => {
                 if(!regimen) return null;
                 return React.createElement(RegimenDeIntervencion, { regimenData: regimen, onUpdateRegimenData: handleUpdateRegimenData });
             case 'forestal':
-                return React.createElement(ForestalView, {});
+                return React.createElement(ForestalView, { interventionGroups: interventionGroups });
             default:
                 return null;
         }

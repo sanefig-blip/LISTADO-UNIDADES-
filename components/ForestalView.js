@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Croquis from './Croquis.js';
 import { SunIcon, FireIcon, ClipboardListIcon, PlusCircleIcon, TrashIcon } from './icons.js';
 
-const ForestalView = () => {
+const ForestalView = ({ interventionGroups }) => {
     const [weather, setWeather] = useState({
         temp: '25',
         humidity: '40',
