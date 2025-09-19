@@ -61,9 +61,8 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
         });
 
         const statusColors: {[key: string]: string} = { 'Pendiente': '#71717a', 'Desplazado': '#3b82f6', 'En QTH': '#f59e0b', 'Normalizado': '#22c55e' };
-
-        // FIX: Add a null check for editableData.alertPoints to prevent runtime errors when the data is incomplete.
-        if (editableData && editableData.alertPoints) {
+        
+        if (editableData?.alertPoints) {
             editableData.alertPoints.forEach(point => {
                 if (point.coords && point.type === 'Punto Fijo') {
                     const color = statusColors[point.status] || '#71717a';
@@ -80,8 +79,7 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
             });
         }
          
-        // FIX: Add a null check for editableData.underpasses to ensure the component remains stable with partial data.
-        if (editableData && editableData.underpasses) {
+        if (editableData?.underpasses) {
             editableData.underpasses.forEach(up => {
                 if (up.coords) {
                     L.circleMarker(up.coords, {
@@ -108,13 +106,17 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
     const TabButton = ({ tabName, label }: { tabName: string, label: string }) => (
         <button
             onClick={() => setActiveTab(tabName)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`}
         >
             {label}
         </button>
     );
 
     const OperativoContent = () => {
+        if (!editableData?.alertPoints) {
+            return <div className="text-zinc-400">No hay datos de puntos de alerta disponibles.</div>;
+        }
+
         const panoramas = [
             { number: 1, title: 'I' }, 
             { number: 2, title: 'II' },
@@ -223,31 +225,40 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
         );
     };
 
-    const PuentesContent = () => (
-        <div className="overflow-x-auto animate-fade-in">
-            <table className="w-full min-w-[600px] text-left">
-                <thead className="border-b-2 border-zinc-600">
-                    <tr className="text-left text-sm font-semibold text-zinc-300">
-                        <th className="p-3">Nombre</th>
-                        <th className="p-3">Comuna</th>
-                        <th className="p-3">Ubicación</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {editableData.underpasses.map(up => (
-                        <tr key={up.id} className="border-t border-zinc-700 hover:bg-zinc-700/50">
-                            <td className="p-2 text-zinc-200 font-semibold">{up.name}</td>
-                            <td className="p-2 text-zinc-300">{up.commune}</td>
-                            <td className="p-2 text-zinc-400 text-sm">{up.location}</td>
+    const PuentesContent = () => {
+        if (!editableData?.underpasses) {
+             return <div className="text-zinc-400">No hay datos de puentes y pasos bajo nivel.</div>;
+        }
+        return (
+            <div className="overflow-x-auto animate-fade-in">
+                <table className="w-full min-w-[600px] text-left">
+                    <thead className="border-b-2 border-zinc-600">
+                        <tr className="text-left text-sm font-semibold text-zinc-300">
+                            <th className="p-3">Nombre</th>
+                            <th className="p-3">Comuna</th>
+                            <th className="p-3">Ubicación</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+                    </thead>
+                    <tbody>
+                        {editableData.underpasses.map(up => (
+                            <tr key={up.id} className="border-t border-zinc-700 hover:bg-zinc-700/50">
+                                <td className="p-2 text-zinc-200 font-semibold">{up.name}</td>
+                                <td className="p-2 text-zinc-300">{up.commune}</td>
+                                <td className="p-2 text-zinc-400 text-sm">{up.location}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
     
     const TelegramContent = () => {
         const [copied, setCopied] = useState<string | null>(null);
+
+        if (!editableData?.alertPoints) {
+            return <div className="text-zinc-400">No hay datos de puntos de alerta disponibles.</div>;
+        }
 
         const organismToUnitMap: { [key: string]: string } = {
             'ESTACION VI "C.M.M.C.F.P."': 'Ranger-6',
@@ -309,7 +320,6 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
         );
     };
     
-    // FIX: Add a return statement to the component to make it a valid React functional component.
     return (
         <div className="space-y-6">
             <div className="bg-zinc-800/60 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start gap-4">

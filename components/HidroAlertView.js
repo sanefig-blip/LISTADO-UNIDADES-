@@ -52,9 +52,8 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
         });
 
         const statusColors = { 'Pendiente': '#71717a', 'Desplazado': '#3b82f6', 'En QTH': '#f59e0b', 'Normalizado': '#22c55e' };
-
-        // FIX: Add a null check for editableData.alertPoints to prevent runtime errors when the data is incomplete.
-        if (editableData && editableData.alertPoints) {
+        
+        if (editableData?.alertPoints) {
             editableData.alertPoints.forEach(point => {
                 if (point.coords && point.type === 'Punto Fijo') {
                     const color = statusColors[point.status] || '#71717a';
@@ -71,8 +70,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
             });
         }
          
-        // FIX: Add a null check for editableData.underpasses to ensure the component remains stable with partial data.
-        if (editableData && editableData.underpasses) {
+        if (editableData?.underpasses) {
             editableData.underpasses.forEach(up => {
                 if (up.coords) {
                     L.circleMarker(up.coords, {
@@ -99,12 +97,16 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
     const TabButton = ({ tabName, label }) => (
         React.createElement("button", {
             onClick: () => setActiveTab(tabName),
-            className: `px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`
+            className: `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === tabName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`
         },
         label)
     );
 
     const OperativoContent = () => {
+        if (!editableData?.alertPoints) {
+            return React.createElement("div", { className: "text-zinc-400" }, "No hay datos de puntos de alerta disponibles.");
+        }
+
         const panoramas = [
             { number: 1, title: 'I' }, 
             { number: 2, title: 'II' },
@@ -207,8 +209,11 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
         );
     };
 
-    const PuentesContent = () => (
-        React.createElement("div", { className: "overflow-x-auto animate-fade-in" },
+    const PuentesContent = () => {
+        if (!editableData?.underpasses) {
+            return React.createElement("div", { className: "text-zinc-400" }, "No hay datos de puentes y pasos bajo nivel.");
+        }
+        return React.createElement("div", { className: "overflow-x-auto animate-fade-in" },
             React.createElement("table", { className: "w-full min-w-[600px] text-left" },
                 React.createElement("thead", { className: "border-b-2 border-zinc-600" },
                     React.createElement("tr", { className: "text-left text-sm font-semibold text-zinc-300" },
@@ -227,11 +232,15 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
                     ))
                 )
             )
-        )
-    );
-
+        );
+    };
+    
     const TelegramContent = () => {
         const [copied, setCopied] = useState(null);
+
+        if (!editableData?.alertPoints) {
+            return React.createElement("div", { className: "text-zinc-400" }, "No hay datos de puntos de alerta disponibles.");
+        }
 
         const organismToUnitMap = {
             'ESTACION VI "C.M.M.C.F.P."': 'Ranger-6',

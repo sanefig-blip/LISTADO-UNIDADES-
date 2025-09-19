@@ -15,11 +15,11 @@ const Croquis = forwardRef((props, ref) => {
     const { isActive, storageKey, interventionGroups = [], onUpdateInterventionGroups } = props;
     const mapContainerRef = useRef(null);
     const mapRef = useRef(null);
-    
-    const [tool, setTool] = useState(null);
-    const [elements, setElements] = useState([]);
+    const drawnItemsRef = useRef(null);
     const drawingLine = useRef(null);
 
+    const [tool, setTool] = useState(null);
+    
     const [editingUnit, setEditingUnit] = useState(null);
     const [unitToPlace, setUnitToPlace] = useState(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
@@ -27,7 +27,6 @@ const Croquis = forwardRef((props, ref) => {
     const [activeSubTool, setActiveSubTool] = useState(predefinedUnits[0]);
     const [textColor, setTextColor] = useState('#FFFFFF');
     const [lineColor, setLineColor] = useState('#ffde03'); // Yellow
-    const [zoneColor, setZoneColor] = useState('#dc2626'); // Red
     const [textSize, setTextSize] = useState(16);
     const [inputText, setInputText] = useState('');
     
@@ -36,8 +35,6 @@ const Croquis = forwardRef((props, ref) => {
     useImperativeHandle(ref, () => ({
         capture: async () => {
             if (!mapRef.current || !mapContainerRef.current) return null;
-            const map = mapRef.current;
-            
             const controls = mapContainerRef.current.querySelectorAll('.leaflet-control-container, .croquis-controls');
             controls.forEach(c => (c).style.display = 'none');
             
@@ -57,33 +54,35 @@ const Croquis = forwardRef((props, ref) => {
         }
     }));
 
-
     const saveElementsToLocalStorage = useCallback(() => {
-        if (!mapRef.current || elements.length === 0) return;
-        const featureGroup = L.featureGroup(elements);
-        const geojsonData = featureGroup.toGeoJSON();
+        if (!drawnItemsRef.current) return;
+        const geojsonData = drawnItemsRef.current.toGeoJSON();
         
-        featureGroup.eachLayer((layer, index) => {
-            if (geojsonData.features[index]) {
-                const properties = { ...layer.options.customProperties };
-                if (layer.options.icon) {
+        drawnItemsRef.current.eachLayer((layer) => {
+            const feature = layer.toGeoJSON();
+            const correspondingFeature = geojsonData.features.find((f) => f.geometry.coordinates.toString() === feature.geometry.coordinates.toString());
+            if (correspondingFeature) {
+                 const properties = { ...layer.options.customProperties };
+                 if (layer.options.icon) {
                     properties.html = layer.options.icon.options.html;
                     properties.className = layer.options.icon.options.className;
                 }
                 if(layer.options.color) properties.style = { color: layer.options.color, weight: layer.options.weight, dashArray: layer.options.dashArray };
-                geojsonData.features[index].properties = properties;
+                correspondingFeature.properties = properties;
             }
         });
         localStorage.setItem(storageKey, JSON.stringify(geojsonData));
-    }, [elements, storageKey]);
+    }, [storageKey]);
 
     const loadElementsFromLocalStorage = useCallback(() => {
-        if (!mapRef.current) return;
+        const map = mapRef.current;
+        const drawnItems = drawnItemsRef.current;
+        if (!map || !drawnItems) return;
+        
         const savedData = localStorage.getItem(storageKey);
         if (savedData) {
             try {
                 const geojsonData = JSON.parse(savedData);
-                const loadedLayers = [];
                 L.geoJSON(geojsonData, {
                     style: (feature) => feature.properties.style,
                     pointToLayer: (feature, latlng) => {
@@ -101,20 +100,33 @@ const Croquis = forwardRef((props, ref) => {
                         if (layer instanceof L.Polyline) {
                             layer.setStyle(feature.properties.style);
                         }
-                        layer.addTo(mapRef.current);
-                        loadedLayers.push(layer);
+                        drawnItems.addLayer(layer);
                     }
                 });
-                setElements(loadedLayers);
             } catch (e) {
                 console.error("Error parsing sketch from localStorage:", e);
             }
         }
     }, [storageKey]);
+    
+    const clearCanvas = () => {
+        if (window.confirm("¿Está seguro de que desea borrar todo el boceto?")) {
+            drawnItemsRef.current?.clearLayers();
+            localStorage.removeItem(storageKey);
+    
+            if (onUpdateInterventionGroups && interventionGroups) {
+                const updatedGroups = interventionGroups.map(g => ({
+                    ...g,
+                    units: g.units.map(u => ({ ...u, lat: undefined, lng: undefined }))
+                }));
+                onUpdateInterventionGroups(updatedGroups);
+            }
+        }
+    };
 
     const handleMapClick = useCallback((e) => {
         const map = mapRef.current;
-        if (!map || !tool) return;
+        if (!map) return;
         const latlng = e.latlng;
 
         if (unitToPlace) {
@@ -126,9 +138,10 @@ const Croquis = forwardRef((props, ref) => {
                 onUpdateInterventionGroups(updatedGroups);
             }
             setUnitToPlace(null);
-            setTool(null);
             return;
         }
+
+        if (!tool) return;
 
         let newElement;
         switch (tool) {
@@ -138,7 +151,7 @@ const Croquis = forwardRef((props, ref) => {
                     icon: L.divIcon({ html: iconHtml, className: 'custom-point-icon', iconSize: [24, 24], iconAnchor: [12, 12] }),
                     draggable: true,
                     customProperties: { type: 'point' }
-                }).addTo(map);
+                });
                 break;
             }
             case 'impact': {
@@ -147,7 +160,7 @@ const Croquis = forwardRef((props, ref) => {
                     icon: L.divIcon({ html: iconHtml, className: 'custom-impact-icon', iconSize: [32, 32], iconAnchor: [16, 32] }),
                     draggable: true,
                     customProperties: { type: 'impact' }
-                }).addTo(map);
+                });
                 break;
             }
              case 'unit': {
@@ -161,7 +174,7 @@ const Croquis = forwardRef((props, ref) => {
                     icon: L.divIcon({ html: unitHtml, className: 'custom-unit-icon', iconSize: [24, 24], iconAnchor: [12, 12] }),
                     draggable: true,
                     customProperties: { type: 'unit', unitType: activeSubTool.type, html: unitHtml, className: 'custom-unit-icon' }
-                }).addTo(map);
+                });
                 break;
             }
             case 'text': {
@@ -173,7 +186,7 @@ const Croquis = forwardRef((props, ref) => {
                     icon: L.divIcon({ html: textHtml, className: 'custom-text-icon', iconSize: [0, 0], iconAnchor: [0,0] }),
                     draggable: true,
                     customProperties: { type: 'text', text: inputText, html: textHtml, className: 'custom-text-icon' }
-                }).addTo(map);
+                });
                 setInputText('');
                 break;
             }
@@ -185,41 +198,64 @@ const Croquis = forwardRef((props, ref) => {
                 } else {
                     drawingLine.current.addLatLng(latlng);
                 }
-                return; // Don't add to elements until finished
+                return;
         }
         if (newElement) {
-            setElements(prev => [...prev, newElement]);
+            drawnItemsRef.current?.addLayer(newElement);
+            saveElementsToLocalStorage();
         }
-    }, [tool, unitToPlace, interventionGroups, onUpdateInterventionGroups, activeSubTool, textColor, textSize, inputText, lineColor]);
-
-     useEffect(() => {
-        saveElementsToLocalStorage();
-    }, [elements, saveElementsToLocalStorage]);
-
+    }, [tool, unitToPlace, interventionGroups, onUpdateInterventionGroups, activeSubTool, textColor, textSize, inputText, lineColor, saveElementsToLocalStorage]);
+    
+     const handleMapDoubleClick = useCallback(() => {
+        if (drawingLine.current) {
+            drawingLine.current.options.customProperties = { 
+                type: drawingLine.current.options.dashArray ? 'transferLine' : 'attackLine', 
+                style: { 
+                    color: drawingLine.current.options.color, 
+                    weight: drawingLine.current.options.weight, 
+                    dashArray: drawingLine.current.options.dashArray 
+                } 
+            };
+            drawnItemsRef.current?.addLayer(drawingLine.current);
+            drawingLine.current = null;
+            setTool(null);
+            saveElementsToLocalStorage();
+        }
+    }, [saveElementsToLocalStorage]);
+    
     useEffect(() => {
-        if (isActive && mapContainerRef.current && !mapRef.current) {
-            const map = L.map(mapContainerRef.current, { center: [-34.6037, -58.3816], zoom: 15 });
+        if (!isActive || !mapContainerRef.current) return;
+        let map;
+
+        if (!mapRef.current) {
+            map = L.map(mapContainerRef.current, { center: [-34.6037, -58.3816], zoom: 15 });
             mapRef.current = map;
+            drawnItemsRef.current = new L.FeatureGroup().addTo(map);
+
             const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' });
             const baseLayers = { 'Calles': streetLayer, 'Satélite': satelliteLayer };
             (storageKey === 'forestalSketch' ? satelliteLayer : streetLayer).addTo(map);
             L.control.layers(baseLayers).addTo(map);
+            
             loadElementsFromLocalStorage();
-            map.on('click', handleMapClick);
-            map.on('dblclick', () => {
-                if (drawingLine.current) {
-                    drawingLine.current.options.customProperties = { type: drawingLine.current.options.dashArray ? 'transferLine' : 'attackLine', style: { color: drawingLine.current.options.color, weight: drawingLine.current.options.weight, dashArray: drawingLine.current.options.dashArray } };
-                    setElements(prev => [...prev, drawingLine.current]);
-                    drawingLine.current = null;
-                    setTool(null);
-                }
-            });
-            setTimeout(() => map.invalidateSize(), 100);
-        } else if (isActive && mapRef.current) {
-            setTimeout(() => mapRef.current.invalidateSize(), 10);
+        } else {
+            map = mapRef.current;
         }
-    }, [isActive, storageKey, loadElementsFromLocalStorage, handleMapClick]);
+        
+        const clickHandler = (e) => handleMapClick(e);
+        const dblClickHandler = () => handleMapDoubleClick();
+        
+        map.on('click', clickHandler);
+        map.on('dblclick', dblClickHandler);
+        
+        setTimeout(() => map.invalidateSize(), 100);
+
+        return () => {
+            map.off('click', clickHandler);
+            map.off('dblclick', dblClickHandler);
+        };
+    }, [isActive, storageKey, loadElementsFromLocalStorage, handleMapClick, handleMapDoubleClick]);
 
      const handleUpdateUnitDetails = (unitId, details) => {
         if (onUpdateInterventionGroups) {
@@ -243,10 +279,10 @@ const Croquis = forwardRef((props, ref) => {
         currentUnitIdsOnMap.forEach(unitId => {
             if (!desiredUnitIds.has(unitId)) {
                 const layerToRemove = tacticalUnitLayers.current.get(unitId);
-                if (layerToRemove) {
+                if (layerToRemove && map.hasLayer(layerToRemove)) {
                     map.removeLayer(layerToRemove);
-                    tacticalUnitLayers.current.delete(unitId);
                 }
+                tacticalUnitLayers.current.delete(unitId);
             }
         });
     
@@ -281,7 +317,9 @@ const Croquis = forwardRef((props, ref) => {
                     tacticalUnitLayers.current.set(unit.id, marker);
                 }
             } else if (existingLayer) {
-                map.removeLayer(existingLayer);
+                if(map.hasLayer(existingLayer)) {
+                    map.removeLayer(existingLayer);
+                }
                 tacticalUnitLayers.current.delete(unit.id);
             }
         });
@@ -294,8 +332,9 @@ const Croquis = forwardRef((props, ref) => {
                 setTool(t => t === toolName ? null : toolName);
                 if (drawingLine.current) {
                     drawingLine.current.options.customProperties = { type: drawingLine.current.options.dashArray ? 'transferLine' : 'attackLine' };
-                    setElements(prev => [...prev, drawingLine.current]);
+                    drawnItemsRef.current?.addLayer(drawingLine.current);
                     drawingLine.current = null;
+                    saveElementsToLocalStorage();
                 }
             },
             className: `p-2 rounded-md transition-colors flex flex-col items-center text-xs w-20 h-16 justify-center ${tool === toolName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`,
@@ -362,13 +401,7 @@ const Croquis = forwardRef((props, ref) => {
                 )
             ),
             React.createElement("div", { className: "croquis-controls absolute top-3 right-3 flex flex-col gap-3 z-[1000]" },
-                 React.createElement("button", { onClick: () => {
-                    setElements(prev => {
-                        prev.forEach(el => mapRef.current.removeLayer(el));
-                        return [];
-                    });
-                     localStorage.removeItem(storageKey);
-                }, className: "p-2 bg-red-600 hover:bg-red-500 rounded-md text-white", title: "Limpiar Todo" }, React.createElement(TrashIcon, { className: "w-5 h-5" })),
+                 React.createElement("button", { onClick: clearCanvas, className: "p-2 bg-red-600 hover:bg-red-500 rounded-md text-white", title: "Limpiar Todo" }, React.createElement(TrashIcon, { className: "w-5 h-5" })),
                 React.createElement("button", { onClick: () => setIsFullScreen(fs => !fs), className: "p-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white", title: isFullScreen ? "Salir de pantalla completa" : "Pantalla completa" },
                     isFullScreen ? React.createElement(MinimizeIcon, { className: "w-5 h-5" }) : React.createElement(MaximizeIcon, { className: "w-5 h-5" })
                 )
