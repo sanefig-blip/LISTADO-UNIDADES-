@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import CommandPostSummaryView from './CommandPostSummaryView.js';
 import TacticalCommandPostView from './CommandPostView.js';
-import SciFormsView from './SciFormsView.js';
 import { PlusCircleIcon } from './icons.js';
 
 const CommandPostParentView = (props) => {
@@ -26,21 +25,16 @@ const CommandPostParentView = (props) => {
         return { allUnits: units, allPersonnel: Array.from(personnelMap.values()) };
     }, [unitReportData, commandPersonnel, servicePersonnel]);
 
-    const { availableUnits, availablePersonnel, interventionUnits, interventionPersonnel } = useMemo(() => {
+    const { availableUnits, availablePersonnel } = useMemo(() => {
         const assignedUnitIds = new Set(interventionGroups.flatMap(g => g.units.map(u => u.id)));
         const assignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
         
         const availableU = allUnits.filter(u => !assignedUnitIds.has(u.id) && u.status.toLowerCase().includes('para servicio'));
         const availableP = allPersonnel.filter(p => !assignedPersonnelIds.has(p.id));
-        
-        const interventionU = allUnits.filter(u => assignedUnitIds.has(u.id));
-        const interventionP = allPersonnel.filter(p => assignedPersonnelIds.has(p.id));
 
         return { 
             availableUnits: availableU, 
             availablePersonnel: availableP,
-            interventionUnits: interventionU,
-            interventionPersonnel: interventionP
         };
     }, [interventionGroups, allUnits, allPersonnel]);
 
@@ -111,14 +105,11 @@ const CommandPostParentView = (props) => {
         }, children)
     );
 
-    const showSciForms = currentUser.role === 'admin' || currentUser.username === 'Puesto Comando';
-
     return (
         React.createElement("div", null,
             React.createElement("div", { className: "flex border-b border-zinc-700" },
                 React.createElement(TabButton, { tabId: "summary" }, "Resumen"),
-                React.createElement(TabButton, { tabId: "tactical" }, "Comando Táctico"),
-                showSciForms && React.createElement(TabButton, { tabId: "sci-forms" }, "Formularios SCI")
+                React.createElement(TabButton, { tabId: "tactical" }, "Comando Táctico")
             ),
             React.createElement("div", { className: "pt-6" },
                 activeTab === 'summary' && 
@@ -151,8 +142,7 @@ const CommandPostParentView = (props) => {
                             onUnassignPersonnel: handleUnassignPersonnel,
                             onUnitDetailChange: handleUnitDetailChange
                         })
-                    ),
-                activeTab === 'sci-forms' && showSciForms && React.createElement(SciFormsView, { personnel: [...commandPersonnel, ...servicePersonnel], unitList: props.unitList })
+                    )
             )
         )
     );

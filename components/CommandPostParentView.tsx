@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { UnitReportData, Personnel, FireUnit, InterventionGroup, TrackedUnit, TrackedPersonnel, User } from '../types';
 import CommandPostSummaryView from './CommandPostSummaryView';
 import TacticalCommandPostView from './CommandPostView';
-import SciFormsView from './SciFormsView';
 import { PlusCircleIcon } from './icons';
 
 interface CommandPostParentViewProps {
@@ -17,7 +16,7 @@ interface CommandPostParentViewProps {
 
 const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     const { unitReportData, commandPersonnel, servicePersonnel, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
-    const [activeTab, setActiveTab] = useState<'summary' | 'tactical' | 'sci-forms'>('summary');
+    const [activeTab, setActiveTab] = useState<'summary' | 'tactical'>('summary');
 
     const { allUnits, allPersonnel } = useMemo(() => {
         const units = unitReportData.zones.flatMap(zone => 
@@ -37,21 +36,16 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
         return { allUnits: units, allPersonnel: Array.from(personnelMap.values()) };
     }, [unitReportData, commandPersonnel, servicePersonnel]);
 
-    const { availableUnits, availablePersonnel, interventionUnits, interventionPersonnel } = useMemo(() => {
+    const { availableUnits, availablePersonnel } = useMemo(() => {
         const assignedUnitIds = new Set(interventionGroups.flatMap(g => g.units.map(u => u.id)));
         const assignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
         
         const availableU = allUnits.filter(u => !assignedUnitIds.has(u.id) && u.status.toLowerCase().includes('para servicio'));
         const availableP = allPersonnel.filter(p => !assignedPersonnelIds.has(p.id));
-        
-        const interventionU = allUnits.filter(u => assignedUnitIds.has(u.id));
-        const interventionP = allPersonnel.filter(p => assignedPersonnelIds.has(p.id));
 
         return { 
             availableUnits: availableU, 
             availablePersonnel: availableP,
-            interventionUnits: interventionU,
-            interventionPersonnel: interventionP
         };
     }, [interventionGroups, allUnits, allPersonnel]);
 
@@ -115,21 +109,18 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
         ));
     };
 
-    const TabButton: React.FC<{ tabId: 'summary' | 'tactical' | 'sci-forms'; children: React.ReactNode }> = ({ tabId, children }) => (
+    const TabButton: React.FC<{ tabId: 'summary' | 'tactical'; children: React.ReactNode }> = ({ tabId, children }) => (
         <button
             onClick={() => setActiveTab(tabId)}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === tabId ? 'bg-zinc-800/60 text-white' : 'bg-zinc-900/50 hover:bg-zinc-700/80 text-zinc-400'}`}
         >{children}</button>
     );
 
-    const showSciForms = currentUser.role === 'admin' || currentUser.username === 'Puesto Comando';
-
     return (
         <div>
             <div className="flex border-b border-zinc-700">
                 <TabButton tabId="summary">Resumen</TabButton>
                 <TabButton tabId="tactical">Comando Táctico</TabButton>
-                {showSciForms && <TabButton tabId="sci-forms">Formularios SCI</TabButton>}
             </div>
             <div className="pt-6">
                 {activeTab === 'summary' && 
@@ -165,7 +156,6 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
                         />
                     </div>
                 }
-                {activeTab === 'sci-forms' && showSciForms && <SciFormsView personnel={[...commandPersonnel, ...servicePersonnel]} unitList={props.unitList} />}
             </div>
         </div>
     );

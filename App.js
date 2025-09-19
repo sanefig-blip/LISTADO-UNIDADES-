@@ -26,9 +26,9 @@ import EraReportDisplay from './components/EraReportDisplay.js';
 import GeneratorReportDisplay from './components/GeneratorReportDisplay.js';
 import MaterialsDisplay from './components/MaterialsDisplay.js';
 import MaterialStatusView from './components/MaterialStatusView.js';
-import ForestalView from './components/ForestalView.js';
 import HidroAlertView from './components/HidroAlertView.js';
 import RegimenDeIntervencion from './components/RegimenDeIntervencion.js';
+import CroquisView from './components/CroquisView.js';
 import Login from './components/Login.js';
 import { BookOpenIcon, DownloadIcon, ClockIcon, ClipboardListIcon, RefreshIcon, EyeIcon, EyeOffIcon, UploadIcon, QuestionMarkCircleIcon, BookmarkIcon, ChevronDownIcon, FireIcon, FilterIcon, AnnotationIcon, LightningBoltIcon, MapIcon, CubeIcon, ClipboardCheckIcon, LogoutIcon, ShieldExclamationIcon, SunIcon, MaximizeIcon, MinimizeIcon, DocumentTextIcon } from './components/icons.js';
 import HelpModal from './components/HelpModal.js';
@@ -937,8 +937,8 @@ const App = () => {
                     interventionGroups: interventionGroups,
                     onUpdateInterventionGroups: handleUpdateInterventionGroups
                 });
-            case 'forestal':
-                return React.createElement(ForestalView, {});
+            case 'croquis':
+                return React.createElement(CroquisView, { interventionGroups: interventionGroups });
             case 'era-report':
                 if (!eraReport) return null;
                 return React.createElement(EraReportDisplay, { reportData: eraReport, onUpdateReport: handleUpdateEraReport, currentUser: currentUser });
@@ -1078,7 +1078,7 @@ const App = () => {
                         React.createElement("button", { className: getButtonClass('unit-status'), onClick: () => setView('unit-status') }, React.createElement(FilterIcon, { className: "w-5 h-5" }), " Estado de Unidades"),
                         React.createElement("button", { className: getButtonClass('material-status'), onClick: () => setView('material-status') }, React.createElement(ClipboardCheckIcon, { className: "w-5 h-5" }), " Estado de Materiales"),
                         (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('command-post'), onClick: () => setView('command-post') }, React.createElement(AnnotationIcon, { className: "w-5 h-5" }), " Puesto Comando"),
-                        currentUser.role === 'admin' && React.createElement("button", { className: getButtonClass('forestal'), onClick: () => setView('forestal') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Forestal"),
+                        (currentUser.role === 'admin' || currentUser.username === 'Puesto Comando') && React.createElement("button", { className: getButtonClass('croquis'), onClick: () => setView('croquis') }, React.createElement(MapIcon, { className: "w-5 h-5" }), " Croquis"),
                         React.createElement("button", { className: getButtonClass('era-report'), onClick: () => setView('era-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Trasvazadores E.R.A."),
                         React.createElement("button", { className: getButtonClass('generator-report'), onClick: () => setView('generator-report') }, React.createElement(LightningBoltIcon, { className: "w-5 h-5" }), " Grupos Electrógenos"),
                         React.createElement("button", { className: getButtonClass('materials'), onClick: () => setView('materials') }, React.createElement(CubeIcon, { className: "w-5 h-5" }), " Materiales"),

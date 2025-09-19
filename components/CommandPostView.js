@@ -31,8 +31,11 @@ const TacticalCommandPostView = ({
     }, [assignMenuOpen]);
     
     const handleSetRef = (key, el) => {
-        if (el) assignMenuRefs.current.set(key, el);
-        else assignMenuRefs.current.delete(key);
+        if (el) {
+            assignMenuRefs.current.set(key, el);
+        } else {
+            assignMenuRefs.current.delete(key);
+        }
     };
 
     return (
