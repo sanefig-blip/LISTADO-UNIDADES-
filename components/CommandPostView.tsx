@@ -30,11 +30,16 @@ const TacticalCommandPostView: React.FC<TacticalCommandPostViewProps> = ({
     onUnitDetailChange
 }) => {
     const [assignMenuOpen, setAssignMenuOpen] = useState<{type: 'unit' | 'personnel', id: string} | null>(null);
-    const assignMenuRef = useRef<HTMLDivElement>(null);
+    const assignMenuRefs = useRef(new Map<string, HTMLDivElement | null>());
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (assignMenuOpen && event.target instanceof Node && assignMenuRef.current && !assignMenuRef.current.contains(event.target)) {
+            if (!assignMenuOpen) return;
+            
+            const key = `${assignMenuOpen.type}-${assignMenuOpen.id}`;
+            const currentRef = assignMenuRefs.current.get(key);
+            
+            if (currentRef && !currentRef.contains(event.target as Node)) {
                  setAssignMenuOpen(null);
             }
         };
@@ -57,13 +62,16 @@ const TacticalCommandPostView: React.FC<TacticalCommandPostViewProps> = ({
                             {availableUnits.map(unit => (
                                 <li key={unit.id} className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm">
                                     <span className="font-mono text-zinc-200">{unit.id} <span className="text-zinc-400">({unit.type})</span></span>
-                                    <div className="relative" ref={assignMenuRef}>
+                                    <div 
+                                        className="relative" 
+                                        ref={el => { if (el) assignMenuRefs.current.set(`unit-${unit.id}`, el); }}
+                                    >
                                         <button onClick={() => setAssignMenuOpen(prev => (prev?.type === 'unit' && prev.id === unit.id) ? null : {type: 'unit', id: unit.id})} className="px-2 py-1 text-xs bg-sky-600 hover:bg-sky-500 rounded text-white">Asignar</button>
                                         {assignMenuOpen?.type === 'unit' && assignMenuOpen?.id === unit.id && (
-                                            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20">
+                                            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20 animate-fade-in">
                                                 {interventionGroups.length > 0 ? interventionGroups.map(g => (
                                                     <button key={g.id} onClick={() => { onAssignUnit(unit, g.id); setAssignMenuOpen(null); }} className="block w-full text-left px-3 py-2 hover:bg-zinc-500 transition-colors">{g.type}: {g.name}</button>
-                                                )) : <div className="px-3 py-2 text-zinc-400">Crear un grupo primero.</div>}
+                                                )) : <div className="px-3 py-2 text-zinc-400">Crear un grupo.</div>}
                                             </div>
                                         )}
                                     </div>
@@ -77,13 +85,16 @@ const TacticalCommandPostView: React.FC<TacticalCommandPostViewProps> = ({
                             {availablePersonnel.map(person => (
                                 <li key={person.id} className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm">
                                     <span className="text-zinc-200">{person.name}</span>
-                                     <div className="relative" ref={assignMenuRef}>
+                                     <div 
+                                        className="relative" 
+                                        ref={el => { if(el) assignMenuRefs.current.set(`personnel-${person.id}`, el); }}
+                                     >
                                         <button onClick={() => setAssignMenuOpen(prev => (prev?.type === 'personnel' && prev.id === person.id) ? null : {type: 'personnel', id: person.id})} className="px-2 py-1 text-xs bg-sky-600 hover:bg-sky-500 rounded text-white">Asignar</button>
                                         {assignMenuOpen?.type === 'personnel' && assignMenuOpen?.id === person.id && (
-                                            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20">
+                                            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-600 rounded shadow-lg z-20 animate-fade-in">
                                                 {interventionGroups.length > 0 ? interventionGroups.map(g => (
                                                     <button key={g.id} onClick={() => { onAssignPersonnel(person, g.id); setAssignMenuOpen(null); }} className="block w-full text-left px-3 py-2 hover:bg-zinc-500 transition-colors">{g.type}: {g.name}</button>
-                                                )) : <div className="px-3 py-2 text-zinc-400">Crear un grupo primero.</div>}
+                                                )) : <div className="px-3 py-2 text-zinc-400">Crear un grupo.</div>}
                                             </div>
                                         )}
                                     </div>
@@ -96,7 +107,7 @@ const TacticalCommandPostView: React.FC<TacticalCommandPostViewProps> = ({
 
             <div className="lg:col-span-2 space-y-4">
                 {interventionGroups.map(group => (
-                    <div key={group.id} className="bg-zinc-900/50 p-4 rounded-lg">
+                    <div key={group.id} className="bg-zinc-900/50 p-4 rounded-lg animate-fade-in">
                         <div className="flex justify-between items-center mb-3">
                             <div className="flex items-center gap-3 w-2/3">
                                 <span className={`flex-shrink-0 text-xs font-bold px-2 py-1 rounded-md ${group.type === 'Frente' ? 'bg-blue-500 text-white' : 'bg-teal-500 text-white'}`}>{group.type}</span>

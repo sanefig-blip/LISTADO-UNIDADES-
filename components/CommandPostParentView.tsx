@@ -18,7 +18,6 @@ interface CommandPostParentViewProps {
 const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
     const [activeTab, setActiveTab] = useState<'summary' | 'tactical' | 'sci-forms'>('summary');
-    const [incidentDetails, setIncidentDetails] = useState({ type: '', address: '', alarmTime: '' });
 
     const allUnits = useMemo<FireUnit[]>(() => {
         return unitReportData.zones.flatMap(zone => 
@@ -54,7 +53,6 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
             });
         });
         
-        // Also add personnel from nomencladores to have a complete list for assignments
         [...commandPersonnel, ...servicePersonnel].forEach(p => {
              if (!personnelMap.has(p.name)) {
                 personnelMap.set(p.name, p);
@@ -70,7 +68,7 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
         const assignedPersonnelIds = new Set(interventionGroups.flatMap(g => g.personnel.map(p => p.id)));
         
         return {
-            availableUnits: allUnits.filter(u => !assignedUnitIds.has(u.id)),
+            availableUnits: allUnits.filter(u => !assignedUnitIds.has(u.id) && u.status.toLowerCase().includes('para servicio')),
             availablePersonnel: allPersonnel.filter(p => !assignedPersonnelIds.has(p.id))
         };
     }, [interventionGroups, allUnits, allPersonnel]);
@@ -90,30 +88,28 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     };
 
     const handleDeleteGroup = (groupId: string) => {
-        onUpdateInterventionGroups(interventionGroups.filter(g => g.id !== groupId));
+        if (window.confirm("¿Está seguro de que desea eliminar este grupo? Los recursos asignados volverán a estar disponibles.")) {
+            onUpdateInterventionGroups(interventionGroups.filter(g => g.id !== groupId));
+        }
     };
 
     const handleGroupChange = (groupId: string, field: 'name' | 'officerInCharge', value: string) => {
-        onUpdateInterventionGroups(interventionGroups.map(g => g.id === groupId ? { ...g, [field]: value } : g));
+        const newGroups = interventionGroups.map(g => 
+            g.id === groupId ? { ...g, [field]: value } : g
+        );
+        onUpdateInterventionGroups(newGroups);
     };
     
     const handleAssignUnit = (unit: FireUnit, groupId: string) => {
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
                 const newTrackedUnit: Omit<TrackedUnit, keyof FireUnit> = {
-                    groupName: g.name || '',
-                    task: '',
-                    locationInScene: '',
-                    workTime: '',
-                    departureTime: '',
-                    onSceneTime: '',
-                    returnTime: ''
+                    groupName: g.name || '', task: '', locationInScene: '', workTime: '',
+                    departureTime: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }), 
+                    onSceneTime: '', returnTime: ''
                 };
                 const newUnitToAdd = { ...unit, ...newTrackedUnit };
-                return {
-                    ...g,
-                    units: [...g.units, newUnitToAdd]
-                };
+                return { ...g, units: [...g.units, newUnitToAdd] };
             }
             return g;
         });
@@ -123,15 +119,8 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     const handleAssignPersonnel = (person: Personnel, groupId: string) => {
         const newGroups = interventionGroups.map(g => {
             if (g.id === groupId) {
-                // FIX: Ensure newPersonnelToAdd conforms to TrackedPersonnel by explicitly defining groupName.
-                const newPersonnelToAdd: TrackedPersonnel = {
-                    ...person,
-                    groupName: g.name || ''
-                };
-                return {
-                    ...g,
-                    personnel: [...g.personnel, newPersonnelToAdd]
-                };
+                const newPersonnelToAdd: TrackedPersonnel = { ...person, groupName: g.name || '' };
+                return { ...g, personnel: [...g.personnel, newPersonnelToAdd] };
             }
             return g;
         });
@@ -139,19 +128,21 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     };
 
     const handleUnassignUnit = (unitId: string, groupId: string) => {
-        onUpdateInterventionGroups(interventionGroups.map(g => 
+        const newGroups = interventionGroups.map(g => 
             g.id === groupId ? { ...g, units: g.units.filter(u => u.id !== unitId) } : g
-        ));
+        );
+        onUpdateInterventionGroups(newGroups);
     };
 
     const handleUnassignPersonnel = (personnelId: string, groupId: string) => {
-        onUpdateInterventionGroups(interventionGroups.map(g => 
+        const newGroups = interventionGroups.map(g => 
             g.id === groupId ? { ...g, personnel: g.personnel.filter(p => p.id !== personnelId) } : g
-        ));
+        );
+        onUpdateInterventionGroups(newGroups);
     };
 
     const handleUnitDetailChange = (groupId: string, unitId: string, field: keyof Omit<TrackedUnit, 'id' | 'type' | 'status' | 'groupName'>, value: string) => {
-        onUpdateInterventionGroups(interventionGroups.map(group => {
+        const newGroups = interventionGroups.map(group => {
             if (group.id === groupId) {
                 return {
                     ...group,
@@ -159,7 +150,8 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
                 };
             }
             return group;
-        }));
+        });
+        onUpdateInterventionGroups(newGroups);
     };
 
     const TabButton = ({ tabId, children }: { tabId: 'summary' | 'tactical' | 'sci-forms', children: React.ReactNode }) => (

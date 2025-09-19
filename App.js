@@ -259,7 +259,6 @@ const App = () => {
                 }
             });
 
-            // Compare arrays to see if an update is needed to avoid unnecessary writes
             const originalOrder = materialsReportToLoad.locations.map((l) => l.name.trim()).join(',');
             const newOrder = sortedAndSyncedLocations.map(l => l.name.trim()).join(',');
 
@@ -292,6 +291,7 @@ const App = () => {
         setRoster(loadedRoster);
         setRegimen(JSON.parse(localStorage.getItem('regimenData') || JSON.stringify(preloadedRegimenData)));
         setInterventionGroups(JSON.parse(localStorage.getItem('interventionGroups') || '[]'));
+
     }, []);
 
     const sortPersonnel = (a, b) => {
@@ -367,8 +367,9 @@ const App = () => {
     };
 
     const handleUpdateInterventionGroups = (groups) => {
-        localStorage.setItem('interventionGroups', JSON.stringify(groups));
-        setInterventionGroups(groups);
+        const newGroupsArray = JSON.parse(JSON.stringify(groups));
+        localStorage.setItem('interventionGroups', JSON.stringify(newGroupsArray));
+        setInterventionGroups(newGroupsArray);
     };
 
     const handleUpdateService = (updatedService, type) => {
@@ -591,7 +592,7 @@ const App = () => {
                             personnelListWasUpdated = true;
                         }
                     } else if (officer.name !== 'A designar' && officer.name !== 'No Asignado') {
-                      newPersonnelList.push({ id: officer.id, name: officer.name, rank: officer.rank });
+                      newPersonnelList.push({ id: officer.id, name: officer.name, rank: officer.rank, poc: '' });
                       personnelListWasUpdated = true;
                     }
                 }
@@ -667,7 +668,7 @@ const App = () => {
                 return newSchedule;
             });
         } catch (error) {
-            console.error("Error al importar el archivo:", error); alert("Hubo un error al procesar el archivo.");
+            console.error("Error al importar el archivo:", error); alert(`Hubo un error al procesar el archivo: ${error.message}`);
         } finally {
             if(fileInputRef.current) fileInputRef.current.value = '';
         }
@@ -915,32 +916,16 @@ const App = () => {
         switch (view) {
             case 'hidro-alert':
                 if (!hidroAlertData) return null;
-                return React.createElement(HidroAlertView, {
-                    hidroAlertData: hidroAlertData,
-                    onUpdateReport: handleUpdateHidroAlertData,
-                    unitList: unitList
-                });
+                return React.createElement(HidroAlertView, { hidroAlertData: hidroAlertData, onUpdateReport: handleUpdateHidroAlertData, unitList: unitList });
             case 'unit-report':
                 if (!unitReport) return null;
-                return React.createElement(UnitReportDisplay, {
-                        reportData: unitReport,
-                        searchTerm: searchTerm,
-                        onSearchChange: setSearchTerm,
-                        onUpdateReport: handleUpdateUnitReport,
-                        commandPersonnel: commandPersonnel,
-                        servicePersonnel: servicePersonnel,
-                        unitList: unitList,
-                        unitTypes: unitTypes,
-                        currentUser: currentUser
-                    });
+                return React.createElement(UnitReportDisplay, { reportData: unitReport, searchTerm: searchTerm, onSearchChange: setSearchTerm, onUpdateReport: handleUpdateUnitReport, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, unitList: unitList, unitTypes: unitTypes, currentUser: currentUser });
             case 'unit-status':
                 if (!unitReport) return null;
                 return React.createElement(UnitStatusView, { unitReportData: unitReport });
             case 'material-status':
                 if (!materialsReport) return null;
-                return React.createElement(MaterialStatusView, {
-                    materialsData: materialsReport,
-                });
+                return React.createElement(MaterialStatusView, { materialsData: materialsReport });
             case 'command-post':
                 if (!unitReport) return null;
                 return React.createElement(CommandPostParentView, { 
@@ -956,51 +941,24 @@ const App = () => {
                 return React.createElement(ForestalView, {});
             case 'era-report':
                 if (!eraReport) return null;
-                return React.createElement(EraReportDisplay, {
-                        reportData: eraReport,
-                        onUpdateReport: handleUpdateEraReport,
-                        currentUser: currentUser
-                    });
+                return React.createElement(EraReportDisplay, { reportData: eraReport, onUpdateReport: handleUpdateEraReport, currentUser: currentUser });
             case 'generator-report':
                 if (!generatorReport) return null;
-                return React.createElement(GeneratorReportDisplay, {
-                    reportData: generatorReport,
-                    onUpdateReport: handleUpdateGeneratorReport,
-                    currentUser: currentUser
-                });
+                return React.createElement(GeneratorReportDisplay, { reportData: generatorReport, onUpdateReport: handleUpdateGeneratorReport, currentUser: currentUser });
             case 'materials':
                 if (!materialsReport) return null;
-                return React.createElement(MaterialsDisplay, {
-                    reportData: materialsReport,
-                    onUpdateReport: handleUpdateMaterialsReport,
-                    currentUser: currentUser
-                });
+                return React.createElement(MaterialsDisplay, { reportData: materialsReport, onUpdateReport: handleUpdateMaterialsReport, currentUser: currentUser });
             case 'schedule':
                 if (!filteredSchedule) return null;
-                return React.createElement(ScheduleDisplay, {
-                        schedule: filteredSchedule, displayDate: displayDate, selectedServiceIds: selectedServiceIds, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, unitList: unitList,
-                        onDateChange: handleDateChange, onUpdateService: handleUpdateService, onUpdateCommandStaff: handleUpdateCommandStaff, onAddNewService: handleAddNewService, onMoveService: handleMoveService, onToggleServiceSelection: handleToggleServiceSelection, onSelectAllServices: handleSelectAllServices, onSaveAsTemplate: handleSaveAsTemplate, onReplaceFromTemplate: (serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId }), onImportGuardLine: () => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true),
-                        onDeleteService: handleDeleteService,
-                        searchTerm: searchTerm, onSearchChange: setSearchTerm,
-                        currentUser: currentUser,
-                    });
+                return React.createElement(ScheduleDisplay, { schedule: filteredSchedule, displayDate: displayDate, selectedServiceIds: selectedServiceIds, commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, unitList: unitList, onDateChange: handleDateChange, onUpdateService: handleUpdateService, onUpdateCommandStaff: handleUpdateCommandStaff, onAddNewService: handleAddNewService, onMoveService: handleMoveService, onToggleServiceSelection: handleToggleServiceSelection, onSelectAllServices: handleSelectAllServices, onSaveAsTemplate: handleSaveAsTemplate, onReplaceFromTemplate: (serviceId, type) => openTemplateModal({ mode: 'replace', serviceType: type, serviceToReplaceId: serviceId }), onImportGuardLine: () => handleUpdateCommandStaff(loadGuardLineFromRoster(displayDate, schedule.commandStaff, commandPersonnel), true), onDeleteService: handleDeleteService, searchTerm: searchTerm, onSearchChange: setSearchTerm, currentUser: currentUser });
             case 'time-grouped':
                 if (!filteredSchedule) return null;
-                return React.createElement(TimeGroupedScheduleDisplay, {
-                        assignmentsByTime: getAssignmentsByTime,
-                        onAssignmentStatusChange: handleAssignmentStatusChange
-                    });
+                return React.createElement(TimeGroupedScheduleDisplay, { assignmentsByTime: getAssignmentsByTime, onAssignmentStatusChange: handleAssignmentStatusChange });
             case 'nomenclador':
                  if (currentUser.role !== 'admin') {
                     return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado. Se requieren permisos de administrador.");
                 }
-                return React.createElement(Nomenclador, {
-                        commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, unitTypes: unitTypes, roster: roster,
-                        users: usersData,
-                        onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)),
-                        onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)),
-                        onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers
-                     });
+                return React.createElement(Nomenclador, { commandPersonnel: commandPersonnel, servicePersonnel: servicePersonnel, units: unitList, unitTypes: unitTypes, roster: roster, users: usersData, onAddCommandPersonnel: (item) => updateAndSaveCommandPersonnel([...commandPersonnel, item]), onUpdateCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.map(p => p.id === item.id ? item : p)), onRemoveCommandPersonnel: (item) => updateAndSaveCommandPersonnel(commandPersonnel.filter(p => p.id !== item.id)), onAddServicePersonnel: (item) => updateAndSaveServicePersonnel([...servicePersonnel, item]), onUpdateServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.map(p => p.id === item.id ? item : p)), onRemoveServicePersonnel: (item) => updateAndSaveServicePersonnel(servicePersonnel.filter(p => p.id !== item.id)), onUpdateUnits: updateAndSaveUnits, onUpdateUnitTypes: updateAndSaveUnitTypes, onUpdateRoster: updateAndSaveRoster, onUpdateUsers: updateAndSaveUsers });
             case 'regimen':
                 if(!regimen) return null;
                 return React.createElement(RegimenDeIntervencion, { regimenData: regimen, onUpdateRegimenData: handleUpdateRegimenData });

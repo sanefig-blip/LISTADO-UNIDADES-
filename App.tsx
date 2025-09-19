@@ -369,8 +369,9 @@ const App = () => {
     };
 
     const handleUpdateInterventionGroups = (groups: InterventionGroup[]) => {
-        localStorage.setItem('interventionGroups', JSON.stringify(groups));
-        setInterventionGroups(groups);
+        const newGroupsArray = JSON.parse(JSON.stringify(groups));
+        localStorage.setItem('interventionGroups', JSON.stringify(newGroupsArray));
+        setInterventionGroups(newGroupsArray);
     };
 
     const handleUpdateService = (updatedService: Service, type: 'common' | 'sports') => {
