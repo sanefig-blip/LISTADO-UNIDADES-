@@ -5,9 +5,10 @@ import { InterventionGroup } from '../types';
 
 interface ForestalViewProps {
     interventionGroups: InterventionGroup[];
+    onUpdateInterventionGroups: (groups: InterventionGroup[]) => void;
 }
 
-const ForestalView: React.FC<ForestalViewProps> = ({ interventionGroups }) => {
+const ForestalView: React.FC<ForestalViewProps> = ({ interventionGroups, onUpdateInterventionGroups }) => {
     const [weather, setWeather] = useState({
         temp: '25',
         humidity: '40',
@@ -94,8 +95,13 @@ const ForestalView: React.FC<ForestalViewProps> = ({ interventionGroups }) => {
 
             {/* Map Area */}
             <main className="lg:col-span-3 h-full">
-                {/* FIX: Pass interventionGroups to Croquis component. */}
-                <Croquis isActive={true} onSketchCapture={() => {}} onUnlockSketch={() => {}} interventionGroups={interventionGroups} />
+                {/* FIX: Removed onSketchCapture and onUnlockSketch props as they do not exist on Croquis component */}
+                <Croquis 
+                    isActive={true} 
+                    storageKey="forestalSketch"
+                    interventionGroups={interventionGroups}
+                    onUpdateInterventionGroups={onUpdateInterventionGroups}
+                />
             </main>
         </div>
     );

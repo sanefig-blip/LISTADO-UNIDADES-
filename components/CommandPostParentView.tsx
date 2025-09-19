@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { UnitReportData, Personnel, FireUnit, InterventionGroup, TrackedUnit, TrackedPersonnel, User } from '../types';
 import CommandPostSummaryView from './CommandPostSummaryView';
 import TacticalCommandPostView from './CommandPostView';
 import Croquis from './Croquis';
 import SciFormsView from './SciFormsView';
 import { PlusCircleIcon } from './icons';
+import { exportFullCommandPostReportToPdf } from '../services/exportService';
 
 interface CommandPostParentViewProps {
     unitReportData: UnitReportData;
@@ -19,6 +20,8 @@ interface CommandPostParentViewProps {
 const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
     const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
     const [activeTab, setActiveTab] = useState<'summary' | 'tactical' | 'croquis' | 'sci'>('summary');
+    const croquisRef = useRef<{ capture: () => Promise<string | null> }>(null);
+
 
     const { allUnits, allPersonnel } = useMemo(() => {
         const units = unitReportData.zones.flatMap(zone => 
@@ -117,6 +120,26 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
             g.id === groupId ? { ...g, units: g.units.map(u => u.id === unitId ? { ...u, [field]: value } : u) } : g
         ));
     };
+
+    const handleExportFullReport = async () => {
+        const croquisImage = await croquisRef.current?.capture();
+        
+        const sci201Data = JSON.parse(localStorage.getItem('sci201Data') || '{}');
+        const sci211Data = JSON.parse(localStorage.getItem('sci211Data') || '[]');
+        const sci207Data = JSON.parse(localStorage.getItem('sci207Data') || '[]');
+        
+        exportFullCommandPostReportToPdf({
+            availableUnits,
+            availablePersonnel,
+            interventionGroups,
+            croquisImage,
+            sciData: {
+                sci201: sci201Data,
+                sci211: sci211Data,
+                sci207: sci207Data
+            }
+        });
+    };
     
     const TabButton = ({ tabId, children }: { tabId: 'summary' | 'tactical' | 'croquis' | 'sci', children: React.ReactNode }) => (
         <button
@@ -141,6 +164,7 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
                         availableUnits={availableUnits}
                         availablePersonnel={availablePersonnel}
                         interventionGroups={interventionGroups}
+                        onExportFullReport={handleExportFullReport}
                     />
                 }
                 {activeTab === 'tactical' && 
@@ -169,10 +193,11 @@ const CommandPostParentView: React.FC<CommandPostParentViewProps> = (props) => {
                         />
                     </div>
                 }
+                {/* FIX: Removed onSketchCapture and onUnlockSketch props as they do not exist on Croquis component */}
                 {activeTab === 'croquis' && <Croquis 
+                    ref={croquisRef}
                     isActive={true} 
-                    onSketchCapture={() => {}} 
-                    onUnlockSketch={() => {}} 
+                    storageKey="commandPostSketch"
                     interventionGroups={interventionGroups}
                     onUpdateInterventionGroups={onUpdateInterventionGroups}
                 /> }

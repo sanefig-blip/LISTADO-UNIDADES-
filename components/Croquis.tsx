@@ -1,7 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { TrashIcon, EngineIcon, LadderIcon, AmbulanceIcon, CommandPostIcon, PersonIcon, CrosshairsIcon, MaximizeIcon, MinimizeIcon, SearchIcon, ArrowUturnLeftIcon, CameraIcon, LockClosedIcon, PencilIcon, PencilAltIcon, RefreshIcon, FolderPlusIcon, PhotoIcon, FireIcon } from './icons';
-import { streets } from '../data/streets';
-import * as togeojson from '@tmcw/togeojson';
+import React, { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { TrashIcon, EngineIcon, LadderIcon, AmbulanceIcon, CommandPostIcon, PersonIcon, CrosshairsIcon, MaximizeIcon, MinimizeIcon, PencilIcon, FireIcon, PencilSwooshIcon, AttackArrowIcon, TransferLineIcon } from './icons';
 import { InterventionGroup, TrackedUnit } from '../types';
 import ReactDOMServer from 'react-dom/server';
 
@@ -10,16 +8,12 @@ declare const html2canvas: any;
 
 interface CroquisProps {
     isActive: boolean;
-    onSketchCapture: (imageDataUrl: string) => void;
-    onUnlockSketch: () => void;
-    initialLayer?: 'street' | 'satellite';
+    storageKey: string;
     interventionGroups?: InterventionGroup[];
     onUpdateInterventionGroups?: (groups: InterventionGroup[]) => void;
 }
 
-type Tool = 'point' | 'impact' | 'adjacency' | 'influence' | 'unit' | 'text' | 'line' | 'attackLine' | 'transferLine' | null;
-type CroquisElement = { type: 'add', element: any, elementType: string };
-type CroquisMode = 'drawing' | 'adjusting';
+type Tool = 'point' | 'impact' | 'unit' | 'text' | 'attackLine' | 'transferLine' | null;
 
 const predefinedUnits = [
     { type: 'engine', label: 'Autobomba', icon: <EngineIcon className="w-5 h-5" />, color: '#dc2626', defaultLabel: 'AB' },
@@ -29,31 +23,217 @@ const predefinedUnits = [
     { type: 'person', label: 'Personal', icon: <PersonIcon className="w-5 h-5" />, color: '#9333ea', defaultLabel: 'P' }
 ];
 
-const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSketch, initialLayer = 'street', interventionGroups = [], onUpdateInterventionGroups }) => {
+const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisProps>((props, ref) => {
+    const { isActive, storageKey, interventionGroups = [], onUpdateInterventionGroups } = props;
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
     
     const [tool, setTool] = useState<Tool>(null);
-    const [mode, setMode] = useState<CroquisMode>('drawing');
-    
-    const [unitType, setUnitType] = useState('engine');
-    const [unitLabel, setUnitLabel] = useState('E-1');
-    const [textLabel, setTextLabel] = useState('');
-    const [isTextVertical, setIsTextVertical] = useState(false);
-    
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isMaximized, setIsMaximized] = useState(false);
-    
     const [elements, setElements] = useState<any[]>([]);
     const drawingLine = useRef<any>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [editingUnit, setEditingUnit] = useState<TrackedUnit | null>(null);
     const [unitToPlace, setUnitToPlace] = useState<TrackedUnit | null>(null);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    const [activeSubTool, setActiveSubTool] = useState<any>(predefinedUnits[0]);
+    const [textColor, setTextColor] = useState('#FFFFFF');
+    const [lineColor, setLineColor] = useState('#ffde03'); // Yellow
+    const [zoneColor, setZoneColor] = useState('#dc2626'); // Red
+    const [textSize, setTextSize] = useState(16);
+    const [inputText, setInputText] = useState('');
     
     const tacticalUnitLayers = useRef(new Map<string, any>());
 
-    const handleUpdateUnitDetails = (unitId: string, details: Partial<Pick<TrackedUnit, 'mapLabel' | 'mapColor'>>) => {
+    useImperativeHandle(ref, () => ({
+        capture: async () => {
+            if (!mapRef.current || !mapContainerRef.current) return null;
+            const map = mapRef.current;
+            
+            const controls = mapContainerRef.current.querySelectorAll('.leaflet-control-container, .croquis-controls');
+            controls.forEach(c => (c as HTMLElement).style.display = 'none');
+            
+            try {
+                const canvas = await html2canvas(mapContainerRef.current, {
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#18181b',
+                });
+                return canvas.toDataURL('image/png');
+            } catch (error) {
+                console.error("Error capturing map:", error);
+                return null;
+            } finally {
+                controls.forEach(c => (c as HTMLElement).style.display = '');
+            }
+        }
+    }));
+
+
+    const saveElementsToLocalStorage = useCallback(() => {
+        if (!mapRef.current || elements.length === 0) return;
+        const featureGroup = L.featureGroup(elements);
+        const geojsonData = featureGroup.toGeoJSON();
+        
+        featureGroup.eachLayer((layer: any, index: number) => {
+            if (geojsonData.features[index]) {
+                const properties = { ...layer.options.customProperties };
+                if (layer.options.icon) {
+                    properties.html = layer.options.icon.options.html;
+                    properties.className = layer.options.icon.options.className;
+                }
+                if(layer.options.color) properties.style = { color: layer.options.color, weight: layer.options.weight, dashArray: layer.options.dashArray };
+                geojsonData.features[index].properties = properties;
+            }
+        });
+        localStorage.setItem(storageKey, JSON.stringify(geojsonData));
+    }, [elements, storageKey]);
+
+    const loadElementsFromLocalStorage = useCallback(() => {
+        if (!mapRef.current) return;
+        const savedData = localStorage.getItem(storageKey);
+        if (savedData) {
+            try {
+                const geojsonData = JSON.parse(savedData);
+                const loadedLayers: any[] = [];
+                L.geoJSON(geojsonData, {
+                    style: (feature: any) => feature.properties.style,
+                    pointToLayer: (feature: any, latlng: any) => {
+                        const props = feature.properties;
+                        if (props.type === 'unit' || props.type === 'text' || props.type === 'impact') {
+                            return L.marker(latlng, { 
+                                icon: L.divIcon({ html: props.html, className: props.className, iconSize: [0, 0], iconAnchor: [0,0] }),
+                                draggable: true 
+                            });
+                        }
+                        return L.marker(latlng, { draggable: true });
+                    },
+                    onEachFeature: (feature: any, layer: any) => {
+                        layer.options.customProperties = feature.properties;
+                        if (layer instanceof L.Polyline) {
+                            layer.setStyle(feature.properties.style);
+                        }
+                        layer.addTo(mapRef.current);
+                        loadedLayers.push(layer);
+                    }
+                });
+                setElements(loadedLayers);
+            } catch (e) {
+                console.error("Error parsing sketch from localStorage:", e);
+            }
+        }
+    }, [storageKey]);
+
+    const handleMapClick = useCallback((e: any) => {
+        const map = mapRef.current;
+        if (!map || !tool) return;
+        const latlng = e.latlng;
+
+        if (unitToPlace) {
+             if (onUpdateInterventionGroups) {
+                const updatedGroups = interventionGroups.map(g => ({
+                    ...g,
+                    units: g.units.map(u => u.id === unitToPlace.id ? { ...u, lat: latlng.lat, lng: latlng.lng } : u)
+                }));
+                onUpdateInterventionGroups(updatedGroups);
+            }
+            setUnitToPlace(null);
+            setTool(null);
+            return;
+        }
+
+        let newElement: any;
+        switch (tool) {
+            case 'point': {
+                const iconHtml = ReactDOMServer.renderToString(<CrosshairsIcon className="w-6 h-6 text-red-500" />);
+                newElement = L.marker(latlng, { 
+                    icon: L.divIcon({ html: iconHtml, className: 'custom-point-icon', iconSize: [24, 24], iconAnchor: [12, 12] }),
+                    draggable: true,
+                    customProperties: { type: 'point' }
+                }).addTo(map);
+                break;
+            }
+            case 'impact': {
+                const iconHtml = ReactDOMServer.renderToString(<FireIcon className="w-8 h-8 text-orange-500" />);
+                newElement = L.marker(latlng, { 
+                    icon: L.divIcon({ html: iconHtml, className: 'custom-impact-icon', iconSize: [32, 32], iconAnchor: [16, 32] }),
+                    draggable: true,
+                    customProperties: { type: 'impact' }
+                }).addTo(map);
+                break;
+            }
+             case 'unit': {
+                const unitHtml = ReactDOMServer.renderToString(
+                    <div style={{ color: activeSubTool.color }} className="flex flex-col items-center">
+                        {activeSubTool.icon}
+                        <span className="font-bold text-xs">{activeSubTool.label}</span>
+                    </div>
+                );
+                newElement = L.marker(latlng, {
+                    icon: L.divIcon({ html: unitHtml, className: 'custom-unit-icon', iconSize: [24, 24], iconAnchor: [12, 12] }),
+                    draggable: true,
+                    customProperties: { type: 'unit', unitType: activeSubTool.type, html: unitHtml, className: 'custom-unit-icon' }
+                }).addTo(map);
+                break;
+            }
+            case 'text': {
+                if (!inputText.trim()) return;
+                const textHtml = ReactDOMServer.renderToString(
+                    <span style={{ color: textColor, fontSize: `${textSize}px` }} className="font-semibold">{inputText}</span>
+                );
+                newElement = L.marker(latlng, {
+                    icon: L.divIcon({ html: textHtml, className: 'custom-text-icon', iconSize: [0, 0], iconAnchor: [0,0] }),
+                    draggable: true,
+                    customProperties: { type: 'text', text: inputText, html: textHtml, className: 'custom-text-icon' }
+                }).addTo(map);
+                setInputText('');
+                break;
+            }
+            case 'attackLine':
+            case 'transferLine':
+                if (!drawingLine.current) {
+                    const style = { color: lineColor, weight: 3, dashArray: tool === 'transferLine' ? '5, 10' : undefined };
+                    drawingLine.current = L.polyline([latlng], style).addTo(map);
+                } else {
+                    drawingLine.current.addLatLng(latlng);
+                }
+                return; // Don't add to elements until finished
+        }
+        if (newElement) {
+            setElements(prev => [...prev, newElement]);
+        }
+    }, [tool, unitToPlace, interventionGroups, onUpdateInterventionGroups, activeSubTool, textColor, textSize, inputText, lineColor]);
+
+     useEffect(() => {
+        saveElementsToLocalStorage();
+    }, [elements, saveElementsToLocalStorage]);
+
+    useEffect(() => {
+        if (isActive && mapContainerRef.current && !mapRef.current) {
+            const map = L.map(mapContainerRef.current, { center: [-34.6037, -58.3816], zoom: 15 });
+            mapRef.current = map;
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' });
+            const baseLayers = { 'Calles': streetLayer, 'Satélite': satelliteLayer };
+            (storageKey === 'forestalSketch' ? satelliteLayer : streetLayer).addTo(map);
+            L.control.layers(baseLayers).addTo(map);
+            loadElementsFromLocalStorage();
+            map.on('click', handleMapClick);
+            map.on('dblclick', () => {
+                if (drawingLine.current) {
+                    drawingLine.current.options.customProperties = { type: drawingLine.current.options.dashArray ? 'transferLine' : 'attackLine', style: { color: drawingLine.current.options.color, weight: drawingLine.current.options.weight, dashArray: drawingLine.current.options.dashArray } };
+                    setElements(prev => [...prev, drawingLine.current]);
+                    drawingLine.current = null;
+                    setTool(null);
+                }
+            });
+            setTimeout(() => map.invalidateSize(), 100);
+        } else if (isActive && mapRef.current) {
+            setTimeout(() => mapRef.current.invalidateSize(), 10);
+        }
+    }, [isActive, storageKey, loadElementsFromLocalStorage, handleMapClick]);
+
+     const handleUpdateUnitDetails = (unitId: string, details: Partial<Pick<TrackedUnit, 'mapLabel' | 'mapColor'>>) => {
         if (onUpdateInterventionGroups) {
             const updatedGroups = interventionGroups.map(g => ({
                 ...g,
@@ -72,7 +252,6 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
         const desiredUnitIds = new Set(allUnitsInGroups.map(u => u.id));
         const currentUnitIdsOnMap = new Set(tacticalUnitLayers.current.keys());
     
-        // 1. Remove markers for units that are no longer in interventionGroups
         currentUnitIdsOnMap.forEach(unitId => {
             if (!desiredUnitIds.has(unitId)) {
                 const layerToRemove = tacticalUnitLayers.current.get(unitId);
@@ -83,7 +262,6 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
             }
         });
     
-        // 2. Add or update markers for units in interventionGroups
         allUnitsInGroups.forEach(unit => {
             const latLng: [number, number] | null = unit.lat && unit.lng ? [unit.lat, unit.lng] : null;
             const existingLayer = tacticalUnitLayers.current.get(unit.id);
@@ -96,9 +274,10 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
     
                 const dragEndHandler = (event: any) => {
                     const newLatLng = event.target.getLatLng();
-                    const updatedGroups = interventionGroups.map(g => ({
+                    const currentGroups = JSON.parse(JSON.stringify(interventionGroups));
+                    const updatedGroups = currentGroups.map((g:InterventionGroup) => ({
                         ...g,
-                        units: g.units.map(u => u.id === unit.id ? { ...u, lat: newLatLng.lat, lng: newLatLng.lng } : u)
+                        units: g.units.map((u: TrackedUnit) => u.id === unit.id ? { ...u, lat: newLatLng.lat, lng: newLatLng.lng } : u)
                     }));
                     onUpdateInterventionGroups(updatedGroups);
                 };
@@ -106,24 +285,14 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
                 const clickHandler = () => setEditingUnit(unit);
     
                 if (existingLayer) {
-                    // Update existing layer's position and icon
-                    existingLayer.setLatLng(latLng);
-                    existingLayer.setIcon(newIcon);
-    
-                    // Detach and re-attach event listeners to prevent stale closures
-                    existingLayer.off('dragend').off('click');
-                    existingLayer.on('dragend', dragEndHandler);
-                    existingLayer.on('click', clickHandler);
-    
+                    existingLayer.setLatLng(latLng).setIcon(newIcon);
+                    existingLayer.off('dragend').off('click').on('dragend', dragEndHandler).on('click', clickHandler);
                 } else {
-                    // Create new layer
                     const marker = L.marker(latLng, { icon: newIcon, draggable: true }).addTo(map);
-                    marker.on('dragend', dragEndHandler);
-                    marker.on('click', clickHandler);
+                    marker.on('dragend', dragEndHandler).on('click', clickHandler);
                     tacticalUnitLayers.current.set(unit.id, marker);
                 }
             } else if (existingLayer) {
-                // If unit has no lat/lng but exists on map, remove it
                 map.removeLayer(existingLayer);
                 tacticalUnitLayers.current.delete(unit.id);
             }
@@ -131,109 +300,17 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
     
     }, [interventionGroups, onUpdateInterventionGroups]);
 
-
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map || mode !== 'drawing') return;
-
-        const onMapClick = (e: any) => {
-             if (unitToPlace && onUpdateInterventionGroups) {
-                const updatedGroups = interventionGroups.map(g => ({ ...g, units: g.units.map(u => u.id === unitToPlace.id ? { ...u, lat: e.latlng.lat, lng: e.latlng.lng } : u)}));
-                onUpdateInterventionGroups(updatedGroups);
-                setUnitToPlace(null);
-                document.body.style.cursor = '';
-                return;
-            }
-
-            if (!tool) return;
-
-            const createIcon = (options: any) => L.divIcon({ ...options, iconSize: [0, 0], iconAnchor: [0,0] });
-            let newLayer: any;
-
-            switch (tool) {
-                case 'point': newLayer = L.marker(e.latlng); break;
-                case 'impact': newLayer = L.circle(e.latlng, { radius: 50, color: 'red' }); break;
-                case 'adjacency': newLayer = L.circle(e.latlng, { radius: 100, color: 'yellow' }); break;
-                case 'influence': newLayer = L.circle(e.latlng, { radius: 150, color: 'green' }); break;
-                case 'unit':
-                    const selectedUnit = predefinedUnits.find(u => u.type === unitType);
-                    if (selectedUnit) {
-                        const iconHtml = `<div style="padding: 0.25rem; border-radius: 9999px; background-color: ${selectedUnit.color}; color: white;">${ReactDOMServer.renderToString(selectedUnit.icon)}</div><div style="font-size: 0.75rem; font-weight: bold; color: white; white-space: nowrap; transform: translateX(-50%); position: relative; left: 50%; margin-top: 0.25rem; background-color: rgba(0,0,0,0.5); padding: 0.125rem 0.25rem; border-radius: 0.125rem;">${unitLabel}</div>`;
-                        newLayer = L.marker(e.latlng, { icon: createIcon({ html: iconHtml, className: 'leaflet-unit-icon'}), draggable: true });
-                    }
-                    break;
-                case 'text':
-                    if (textLabel.trim()) {
-                        const textHtml = `<div class="text-lg font-semibold text-white bg-black/50 px-2 py-1 rounded" style="transform: ${isTextVertical ? 'rotate(-90deg)' : 'none'};">${textLabel}</div>`;
-                        newLayer = L.marker(e.latlng, { icon: createIcon({ html: textHtml, className: 'leaflet-text-icon' }), draggable: true });
-                    }
-                    break;
-                case 'attackLine':
-                case 'transferLine':
-                    if (!drawingLine.current) {
-                        const lineOptions = tool === 'attackLine' ? { color: 'red' } : { color: 'blue', dashArray: '5, 10' };
-                        drawingLine.current = L.polyline([e.latlng], lineOptions).addTo(map);
-                    } else {
-                        drawingLine.current.addLatLng(e.latlng);
-                    }
-                    return;
-            }
-
-            if (newLayer) {
-                newLayer.addTo(map);
-                setElements(prev => [...prev, newLayer]);
-            }
-        };
-
-        const onMapDoubleClick = () => {
-            if (drawingLine.current) {
-                setElements(prev => [...prev, drawingLine.current]);
-                drawingLine.current = null;
-                setTool(null);
-            }
-        };
-
-        map.on('click', onMapClick);
-        map.on('dblclick', onMapDoubleClick);
-
-        return () => {
-            map.off('click', onMapClick);
-            map.off('dblclick', onMapDoubleClick);
-        };
-    }, [tool, mode, unitType, unitLabel, textLabel, isTextVertical, unitToPlace, interventionGroups, onUpdateInterventionGroups]);
-
-    useEffect(() => {
-        if (isActive && mapContainerRef.current && !mapRef.current) {
-            try {
-                const map = L.map(mapContainerRef.current, { center: [-34.6037, -58.3816], zoom: 15, attributionControl: false });
-                mapRef.current = map;
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-                setTimeout(() => map.invalidateSize(), 100);
-            } catch (e) { console.error("Leaflet initialization error:", e); }
-        } else if (isActive && mapRef.current) {
-             setTimeout(() => mapRef.current.invalidateSize(), 10);
-        }
-    }, [isActive]);
-
-    const clearAll = () => {
-        if (window.confirm("¿Borrar todo el croquis?")) {
-            elements.forEach(el => mapRef.current?.removeLayer(el));
-            setElements([]);
-        }
-    };
-    
-    useEffect(() => {
-        document.body.style.cursor = unitToPlace ? 'crosshair' : 'default';
-        return () => { document.body.style.cursor = 'default'; };
-    }, [unitToPlace]);
-
-
-    const unplacedUnits = interventionGroups.flatMap(g => g.units).filter(u => !u.lat || !u.lng);
-
-    const ToolButton: React.FC<{ toolName: Tool, icon: React.ReactNode, label: string }> = ({ toolName, icon, label }) => (
+    const ToolButton: React.FC<{ toolName: Tool; label: string; icon: React.ReactNode; }> = ({ toolName, label, icon }) => (
         <button
-            onClick={() => setTool(toolName)}
-            className={`p-2 rounded-md transition-colors flex flex-col items-center text-xs w-20 ${tool === toolName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`}
+            onClick={() => {
+                setTool(t => t === toolName ? null : toolName);
+                if (drawingLine.current) {
+                    drawingLine.current.options.customProperties = { type: drawingLine.current.options.dashArray ? 'transferLine' : 'attackLine' };
+                    setElements(prev => [...prev, drawingLine.current]);
+                    drawingLine.current = null;
+                }
+            }}
+            className={`p-2 rounded-md transition-colors flex flex-col items-center text-xs w-20 h-16 justify-center ${tool === toolName ? 'bg-blue-600 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`}
             title={label}
         >
             {icon}
@@ -242,81 +319,92 @@ const Croquis: React.FC<CroquisProps> = ({ isActive, onSketchCapture, onUnlockSk
     );
 
     return (
-        <div className={`flex gap-4 transition-all duration-300 ${isMaximized ? 'fixed inset-0 bg-zinc-900 z-50 p-4' : 'h-[85vh]'} ${isActive ? 'flex-row' : 'hidden'}`}>
-             <div className="flex flex-col gap-4 w-1/4 max-w-xs">
-                {/* Tactical Units Sidebar */}
-                <div className="bg-zinc-800/60 p-3 rounded-xl flex-grow flex flex-col">
-                    <h3 className="text-xl font-semibold text-yellow-300 border-b border-zinc-700 pb-2 mb-2">Unidades Tácticas</h3>
-                    {unplacedUnits.length > 0 && (
-                        <div>
-                            <h4 className="text-white font-semibold mb-2 text-sm">Sin Ubicación ({unplacedUnits.length})</h4>
-                            <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                                {unplacedUnits.map(unit => (
-                                    <li key={unit.id} className="flex justify-between items-center bg-zinc-700/50 p-2 rounded-md text-sm">
-                                        <span className="font-mono text-zinc-200">{unit.id}</span>
-                                        <button onClick={() => setUnitToPlace(unit)} className="px-2 py-1 text-xs bg-sky-600 hover:bg-sky-500 rounded text-white">Ubicar</button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                    <div className="mt-4">
-                        <h4 className="text-white font-semibold mb-2 text-sm">Grupos en Escena</h4>
-                         <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                             {interventionGroups.map(group => (
-                                <li key={group.id}><span className="font-bold text-blue-300">{group.name}</span>: {group.units.filter(u => u.lat).map(u => u.mapLabel || u.id).join(', ')}</li>
-                            ))}
+        <div className={`w-full h-full relative ${isFullScreen ? 'fixed inset-0 z-50' : ''}`}>
+            <div ref={mapContainerRef} className="w-full h-full rounded-xl bg-zinc-900" />
+            <div className="croquis-controls absolute top-3 left-3 flex flex-col gap-3 z-[1000]">
+                {onUpdateInterventionGroups && (
+                    <div className="bg-zinc-800/80 backdrop-blur-sm p-2 rounded-lg max-w-xs">
+                        <h4 className="text-white font-bold text-sm mb-2">Unidades Tácticas</h4>
+                        <ul className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                           {interventionGroups.flatMap(g => g.units).map(unit => {
+                                const isPlaced = unit.lat && unit.lng;
+                                return (
+                                <li key={unit.id} onClick={() => !isPlaced && setUnitToPlace(unit)} className={`text-xs px-2 py-1 rounded cursor-pointer ${isPlaced ? 'bg-green-800/50 text-green-300' : 'bg-sky-800/70 hover:bg-sky-700 text-sky-200'} ${unitToPlace?.id === unit.id ? 'ring-2 ring-yellow-300' : ''}`}>
+                                    {unit.id} ({isPlaced ? 'Ubicado' : 'Ubicar'})
+                                </li>
+                               )
+                           })}
                         </ul>
                     </div>
-                </div>
-
-                {/* Drawing Tools */}
-                <div className="bg-zinc-800/60 p-3 rounded-xl shadow-sm">
+                )}
+                <div className="bg-zinc-800/80 backdrop-blur-sm p-2 rounded-lg">
                     <div className="grid grid-cols-2 gap-2">
-                        <ToolButton toolName="point" label="Punto" icon={<CrosshairsIcon className="w-5 h-5"/>} />
-                        <ToolButton toolName="attackLine" label="Ataque" icon={<FireIcon className="w-5 h-5"/>} />
-                        <ToolButton toolName="transferLine" label="Transf." icon={<div className="w-5 h-5 border-2 border-dashed border-blue-500 rounded-full"/>} />
-                        <ToolButton toolName="unit" label="Unidad" icon={<EngineIcon className="w-5 h-5"/>} />
-                        <ToolButton toolName="text" label="Texto" icon={<PencilIcon className="w-5 h-5"/>} />
-                        <ToolButton toolName="impact" label="Impacto" icon={<div className="w-5 h-5 rounded-full bg-red-500/80"/>} />
+                        <ToolButton toolName="impact" label="Impacto" icon={<FireIcon className="w-6 h-6" />} />
+                        <ToolButton toolName="point" label="Punto" icon={<CrosshairsIcon className="w-6 h-6" />} />
+                        <ToolButton toolName="attackLine" label="Línea Ataque" icon={<AttackArrowIcon className="w-6 h-6" />} />
+                        <ToolButton toolName="transferLine" label="Línea Trasv." icon={<TransferLineIcon className="w-6 h-6" />} />
+                        <ToolButton toolName="unit" label="Unidades" icon={<EngineIcon className="w-6 h-6" />} />
+                        <ToolButton toolName="text" label="Texto" icon={<PencilIcon className="w-6 h-6" />} />
                     </div>
+                    {tool === 'unit' && (
+                        <div className="mt-2 pt-2 border-t border-zinc-600 flex flex-wrap gap-2 justify-center">
+                            {predefinedUnits.map(u => (
+                                <button key={u.type} onClick={() => setActiveSubTool(u)} className={`p-1 rounded transition-colors ${activeSubTool.type === u.type ? 'bg-blue-500' : 'bg-zinc-600 hover:bg-zinc-500'}`} style={{ color: u.color }}>{u.icon}</button>
+                            ))}
+                        </div>
+                    )}
+                     {tool === 'text' && (
+                        <div className="mt-2 pt-2 border-t border-zinc-600 space-y-2">
+                            <input type="text" value={inputText} onChange={e => setInputText(e.target.value)} placeholder="Escribir texto..." className="w-full bg-zinc-900 border-zinc-700 text-white rounded p-1 text-sm"/>
+                            <div className="flex items-center gap-2">
+                                <input type="color" value={textColor} onChange={e => setTextColor(e.target.value)} className="w-8 h-8 bg-transparent" />
+                                <input type="range" min="10" max="48" value={textSize} onChange={e => setTextSize(Number(e.target.value))} className="w-full" />
+                            </div>
+                        </div>
+                    )}
+                     {(tool === 'attackLine' || tool === 'transferLine') && (
+                        <div className="mt-2 pt-2 border-t border-zinc-600 space-y-2">
+                             <div className="flex items-center gap-2">
+                                <label className="text-xs text-zinc-300">Color:</label>
+                                <input type="color" value={lineColor} onChange={e => setLineColor(e.target.value)} className="w-8 h-8 bg-transparent" />
+                            </div>
+                            <p className="text-xs text-zinc-400">Doble click para finalizar línea.</p>
+                        </div>
+                    )}
                 </div>
             </div>
-
-            <div className="relative w-full h-full">
-                <div ref={mapContainerRef} className="w-full h-full rounded-xl" style={{ backgroundColor: '#18181b' }}></div>
+            <div className="croquis-controls absolute top-3 right-3 flex flex-col gap-3 z-[1000]">
+                 <button onClick={() => {
+                    setElements(prev => {
+                        prev.forEach(el => mapRef.current.removeLayer(el));
+                        return [];
+                    });
+                     localStorage.removeItem(storageKey);
+                }} className="p-2 bg-red-600 hover:bg-red-500 rounded-md text-white" title="Limpiar Todo"><TrashIcon className="w-5 h-5" /></button>
+                <button onClick={() => setIsFullScreen(fs => !fs)} className="p-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white" title={isFullScreen ? "Salir de pantalla completa" : "Pantalla completa"}>
+                    {isFullScreen ? <MinimizeIcon className="w-5 h-5" /> : <MaximizeIcon className="w-5 h-5" />}
+                </button>
             </div>
-
             {editingUnit && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1001] bg-zinc-800 p-4 rounded-lg shadow-lg w-72 border border-zinc-600">
-                    <h4 className="text-white font-bold mb-3">Editar: {editingUnit.id}</h4>
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-sm text-zinc-400">Etiqueta</label>
-                            <input
-                                type="text"
-                                value={editingUnit.mapLabel || ''}
-                                onChange={e => setEditingUnit(prev => prev ? { ...prev, mapLabel: e.target.value } : null)}
-                                className="w-full bg-zinc-700 rounded p-1 text-white"
-                            />
+                <div className="absolute inset-0 bg-black/50 z-[1001] flex justify-center items-center" onClick={() => setEditingUnit(null)}>
+                    <div className="bg-zinc-800 p-4 rounded-lg animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <h4 className="text-white font-bold mb-3">Editar Unidad: {editingUnit.id}</h4>
+                        <div className="space-y-3">
+                             <div>
+                                <label className="text-sm text-zinc-400">Etiqueta</label>
+                                <input type="text" defaultValue={editingUnit.mapLabel || editingUnit.id} onBlur={e => handleUpdateUnitDetails(editingUnit.id, { mapLabel: e.target.value })} className="w-full bg-zinc-700 p-1 rounded mt-1"/>
+                            </div>
+                             <div>
+                                <label className="text-sm text-zinc-400">Color</label>
+                                <input type="color" defaultValue={editingUnit.mapColor || '#ef4444'} onBlur={e => handleUpdateUnitDetails(editingUnit.id, { mapColor: e.target.value })} className="w-full h-10 mt-1"/>
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-sm text-zinc-400">Color</label>
-                            <input
-                                type="color"
-                                value={editingUnit.mapColor || '#ffffff'}
-                                onChange={e => setEditingUnit(prev => prev ? { ...prev, mapColor: e.target.value } : null)}
-                                className="w-full h-8 p-0 border-none bg-transparent"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                        <button onClick={() => setEditingUnit(null)} className="px-3 py-1 text-sm bg-zinc-600 hover:bg-zinc-500 rounded">Cancelar</button>
-                        <button onClick={() => handleUpdateUnitDetails(editingUnit.id, { mapLabel: editingUnit.mapLabel, mapColor: editingUnit.mapColor })} className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-500 rounded">Guardar</button>
+                        <button onClick={() => setEditingUnit(null)} className="mt-4 w-full bg-blue-600 p-2 rounded text-white">Cerrar</button>
                     </div>
                 </div>
             )}
         </div>
     );
-};
+});
+
 export default Croquis;

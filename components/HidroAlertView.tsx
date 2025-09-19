@@ -62,28 +62,34 @@ const HidroAlertView: React.FC<HidroAlertViewProps> = ({ hidroAlertData, onUpdat
 
         const statusColors: {[key: string]: string} = { 'Pendiente': '#71717a', 'Desplazado': '#3b82f6', 'En QTH': '#f59e0b', 'Normalizado': '#22c55e' };
 
-        editableData.alertPoints.forEach(point => {
-            if (point.coords && point.type === 'Punto Fijo') {
-                const color = statusColors[point.status] || '#71717a';
-                const customIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div style="background-color:${color};" class="p-1.5 rounded-full border-2 border-white shadow-lg"></div><div class="text-xs font-bold text-white whitespace-nowrap -translate-x-1/2 left-1/2 relative mt-1 bg-black/50 px-1 rounded">${point.id.split('-')[1]}</div>`,
-                    iconSize: [12, 12],
-                    iconAnchor: [6, 6]
-                });
+        // FIX: Add a null check for editableData.alertPoints to prevent runtime errors when the data is incomplete.
+        if (editableData && editableData.alertPoints) {
+            editableData.alertPoints.forEach(point => {
+                if (point.coords && point.type === 'Punto Fijo') {
+                    const color = statusColors[point.status] || '#71717a';
+                    const customIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color:${color};" class="p-1.5 rounded-full border-2 border-white shadow-lg"></div><div class="text-xs font-bold text-white whitespace-nowrap -translate-x-1/2 left-1/2 relative mt-1 bg-black/50 px-1 rounded">${point.id.split('-')[1]}</div>`,
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    });
 
-                L.marker(point.coords, { icon: customIcon }).addTo(mapRef.current)
-                    .bindTooltip(`<b>${point.id}: ${point.location}</b><br>Organismo: ${point.organism}<br>Unidad: ${point.assignedUnit || 'N/A'}<br>Estado: ${point.status}`);
-            }
-        });
+                    L.marker(point.coords, { icon: customIcon }).addTo(mapRef.current)
+                        .bindTooltip(`<b>${point.id}: ${point.location}</b><br>Organismo: ${point.organism}<br>Unidad: ${point.assignedUnit || 'N/A'}<br>Estado: ${point.status}`);
+                }
+            });
+        }
          
-        editableData.underpasses.forEach(up => {
-            if (up.coords) {
-                L.circleMarker(up.coords, {
-                    radius: 4, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 1
-                }).addTo(mapRef.current).bindTooltip(`Paso Bajo Nivel: ${up.name}<br><small>${up.location}</small>`);
-            }
-        });
+        // FIX: Add a null check for editableData.underpasses to ensure the component remains stable with partial data.
+        if (editableData && editableData.underpasses) {
+            editableData.underpasses.forEach(up => {
+                if (up.coords) {
+                    L.circleMarker(up.coords, {
+                        radius: 4, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 1
+                    }).addTo(mapRef.current).bindTooltip(`Paso Bajo Nivel: ${up.name}<br><small>${up.location}</small>`);
+                }
+            });
+        }
 
         setTimeout(() => mapRef.current?.invalidateSize(), 250);
 

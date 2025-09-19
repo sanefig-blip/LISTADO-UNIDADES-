@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Croquis from './Croquis.js';
 import { SunIcon, FireIcon, ClipboardListIcon, PlusCircleIcon, TrashIcon } from './icons.js';
 
-const ForestalView = ({ interventionGroups }) => {
+const ForestalView = ({ interventionGroups, onUpdateInterventionGroups }) => {
     const [weather, setWeather] = useState({
         temp: '25',
         humidity: '40',
@@ -89,8 +89,14 @@ const ForestalView = ({ interventionGroups }) => {
 
             // Map Area
             React.createElement("main", { className: "lg:col-span-3 h-full" },
-                // FIX: Pass interventionGroups to Croquis component.
-                React.createElement(Croquis, { isActive: true, onSketchCapture: () => {}, onUnlockSketch: () => {}, interventionGroups: interventionGroups })
+                React.createElement(Croquis, { 
+                    isActive: true, 
+                    onSketchCapture: () => {}, 
+                    onUnlockSketch: () => {}, 
+                    storageKey: "forestalSketch",
+                    interventionGroups: interventionGroups,
+                    onUpdateInterventionGroups: onUpdateInterventionGroups
+                })
             )
         )
     );

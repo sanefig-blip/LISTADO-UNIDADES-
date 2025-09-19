@@ -20,10 +20,6 @@ const saveFile = (data: BlobPart, fileName: string, fileType: string) => {
 // Helper to sanitize strings for XML
 const sanitizeXmlString = (str: string | null | undefined): string => {
     if (!str) return '';
-    // This regex removes most characters that are illegal in XML 1.0 documents.
-    // It keeps tab, newline, and carriage return.
-    // The range is U+0000 to U+001F, excluding U+0009, U+000A, U+000D.
-    // It also removes surrogate pairs which can be problematic.
     return str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uD800-\uDFFF\uFFFE\uFFFF]/g, '');
 };
 
@@ -483,7 +479,6 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
     const pageWidth = doc.internal.pageSize.width;
     const margin = 14;
 
-    // Embed data for re-importing
     try {
         const jsonData = JSON.stringify(reportData);
         doc.setProperties({
@@ -496,7 +491,7 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
     const drawPageHeader = () => {
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor('#c93131'); // Red color for title
+        doc.setTextColor('#c93131'); 
         doc.text("Reporte de Unidades de Bomberos", margin, 15);
         
         doc.setFontSize(9);
@@ -515,7 +510,7 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
             styles: {
                 halign: 'center',
                 fontStyle: 'bold',
-                fillColor: '#b91c1c', // red-700
+                fillColor: '#b91c1c', 
                 textColor: '#ffffff',
                 fontSize: 12
             }
@@ -527,7 +522,7 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
                 colSpan: 6,
                 styles: {
                     fontStyle: 'bold',
-                    fillColor: '#3f3f46', // zinc-700
+                    fillColor: '#3f3f46', 
                     textColor: '#ffffff',
                     fontSize: 10
                 }
@@ -552,7 +547,7 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
         startY: 25,
         theme: 'grid',
         headStyles: { 
-            fillColor: '#52525b', // zinc-600
+            fillColor: '#52525b', 
             textColor: '#ffffff',
             fontStyle: 'bold'
         },
@@ -577,7 +572,6 @@ export const exportUnitReportToPdf = (reportData: UnitReportData) => {
     doc.save(`Reporte_Unidades_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportEraReportToPdf function
 export const exportEraReportToPdf = (reportData: EraData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -637,7 +631,6 @@ export const exportEraReportToPdf = (reportData: EraData) => {
     doc.save(`Reporte_ERA_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportGeneratorReportToPdf function
 export const exportGeneratorReportToPdf = (reportData: GeneratorData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -697,7 +690,6 @@ export const exportGeneratorReportToPdf = (reportData: GeneratorData) => {
     doc.save(`Reporte_Generadores_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportMaterialsReportToPdf function
 export const exportMaterialsReportToPdf = (reportData: MaterialsData) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -760,7 +752,6 @@ export const exportMaterialsReportToPdf = (reportData: MaterialsData) => {
     doc.save(`Reporte_Materiales_${reportData.reportDate.split(',')[0].replace(/\//g, '-')}.pdf`);
 };
 
-// FIX: Add exportSci201ToPdf function
 export const exportSci201ToPdf = (data: SCI201Data) => {
     const doc = new jsPDF();
     let y = 20;
@@ -833,9 +824,9 @@ export const exportSci201ToPdf = (data: SCI201Data) => {
 
     doc.save(`SCI-201_${(data.incidentName || 'Briefing').replace(/\s/g, '_')}.pdf`);
 };
-// FIX: Add exportSci211ToPdf function
+
 export const exportSci211ToPdf = (resources: SCI211Resource[]) => {
-    const doc = new jsPDF('l', 'mm', 'a4'); // landscape
+    const doc = new jsPDF('l', 'mm', 'a4'); 
     doc.setFontSize(16);
     doc.text("SCI-211: Registro de Recursos", 14, 20);
 
@@ -862,9 +853,8 @@ export const exportSci211ToPdf = (resources: SCI211Resource[]) => {
     doc.save('SCI-211_Registro_Recursos.pdf');
 };
 
-// FIX: Add exportSci207ToPdf function
 export const exportSci207ToPdf = (victims: SCI207Victim[]) => {
-    const doc = new jsPDF('l', 'mm', 'a4'); // landscape
+    const doc = new jsPDF('l', 'mm', 'a4');
     doc.setFontSize(16);
     doc.text("SCI-207: Registro de Víctimas", 14, 20);
 
@@ -897,9 +887,6 @@ export const exportSci207ToPdf = (victims: SCI207Victim[]) => {
         didParseCell: (data: any) => {
             if (data.column.index === 3 && data.cell.section === 'body') {
                 const triage = data.cell.raw as TriageCategory;
-                // FIX: The original check `if (triage && triageColors[triage])` incorrectly excluded empty strings.
-                // An empty string is a valid TriageCategory and should be styled.
-                // Changed to `if (triage in triageColors)` to correctly handle all possible triage values.
                 if (triage in triageColors) {
                     data.cell.styles.fillColor = triageColors[triage];
                     data.cell.styles.textColor = (triage === 'Amarillo' || triage === '') ? [0,0,0] : [255,255,255];
@@ -920,84 +907,11 @@ const createPdfTable = (doc: jsPDF, title: string, head: any[], body: any[], sta
         body: body,
         startY: startY + 6,
         theme: 'grid',
-        headStyles: { fillColor: '#3f3f46' }, // zinc-700
+        headStyles: { fillColor: '#3f3f46' }, 
         styles: { fontSize: 8 }
     });
     return (doc as any).lastAutoTable.finalY;
 };
-
-export const exportTacticalCommandPostToPdf = (
-    interventionGroups: InterventionGroup[],
-) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const margin = 14;
-    let y = 15;
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Reporte de Comando Táctico", pageWidth / 2, y, { align: 'center' });
-    y += 15;
-
-    interventionGroups.forEach(group => {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text(group.name, margin, y);
-        y += 5;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`A Cargo: ${group.officerInCharge || 'N/A'}`, margin, y);
-        y+= 8;
-
-        if (group.units.length > 0) {
-            y = createPdfTable(doc, 'Unidades Asignadas', 
-                [['Unidad', 'Tarea', 'Ubicación', 'T. Trabajo', 'H. Salida', 'H. Lugar', 'H. Regreso']], 
-                group.units.map(u => [u.id, u.task, u.locationInScene, u.workTime, u.departureTime, u.onSceneTime, u.returnTime]), 
-                y
-            ) + 6;
-        }
-
-        if (group.personnel.length > 0) {
-             y = createPdfTable(doc, 'Personal Asignado', 
-                [['Nombre', 'Jerarquía']],
-                group.personnel.map(p => [p.name, p.rank]),
-                y
-            ) + 10;
-        }
-    });
-    
-    doc.save(`Reporte_Comando_Tactico_${new Date().toISOString().split('T')[0]}.pdf`);
-};
-
-export const exportCommandPostSummaryToPdf = (
-    availableUnits: FireUnit[],
-    availablePersonnel: Personnel[],
-    interventionUnits: TrackedUnit[],
-    interventionPersonnel: TrackedPersonnel[]
-) => {
-    const doc = new jsPDF();
-    let y = 15;
-    
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Resumen de Puesto de Comando", 14, y);
-    y += 10;
-    
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date().toLocaleString('es-AR')}`, 14, y);
-    y += 10;
-
-    y = createPdfTable(doc, `Unidades en Intervención (${interventionUnits.length})`, [['ID', 'Tipo']], interventionUnits.map(u => [u.id, u.type]), y) + 10;
-    y = createPdfTable(doc, `Personal en Intervención (${interventionPersonnel.length})`, [['Nombre', 'Jerarquía']], interventionPersonnel.map(p => [p.name, p.rank]), y) + 10;
-    
-    if (y > 220) { doc.addPage(); y = 15; }
-
-    y = createPdfTable(doc, `Unidades Disponibles (${availableUnits.length})`, [['ID', 'Tipo']], availableUnits.map(u => [u.id, u.type]), y) + 10;
-    y = createPdfTable(doc, `Personal Disponible (${availablePersonnel.length})`, [['Nombre', 'Jerarquía']], availablePersonnel.map(p => [p.name, p.rank]), y) + 10;
-
-    doc.save(`Resumen_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
-};
-
 
 export const exportPersonnelToExcel = (personnel: Personnel[], title: string) => {
     const data = personnel.map(p => ({
@@ -1024,4 +938,139 @@ export const exportUnitsToExcel = (units: string[]) => {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Unidades');
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     saveFile(excelBuffer, 'Nomenclador_Unidades.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+};
+
+export const exportFullCommandPostReportToPdf = ({
+    availableUnits,
+    availablePersonnel,
+    interventionGroups,
+    croquisImage,
+    sciData
+}: {
+    availableUnits: FireUnit[],
+    availablePersonnel: Personnel[],
+    interventionGroups: InterventionGroup[],
+    croquisImage: string | null,
+    sciData: { sci201: any, sci211: any[], sci207: any[] }
+}) => {
+    const doc = new jsPDF();
+    let y = 15;
+
+    // Page 1: Summary
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Resumen de Puesto de Comando", 14, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Fecha de Reporte: ${new Date().toLocaleString('es-AR')}`, 14, y);
+    y += 10;
+    
+    const interventionUnits = interventionGroups.flatMap(g => g.units);
+    const interventionPersonnel = interventionGroups.flatMap(g => g.personnel);
+
+    y = createPdfTable(doc, `Recursos en Intervención (${interventionUnits.length} U / ${interventionPersonnel.length} P)`, 
+        [['Unidad/Personal', 'Tipo/Jerarquía', 'Grupo']],
+        [
+            ...interventionUnits.map(u => [u.id, u.type, u.groupName]),
+            ...interventionPersonnel.map(p => [p.name, p.rank, p.groupName])
+        ], 
+    y) + 10;
+
+    if (y > 200) { doc.addPage(); y = 15; }
+
+    y = createPdfTable(doc, `Recursos Disponibles (${availableUnits.length} U / ${availablePersonnel.length} P)`, 
+        [['Unidad/Personal', 'Tipo/Jerarquía']],
+        [
+            ...availableUnits.map(u => [u.id, u.type]),
+            ...availablePersonnel.map(p => [p.name, p.rank])
+        ], 
+    y) + 10;
+
+
+    // Page 2: Tactical Command
+    doc.addPage();
+    y = 15;
+    doc.setFontSize(18);
+    doc.text("Comando Táctico", 14, y);
+    y += 15;
+    
+    interventionGroups.forEach(group => {
+        if (y > 250) { doc.addPage(); y = 15; }
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${group.type}: ${group.name}`, 14, y);
+        y += 5;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`A Cargo: ${group.officerInCharge || 'N/A'}`, 14, y);
+        y+= 8;
+
+        if (group.units.length > 0) {
+            y = createPdfTable(doc, 'Unidades', 
+                [['ID', 'Tarea', 'Ubicación', 'H. Salida', 'H. Lugar']], 
+                group.units.map(u => [u.id, u.task, u.locationInScene, u.departureTime, u.onSceneTime]), 
+                y
+            ) + 6;
+        }
+
+        if (group.personnel.length > 0) {
+             y = createPdfTable(doc, 'Personal', 
+                [['Nombre', 'Jerarquía']],
+                group.personnel.map(p => [p.name, p.rank]),
+                y
+            ) + 10;
+        }
+    });
+
+    // Page 3: Croquis
+    if (croquisImage) {
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.text("Croquis de Situación", 14, 15);
+        const imgProps = doc.getImageProperties(croquisImage);
+        const pdfWidth = doc.internal.pageSize.getWidth() - 28;
+        const pdfHeight = doc.internal.pageSize.getHeight() - 30;
+        const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
+        const imgWidth = imgProps.width * ratio;
+        const imgHeight = imgProps.height * ratio;
+        doc.addImage(croquisImage, 'PNG', 14, 25, imgWidth, imgHeight);
+    }
+    
+    // Page 4+: SCI Forms
+    if (sciData.sci201 && sciData.sci201.incidentName) {
+        doc.addPage();
+        y = 15;
+        doc.setFontSize(18);
+        doc.text("SCI-201: Briefing de Incidente", 14, y);
+        y += 10;
+        const sci201body = [
+            ['Nombre Incidente', sciData.sci201.incidentName],
+            ['Ubicación', sciData.sci201.incidentLocation],
+            ['Comandante', sciData.sci201.incidentCommander],
+            ['Objetivos', sciData.sci201.initialObjectives],
+        ];
+        autoTable(doc, { body: sci201body, startY: y, theme: 'plain' });
+        y = (doc as any).lastAutoTable.finalY + 5;
+    }
+
+    if (sciData.sci211.length > 0) {
+        if (y > 220) { doc.addPage(); y = 15; }
+        y = createPdfTable(doc, "SCI-211: Registro de Recursos", 
+            [['Recurso', 'Institución', 'Estado']],
+            sciData.sci211.map((r: SCI211Resource) => [r.resourceType, r.institution, r.status]),
+            y
+        ) + 10;
+    }
+
+    if (sciData.sci207.length > 0) {
+        if (y > 220) { doc.addPage(); y = 15; }
+        y = createPdfTable(doc, "SCI-207: Registro de Víctimas", 
+            [['Nombre/ID', 'Triage', 'Destino']],
+            sciData.sci207.map((v: SCI207Victim) => [v.patientName, v.triage, v.transportLocation]),
+            y
+        ) + 10;
+    }
+
+
+    doc.save(`Reporte_Puesto_Comando_${new Date().toISOString().split('T')[0]}.pdf`);
 };

@@ -941,7 +941,7 @@ const App = () => {
                 if (currentUser.role !== 'admin' && currentUser.username !== 'Puesto Comando') {
                     return React.createElement("div", { className: "text-center text-red-400 text-lg" }, "Acceso denegado.");
                 }
-                return React.createElement(ForestalView, { interventionGroups: interventionGroups });
+                return React.createElement(ForestalView, { interventionGroups: interventionGroups, onUpdateInterventionGroups: handleUpdateInterventionGroups });
             case 'era-report':
                 if (!eraReport) return null;
                 return React.createElement(EraReportDisplay, { reportData: eraReport, onUpdateReport: handleUpdateEraReport, currentUser: currentUser });

@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import CommandPostSummaryView from './CommandPostSummaryView.js';
 import TacticalCommandPostView from './CommandPostView.js';
 import Croquis from './Croquis.js';
 import SciFormsView from './SciFormsView.js';
 import { PlusCircleIcon } from './icons.js';
+import { exportFullCommandPostReportToPdf } from '../services/exportService.js';
 
 const CommandPostParentView = (props) => {
     const { unitReportData, commandPersonnel, servicePersonnel, unitList, currentUser, interventionGroups, onUpdateInterventionGroups } = props;
     const [activeTab, setActiveTab] = useState('summary');
+    const croquisRef = useRef(null);
+
 
     const { allUnits, allPersonnel } = useMemo(() => {
         const units = unitReportData.zones.flatMap(zone => 
@@ -106,6 +109,26 @@ const CommandPostParentView = (props) => {
             g.id === groupId ? { ...g, units: g.units.map(u => u.id === unitId ? { ...u, [field]: value } : u) } : g
         ));
     };
+
+    const handleExportFullReport = async () => {
+        const croquisImage = await croquisRef.current?.capture();
+        
+        const sci201Data = JSON.parse(localStorage.getItem('sci201Data') || '{}');
+        const sci211Data = JSON.parse(localStorage.getItem('sci211Data') || '[]');
+        const sci207Data = JSON.parse(localStorage.getItem('sci207Data') || '[]');
+        
+        exportFullCommandPostReportToPdf({
+            availableUnits,
+            availablePersonnel,
+            interventionGroups,
+            croquisImage,
+            sciData: {
+                sci201: sci201Data,
+                sci211: sci211Data,
+                sci207: sci207Data
+            }
+        });
+    };
     
     const TabButton = ({ tabId, children }) => (
         React.createElement("button", {
@@ -127,7 +150,8 @@ const CommandPostParentView = (props) => {
                     React.createElement(CommandPostSummaryView, { 
                         availableUnits: availableUnits,
                         availablePersonnel: availablePersonnel,
-                        interventionGroups: interventionGroups
+                        interventionGroups: interventionGroups,
+                        onExportFullReport: handleExportFullReport
                     }),
                 activeTab === 'tactical' && 
                     React.createElement("div", { className: "space-y-6" },
@@ -155,9 +179,11 @@ const CommandPostParentView = (props) => {
                         })
                     ),
                 activeTab === 'croquis' && React.createElement(Croquis, { 
+                    ref: croquisRef,
                     isActive: true, 
                     onSketchCapture: () => {}, 
                     onUnlockSketch: () => {}, 
+                    storageKey: "commandPostSketch",
                     interventionGroups: interventionGroups,
                     onUpdateInterventionGroups: onUpdateInterventionGroups
                 }),
