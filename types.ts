@@ -314,7 +314,15 @@ export interface RegimenSubtitle {
     content: string;
 }
 
-export type RegimenContent = RegimenText | RegimenTable | RegimenList | RegimenSubtitle;
+export interface RegimenMap {
+    id: string;
+    type: 'map';
+    title: string;
+    imageUrl: string;
+}
+
+export type RegimenContent = RegimenText | RegimenTable | RegimenList | RegimenSubtitle | RegimenMap;
+
 
 export interface RegimenSection {
   id: string;

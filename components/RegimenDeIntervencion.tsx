@@ -72,7 +72,8 @@ const RegimenDeIntervencion: React.FC<RegimenDeIntervencionProps> = ({ regimenDa
             <div className="bg-zinc-800/60 p-6 rounded-xl flex justify-between items-center">
                 <div>
                     <h2 className="text-3xl font-bold text-white">{regimenData.title}</h2>
-                    <p className="text-zinc-400 text-sm">Última actualización: {new Date(regimenData.lastUpdated).toLocaleString()}</p>
+                    <p className="text-lg font-semibold text-zinc-300 mt-1">ORDEN DEL CUERPO Nº 092</p>
+                    <p className="text-zinc-400 text-sm">Ciudad Autónoma de Buenos Aires, miércoles 18 de septiembre de 2024.</p>
                 </div>
                 {currentUser.role === 'admin' && (
                     isEditing ? (
@@ -95,7 +96,14 @@ const RegimenDeIntervencion: React.FC<RegimenDeIntervencionProps> = ({ regimenDa
                                 case 'text':
                                     return <EditableField key={contentIdx} value={item.content} onChange={(val) => handleContentChange(sectionIdx, contentIdx, val)} isEditing={isEditing} className="text-zinc-300 leading-relaxed" />;
                                 case 'subtitle':
-                                     return <h4 key={contentIdx} className="text-lg font-semibold text-blue-300 mt-6 mb-2">{item.content}</h4>;
+                                     return <h4 key={contentIdx} className="text-xl font-bold text-blue-300 mt-6 mb-2">{item.content}</h4>;
+                                case 'map':
+                                    return (
+                                        <div key={item.id} className="mt-6 space-y-3">
+                                            <h4 className="text-lg font-semibold text-zinc-100">{item.title}</h4>
+                                            <img src={item.imageUrl} alt={item.title} className="rounded-lg border-2 border-zinc-700 w-full" />
+                                        </div>
+                                    );
                                 case 'table':
                                     return (
                                         <div key={contentIdx} className="overflow-x-auto">

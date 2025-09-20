@@ -73,3 +73,6 @@ export const MaterialsData = {};
 export const AlertPoint = {};
 export const Underpass = {};
 export const HidroAlertData = {};
+
+// New types for Regimen de Intervencion
+export const RegimenMap = {};
