@@ -277,7 +277,9 @@ const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisP
             mapRef.current = map;
             drawnItemsRef.current = new L.FeatureGroup().addTo(map);
 
-            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
+            const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            });
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' });
             const baseLayers = { 'Calles': streetLayer, 'Satélite': satelliteLayer };
             (storageKey === 'forestalSketch' ? satelliteLayer : streetLayer).addTo(map);
