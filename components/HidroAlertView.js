@@ -39,8 +39,8 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
             const map = L.map(mapContainer).setView([-34.6037, -58.4516], 12);
             mapRef.current = map;
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
         }
 
@@ -297,7 +297,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
             )
         );
     };
-
+    
     return (
         React.createElement("div", { className: "space-y-6" },
             React.createElement("div", { className: "bg-zinc-800/60 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start gap-4" },

@@ -459,7 +459,7 @@ const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisP
             {editingUnit && (
                 <div className="absolute inset-0 bg-black/50 z-[1001] flex justify-center items-center" onClick={() => setEditingUnit(null)}>
                     <div className="bg-zinc-800 p-4 rounded-lg animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <h4 className="text-white font-bold mb-3">Editar Unidad: {editingUnit.id}</h4>
+                        <h4 className="text-white font-bold mb-3">{`Editar Unidad: ${editingUnit.id}`}</h4>
                         <div className="space-y-3">
                              <div>
                                 <label className="text-sm text-zinc-400">Etiqueta</label>
