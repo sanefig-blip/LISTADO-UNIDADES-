@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { TrashIcon, EngineIcon, LadderIcon, AmbulanceIcon, CommandPostIcon, PersonIcon, CrosshairsIcon, MaximizeIcon, MinimizeIcon, PencilIcon, FireIcon, PencilSwooshIcon, AttackArrowIcon, TransferLineIcon } from './icons';
+import { TrashIcon, EngineIcon, LadderIcon, AmbulanceIcon, CommandPostIcon, PersonIcon, CrosshairsIcon, MaximizeIcon, MinimizeIcon, PencilIcon, FireIcon, PencilSwooshIcon, AttackArrowIcon, TransferLineIcon, DownloadIcon } from './icons';
 import { InterventionGroup, TrackedUnit } from '../types';
 import ReactDOMServer from 'react-dom/server';
 
@@ -55,6 +55,39 @@ const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisP
                     useCORS: true,
                     allowTaint: true,
                     backgroundColor: '#18181b',
+                });
+                return canvas.toDataURL('image/png');
+            } catch (error) {
+                console.error("Error capturing map:", error);
+                return null;
+            } finally {
+                controls.forEach(c => (c as HTMLElement).style.display = '');
+            }
+        }
+    }));
+    
+    const handleDownloadSketch = async () => {
+        const dataUrl = await croquisRef.current?.capture();
+        if (dataUrl) {
+            const link = document.createElement('a');
+            link.download = `croquis-${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = dataUrl;
+            link.click();
+        }
+    };
+    
+    const croquisRef = useRef<{ capture: () => Promise<string | null> }>(null);
+     useImperativeHandle(ref, () => ({
+        capture: async () => {
+            if (!mapRef.current || !mapContainerRef.current) return null;
+            const controls = mapContainerRef.current.querySelectorAll('.leaflet-control-container, .croquis-controls');
+            controls.forEach(c => (c as HTMLElement).style.display = 'none');
+            
+            try {
+                const canvas = await html2canvas(mapContainerRef.current, {
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#18181b', // zinc-900
                 });
                 return canvas.toDataURL('image/png');
             } catch (error) {
@@ -416,6 +449,9 @@ const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisP
                  <button onClick={clearCanvas} className="p-2 bg-red-600 hover:bg-red-500 rounded-md text-white" title="Limpiar Todo"><TrashIcon className="w-5 h-5" /></button>
                 <button onClick={() => setIsFullScreen(fs => !fs)} className="p-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white" title={isFullScreen ? "Salir de pantalla completa" : "Pantalla completa"}>
                     {isFullScreen ? <MinimizeIcon className="w-5 h-5" /> : <MaximizeIcon className="w-5 h-5" />}
+                </button>
+                <button onClick={handleDownloadSketch} className="p-2 bg-zinc-600 hover:bg-zinc-500 rounded-md text-white" title="Descargar Croquis">
+                    <DownloadIcon className="w-5 h-5" />
                 </button>
             </div>
             {editingUnit && (
