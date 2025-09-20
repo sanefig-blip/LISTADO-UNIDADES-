@@ -39,8 +39,8 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
             const map = L.map(mapContainer).setView([-34.6037, -58.4516], 12);
             mapRef.current = map;
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
         }
 
@@ -316,7 +316,7 @@ const HidroAlertView = ({ hidroAlertData, onUpdateReport, unitList }) => {
                 ),
                 
                 activeTab === 'operativo' && React.createElement(OperativoContent, null),
-                activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[65vh] rounded-lg animate-fade-in bg-zinc-900" }),
+                activeTab === 'mapa' && React.createElement("div", { ref: mapContainerRef, className: "w-full h-[65vh] rounded-lg animate-fade-in bg-zinc-900 map-dark-theme" }),
                 activeTab === 'puentes' && React.createElement(PuentesContent, null),
                 activeTab === 'telegram' && React.createElement(TelegramContent, null)
             )

@@ -277,8 +277,8 @@ const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisP
             mapRef.current = map;
             drawnItemsRef.current = new L.FeatureGroup().addTo(map);
 
-            const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             });
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' });
             const baseLayers = { 'Calles': streetLayer, 'Satélite': satelliteLayer };
@@ -394,7 +394,7 @@ const Croquis = forwardRef<({ capture: () => Promise<string | null> }), CroquisP
 
     return (
         <div className={`w-full h-full relative ${isFullScreen ? 'fixed inset-0 z-50' : ''}`}>
-            <div ref={mapContainerRef} className="w-full h-full rounded-xl bg-zinc-900" />
+            <div ref={mapContainerRef} className="w-full h-full rounded-xl bg-zinc-900 map-dark-theme" />
             <div className="croquis-controls absolute top-3 left-3 flex flex-col gap-3 z-[1000]">
                 {onUpdateInterventionGroups && (
                     <div className="bg-zinc-800/80 backdrop-blur-sm p-2 rounded-lg max-w-xs">
